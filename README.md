@@ -73,7 +73,22 @@
    npx expo start
    ```
 
-4. **Run on device/simulator**
+4. **Create your environment file**
+  ```bash
+  cp .env.example .env
+  # Adjust EXPO_PUBLIC_API_URL to point to your backend (e.g. http://localhost:3000)
+  ```
+
+5. **Run the backend (Express + Prisma)**
+  ```bash
+  cd backend
+  npm install
+  npx prisma migrate dev
+  npm run seed # if a seed script is provided
+  npm start
+  ```
+
+6. **Run on device/simulator**
    - Scan QR code with Expo Go (mobile)
    - Press `i` for iOS simulator
    - Press `a` for Android emulator
@@ -150,7 +165,38 @@ npx expo start --web
 
 # Type checking
 npx tsc --noEmit
+
+# Generate & run Prisma migrations (backend)
+npx prisma migrate dev
+
+# Apply existing migrations & generate client
+npx prisma generate
+
+# Run backend (from backend/ folder)
+npm start
 ```
+
+## 🔐 Environment Variables
+
+Environment variables are kept in a local `.env` file (not committed). Public variables prefixed with `EXPO_PUBLIC_` are embedded in the client bundle (treat them as non-secret). For anything sensitive (API keys, tokens), never use the `EXPO_PUBLIC_` prefix and never commit them.
+
+| Variable | Example | Description |
+|----------|---------|-------------|
+| `EXPO_PUBLIC_API_URL` | `http://192.168.1.22:3000` | Base URL for the backend API (must be reachable from device) |
+| `EXPO_PUBLIC_ENV` | `development` | Environment label for client logic & logging |
+
+Add more backend-only secrets inside `backend/.env` (ensure it's ignored) e.g. database URLs, JWT secrets, etc.
+
+### Adding New Env Vars
+1. Add to `.env` (and `.env.example` with a placeholder)
+2. If needed in the mobile client, prefix with `EXPO_PUBLIC_`
+3. Restart Expo server for changes to propagate
+
+### Rotating Exposed Values
+If you accidentally commit any sensitive key:
+1. Remove it from Git history (optional advanced step)
+2. Rotate/regenerate the key at the provider
+3. Re-deploy / restart the services
 
 ## 📱 Components Overview
 
