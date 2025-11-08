@@ -1,20 +1,20 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StatusBar,
-  Image,
-  ScrollView,
-  Alert
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from 'expo-image-picker';
 import { router } from "expo-router";
+import React, { useState } from "react";
+import {
+    Alert,
+    Image,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../components/ThemeProvider";
-import { THEMES } from "../themes";
 import { useUser } from "../components/UserProvider";
+import { THEMES } from "../themes";
 
 export default function OnboardingScreen() {
   const { theme } = useTheme();

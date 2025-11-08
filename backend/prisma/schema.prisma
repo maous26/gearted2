@@ -74,8 +74,110 @@ model Brand {
   
   // Relations
   products          Product[]
+  manufacturers     Manufacturer[]
   
   @@map("brands")
+}
+
+// Airsoft Weapon Manufacturers/Constructors
+model Manufacturer {
+  id                String   @id @default(cuid())
+  name              String   @unique
+  slug              String   @unique
+  country           String?
+  description       String?
+  logo              String?
+  website           String?
+  popularity        Int      @default(0) // For ranking top constructors
+  isActive          Boolean  @default(true)
+  
+  // Relation to Brand (optional - some manufacturers are also brands)
+  brandId           String?
+  brand             Brand?   @relation(fields: [brandId], references: [id])
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  weaponModels      WeaponModel[]
+  
+  @@map("manufacturers")
+}
+
+// Weapon Models (specific guns from manufacturers)
+model WeaponModel {
+  id                String        @id @default(cuid())
+  name              String
+  manufacturerId    String
+  manufacturer      Manufacturer  @relation(fields: [manufacturerId], references: [id])
+  
+  weaponType        WeaponType
+  model             String        // e.g., "AK-47", "M4A1"
+  version           String?       // e.g., "V2", "2023"
+  
+  // Technical specifications
+  gearboxType       String?       // e.g., "V2", "V3"
+  hopUpType         String?
+  barrelLength      Float?        // in mm
+  magazineType      String?
+  
+  isActive          Boolean       @default(true)
+  
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  
+  // Relations
+  compatibleParts   PartCompatibility[]
+  
+  @@unique([manufacturerId, model, version])
+  @@map("weapon_models")
+}
+
+// Compatible Parts and Accessories
+model Part {
+  id                String   @id @default(cuid())
+  name              String
+  manufacturer      String
+  partType          PartType
+  
+  // Specifications
+  specifications    String?  // JSON string for flexible specs
+  price             Decimal?
+  priceRange        String?  // e.g., "$20-$30"
+  
+  isActive          Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  compatibility     PartCompatibility[]
+  
+  @@map("parts")
+}
+
+// Compatibility Matrix
+model PartCompatibility {
+  id                String      @id @default(cuid())
+  
+  weaponModelId     String
+  weaponModel       WeaponModel @relation(fields: [weaponModelId], references: [id])
+  
+  partId            String
+  part              Part        @relation(fields: [partId], references: [id])
+  
+  // Compatibility score (0-100)
+  compatibilityScore Int        @default(100)
+  
+  // Additional info
+  notes             String?
+  requiresModification Boolean  @default(false)
+  
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  
+  @@unique([weaponModelId, partId])
+  @@map("part_compatibility")
 }
 
 model Product {
@@ -174,4 +276,35 @@ enum ProductStatus {
   EXPIRED
   SUSPENDED
   DELETED
+}
+
+enum WeaponType {
+  ASSAULT_RIFLE
+  SMG
+  SNIPER_RIFLE
+  PISTOL
+  LMG
+  SHOTGUN
+  DMR
+  CARBINE
+}
+
+enum PartType {
+  MAGAZINE
+  BARREL
+  HOP_UP
+  GEARBOX
+  MOTOR
+  BATTERY
+  OPTIC
+  STOCK
+  GRIP
+  SUPPRESSOR
+  RAIL_SYSTEM
+  TRIGGER
+  PISTON
+  SPRING
+  CYLINDER
+  NOZZLE
+  TAPPET_PLATE
 }

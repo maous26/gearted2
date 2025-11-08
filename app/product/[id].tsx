@@ -1,18 +1,18 @@
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StatusBar,
-  Image,
-  ScrollView,
-  Dimensions
+    Dimensions,
+    Image,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router, useLocalSearchParams } from "expo-router";
+import RatingModal from "../../components/RatingModal";
 import { useTheme } from "../../components/ThemeProvider";
 import { THEMES } from "../../themes";
-import RatingModal from "../../components/RatingModal";
 
 const { width } = Dimensions.get('window');
 

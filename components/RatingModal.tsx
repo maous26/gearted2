@@ -1,14 +1,13 @@
 import React, { useState } from "react";
 import {
-  Modal,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView
+    Modal,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
-import { useTheme } from "./ThemeProvider";
 import { THEMES } from "../themes";
+import { useTheme } from "./ThemeProvider";
 
 interface RatingModalProps {
   visible: boolean;

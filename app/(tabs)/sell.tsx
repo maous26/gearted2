@@ -14,10 +14,48 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useTheme } from "../../components/ThemeProvider";
 import { CATEGORIES } from "../../data/index";
 import { THEMES } from "../../themes";
+
 type ThemeTokens = typeof THEMES["ranger"];
+
+// Combined Zod validation schema
+const listingSchema = z.object({
+  title: z.string().min(5, "Le titre doit contenir au moins 5 caractères").max(100, "Le titre ne peut pas dépasser 100 caractères"),
+  description: z.string().min(20, "La description doit contenir au moins 20 caractères").max(1000, "La description ne peut pas dépasser 1000 caractères"),
+  category: z.string().min(1, "La catégorie est requise"),
+  condition: z.string().min(1, "L'état est requis"),
+  brand: z.string().optional(),
+  price: z.string().optional(),
+  wantedItems: z.string().optional(),
+  exchangeValue: z.string().optional(),
+  images: z.array(z.string()).min(1, "Au moins une photo est requise").max(5, "Maximum 5 photos"),
+}).refine(
+  (data) => {
+    // For sell type, price is required and must be valid
+    if (data.price !== undefined && data.price.trim() !== '') {
+      const priceNum = Number(data.price);
+      return !isNaN(priceNum) && priceNum > 0;
+    }
+    return true;
+  },
+  { message: "Le prix doit être un nombre positif", path: ["price"] }
+).refine(
+  (data) => {
+    // For exchange type, wantedItems is required
+    if (data.wantedItems !== undefined && data.wantedItems.trim() !== '') {
+      return data.wantedItems.length >= 10;
+    }
+    return true;
+  },
+  { message: "Décrivez ce que vous recherchez (min. 10 caractères)", path: ["wantedItems"] }
+);
+
+type ListingFormData = z.infer<typeof listingSchema>;
 
 // Stable components (defined outside SellScreen) to prevent remounts on keystroke
 function TypeTabButton({
@@ -63,7 +101,8 @@ function FormInputField({
   onChangeText, 
   placeholder, 
   multiline = false,
-  keyboardType = "default" as any
+  keyboardType = "default" as any,
+  error
 }: {
   t: ThemeTokens;
   label: string;
@@ -72,6 +111,7 @@ function FormInputField({
   placeholder: string;
   multiline?: boolean;
   keyboardType?: any;
+  error?: string;
 }) {
   return (
     <View style={{ marginBottom: 16 }}>
@@ -90,7 +130,7 @@ function FormInputField({
           paddingHorizontal: 16,
           paddingVertical: 12,
           borderWidth: 1,
-          borderColor: t.border,
+          borderColor: error ? '#FF6B6B' : t.border,
           fontSize: 16,
           color: t.heading,
           minHeight: multiline ? 100 : 50,
@@ -107,6 +147,11 @@ function FormInputField({
         autoCorrect={false}
         autoCapitalize="sentences"
       />
+      {error && (
+        <Text style={{ color: '#FF6B6B', fontSize: 12, marginTop: 4 }}>
+          {error}
+        </Text>
+      )}
     </View>
   );
 }
@@ -117,7 +162,8 @@ function FormSelectField({
   value, 
   options, 
   onSelect, 
-  placeholder 
+  placeholder,
+  error
 }: {
   t: ThemeTokens;
   label: string;
@@ -125,6 +171,7 @@ function FormSelectField({
   options: { label: string; value: string }[];
   onSelect: (value: string) => void;
   placeholder: string;
+  error?: string;
 }) {
   return (
     <View style={{ marginBottom: 16 }}>
@@ -151,7 +198,7 @@ function FormSelectField({
                 borderRadius: 20,
                 backgroundColor: value === option.value ? t.primaryBtn : t.cardBg,
                 borderWidth: 1,
-                borderColor: value === option.value ? t.primaryBtn : t.border
+                borderColor: value === option.value ? t.primaryBtn : (error ? '#FF6B6B' : t.border)
               }}
               onPress={() => onSelect(option.value)}
             >
@@ -166,6 +213,11 @@ function FormSelectField({
           ))}
         </View>
       </ScrollView>
+      {error && (
+        <Text style={{ color: '#FF6B6B', fontSize: 12, marginTop: 4 }}>
+          {error}
+        </Text>
+      )}
     </View>
   );
 }
@@ -205,45 +257,56 @@ type ListingType = "sell" | "exchange";
 export default function SellScreen() {
   const { theme } = useTheme();
   const [listingType, setListingType] = useState<ListingType>("sell");
-  
-  // Form state
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [category, setCategory] = useState("");
-  const [condition, setCondition] = useState("");
-  const [brand, setBrand] = useState("");
   const [images, setImages] = useState<string[]>([]);
-  
-  // Exchange specific
-  const [wantedItems, setWantedItems] = useState("");
-  const [exchangeValue, setExchangeValue] = useState("");
   
   const t = THEMES[theme];
 
-  const handleSubmit = () => {
-    if (!title || !description || !category || !condition) {
-      Alert.alert("Erreur", "Veuillez remplir tous les champs obligatoires");
+  // React Hook Form setup
+  const { control, handleSubmit, formState: { errors }, setValue, reset } = useForm<ListingFormData>({
+    resolver: zodResolver(listingSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      price: "",
+      category: "",
+      condition: "",
+      brand: "",
+      wantedItems: "",
+      exchangeValue: "",
+      images: []
+    }
+  });
+
+  // Update images in form when state changes
+  React.useEffect(() => {
+    setValue('images', images);
+  }, [images, setValue]);
+
+  const onSubmit = (data: ListingFormData) => {
+    // Validate based on listing type
+    if (listingType === 'sell' && (!data.price || data.price.trim() === '')) {
+      Alert.alert("Erreur", "Le prix est requis pour une vente");
       return;
     }
-
-    if (listingType === "sell" && !price) {
-      Alert.alert("Erreur", "Veuillez indiquer un prix pour la vente");
-      return;
-    }
-
-    if (listingType === "exchange" && !wantedItems) {
+    if (listingType === 'exchange' && (!data.wantedItems || data.wantedItems.trim() === '')) {
       Alert.alert("Erreur", "Veuillez indiquer ce que vous recherchez en échange");
       return;
     }
 
-    // Simulate posting
+    console.log('Form submitted:', data);
     Alert.alert(
       "Succès", 
       listingType === "sell" 
         ? "Votre annonce de vente a été publiée !" 
         : "Votre annonce d'échange a été publiée !",
-      [{ text: "OK", onPress: () => router.back() }]
+      [{
+        text: "OK",
+        onPress: () => {
+          reset();
+          setImages([]);
+          router.back();
+        }
+      }]
     );
   };
 
@@ -524,73 +587,135 @@ export default function SellScreen() {
         {/* Form */}
         <View style={{ paddingHorizontal: 16 }}>
           {/* Title */}
-          <FormInputField t={t}
-            label="Titre de l'annonce"
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Ex: AK-74 Kalashnikov réplique"
+          <Controller
+            control={control}
+            name="title"
+            render={({ field: { onChange, value } }) => (
+              <FormInputField 
+                t={t}
+                label="Titre de l'annonce"
+                value={value}
+                onChangeText={onChange}
+                placeholder="Ex: AK-74 Kalashnikov réplique"
+                error={errors.title?.message}
+              />
+            )}
           />
 
           {/* Description */}
-          <FormInputField t={t}
-            label="Description"
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Décrivez votre matériel, son état, ses caractéristiques..."
-            multiline={true}
+          <Controller
+            control={control}
+            name="description"
+            render={({ field: { onChange, value } }) => (
+              <FormInputField 
+                t={t}
+                label="Description"
+                value={value}
+                onChangeText={onChange}
+                placeholder="Décrivez votre matériel, son état, ses caractéristiques..."
+                multiline={true}
+                error={errors.description?.message}
+              />
+            )}
           />
 
           {/* Category */}
-          <FormSelectField t={t}
-            label="Catégorie"
-            value={category}
-            options={CATEGORIES.map(cat => ({ label: cat.label, value: cat.slug }))}
-            onSelect={setCategory}
-            placeholder="Sélectionnez une catégorie"
+          <Controller
+            control={control}
+            name="category"
+            render={({ field: { onChange, value } }) => (
+              <FormSelectField 
+                t={t}
+                label="Catégorie"
+                value={value}
+                options={CATEGORIES.map(cat => ({ label: cat.label, value: cat.slug }))}
+                onSelect={onChange}
+                placeholder="Sélectionnez une catégorie"
+                error={errors.category?.message}
+              />
+            )}
           />
 
           {/* Condition */}
-          <FormSelectField t={t}
-            label="État"
-            value={condition}
-            options={CONDITIONS.map((cond: string) => ({ label: cond, value: cond }))}
-            onSelect={setCondition}
-            placeholder="État du matériel"
+          <Controller
+            control={control}
+            name="condition"
+            render={({ field: { onChange, value } }) => (
+              <FormSelectField 
+                t={t}
+                label="État"
+                value={value}
+                options={CONDITIONS.map((cond: string) => ({ label: cond, value: cond }))}
+                onSelect={onChange}
+                placeholder="État du matériel"
+                error={errors.condition?.message}
+              />
+            )}
           />
 
           {/* Brand */}
-          <FormSelectField t={t}
-            label="Marque"
-            value={brand}
-            options={BRANDS.map((b: string) => ({ label: b, value: b }))}
-            onSelect={setBrand}
-            placeholder="Marque du produit"
+          <Controller
+            control={control}
+            name="brand"
+            render={({ field: { onChange, value } }) => (
+              <FormSelectField 
+                t={t}
+                label="Marque"
+                value={value || ""}
+                options={BRANDS.map((b: string) => ({ label: b, value: b }))}
+                onSelect={onChange}
+                placeholder="Marque du produit"
+              />
+            )}
           />
 
           {/* Price or Exchange */}
           {listingType === "sell" ? (
-            <FormInputField t={t}
-              label="Prix"
-              value={price}
-              onChangeText={setPrice}
-              placeholder="Ex: 250.00"
-              keyboardType="numeric"
+            <Controller
+              control={control}
+              name="price"
+              render={({ field: { onChange, value } }) => (
+                <FormInputField 
+                  t={t}
+                  label="Prix"
+                  value={value || ""}
+                  onChangeText={onChange}
+                  placeholder="Ex: 250.00"
+                  keyboardType="numeric"
+                  error={(errors as any).price?.message}
+                />
+              )}
             />
           ) : (
             <>
-              <FormInputField t={t}
-                label="Recherche en échange"
-                value={wantedItems}
-                onChangeText={setWantedItems}
-                placeholder="Décrivez ce que vous recherchez..."
-                multiline={true}
+              <Controller
+                control={control}
+                name="wantedItems"
+                render={({ field: { onChange, value } }) => (
+                  <FormInputField 
+                    t={t}
+                    label="Recherche en échange"
+                    value={value || ""}
+                    onChangeText={onChange}
+                    placeholder="Décrivez ce que vous recherchez..."
+                    multiline={true}
+                    error={(errors as any).wantedItems?.message}
+                  />
+                )}
               />
-              <FormInputField t={t}
-                label="Valeur estimée (optionnel)"
-                value={exchangeValue}
-                onChangeText={setExchangeValue}
-                placeholder="Ex: 200.00"
-                keyboardType="numeric"
+              <Controller
+                control={control}
+                name="exchangeValue"
+                render={({ field: { onChange, value } }) => (
+                  <FormInputField 
+                    t={t}
+                    label="Valeur estimée (optionnel)"
+                    value={value || ""}
+                    onChangeText={onChange}
+                    placeholder="Ex: 200.00"
+                    keyboardType="numeric"
+                  />
+                )}
               />
             </>
           )}
@@ -680,7 +805,7 @@ export default function SellScreen() {
               alignItems: 'center',
               marginBottom: 32
             }}
-            onPress={handleSubmit}
+            onPress={handleSubmit(onSubmit)}
           >
             <Text style={{
               color: t.white,
@@ -691,7 +816,7 @@ export default function SellScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-  </KeyboardAwareScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

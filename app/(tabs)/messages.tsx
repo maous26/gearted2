@@ -1,19 +1,17 @@
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  ScrollView,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StatusBar,
-  Image,
-  KeyboardAvoidingView,
-  Platform
+    Image,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../components/ThemeProvider";
 import { THEMES } from "../../themes";
-import { router } from "expo-router";
 
 // Mock data pour les conversations
 const MOCK_CONVERSATIONS = [

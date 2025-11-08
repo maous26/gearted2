@@ -1,9 +1,10 @@
-import * as Location from 'expo-location';
+import { Image } from 'expo-image';
+import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
+    ActivityIndicator,
     Dimensions,
-    Image,
+    FlatList,
     ScrollView,
     StatusBar,
     Text,
@@ -12,11 +13,14 @@ import {
     View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { useDebounce } from 'use-debounce';
+import { EmptyState } from "../../components/EmptyState";
+import { ProductCardSkeleton } from "../../components/Skeleton";
 import { useTheme } from "../../components/ThemeProvider";
-import { THEMES } from "../../themes";
 import { CATEGORIES } from "../../data";
-import { CategoryPill } from "../../components/CategoryPill";
+import { useInfiniteProducts, useToggleFavorite } from "../../hooks/useProducts";
+import { Product, useProductsStore } from "../../stores/productsStore";
+import { THEMES } from "../../themes";
 
 const { width } = Dimensions.get('window');
 
@@ -99,115 +103,59 @@ const MOCK_PRODUCTS = [
 export default function BrowseScreen() {
   const { theme } = useTheme();
   const [searchText, setSearchText] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<"recent" | "price_low" | "price_high" | "rating" | "distance">("recent");
+  const [debouncedSearch] = useDebounce(searchText, 500);
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   
+  const { filters, setFilters, isFavorite } = useProductsStore();
+  const toggleFavorite = useToggleFavorite();
+  
   const t = THEMES[theme];
 
-  // Simple city -> coordinates map for demo distances
-  const CITY_COORDS: Record<string, { lat: number; lon: number }> = {
-    Paris: { lat: 48.8566, lon: 2.3522 },
-    Lyon: { lat: 45.7640, lon: 4.8357 },
-    Marseille: { lat: 43.2965, lon: 5.3698 },
-    Toulouse: { lat: 43.6047, lon: 1.4442 },
-    Nice: { lat: 43.7102, lon: 7.2620 },
-    Bordeaux: { lat: 44.8378, lon: -0.5792 },
-  };
-
-  function parseCity(location: string): string | null {
-    // Expecting format "City, ZIP"; take the city part
-    const city = location.split(',')[0].trim();
-    return city.length ? city : null;
-  }
-
-  function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
-    const toRad = (x: number) => (x * Math.PI) / 180;
-    const R = 6371; // km
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-
-  async function ensureLocation() {
-    if (userLocation) return true;
-    
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          "Permission refusée", 
-          "La localisation est nécessaire pour trier par proximité. Activez-la dans les paramètres de votre téléphone."
-        );
-        return false;
-      }
-      const loc = await Location.getCurrentPositionAsync({});
-      setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
-      return true;
-    } catch (error) {
-      Alert.alert("Erreur", "Impossible d'obtenir votre position");
-      return false;
-    }
-  }
+  // Update filters when search or category changes
+  useEffect(() => {
+    setFilters({ search: debouncedSearch });
+  }, [debouncedSearch, setFilters]);
 
   useEffect(() => {
-    if (sortBy === 'distance') {
-      ensureLocation();
-    }
-  }, [sortBy]);
+    setFilters({ category: filters.category || undefined });
+  }, [filters.category, setFilters]);
 
-  const handleSelectSort = async (key: typeof sortBy) => {
-    if (key === 'distance') {
-      const ok = await ensureLocation();
-      if (!ok) { 
-        setShowSortOptions(false); 
-        return; 
-      }
+  // Fetch products with React Query
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+    refetch
+  } = useInfiniteProducts(filters);
+
+  // Get all products from pages
+  const allProducts = data?.pages.flatMap(page => page.products) ?? [];
+  const totalCount = data?.pages[0]?.total ?? 0;
+
+  const handleLoadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
-    setSortBy(key);
+  };
+
+  const handleCategorySelect = (slug: string | null) => {
+    setFilters({ category: slug || undefined });
+  };
+
+  const handleSortSelect = (key: 'recent' | 'price_low' | 'price_high' | 'rating') => {
+    setFilters({ sortBy: key });
     setShowSortOptions(false);
   };
 
-  const filteredProducts = MOCK_PRODUCTS.filter(product => {
-    const matchesSearch = searchText === "" || 
-      product.title.toLowerCase().includes(searchText.toLowerCase()) ||
-      product.seller.toLowerCase().includes(searchText.toLowerCase());
-    
-    const matchesCategory = selectedCategory === null || product.category === selectedCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
+  const handleToggleFavorite = (productId: string) => {
+    toggleFavorite.mutate(productId);
+  };
 
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    switch (sortBy) {
-      case "price_low":
-        return a.price - b.price;
-      case "price_high":
-        return b.price - a.price;
-      case "rating":
-        return b.rating - a.rating;
-      case "distance": {
-        if (!userLocation) return 0;
-        const cityA = parseCity(a.location);
-        const cityB = parseCity(b.location);
-        const ca = cityA && CITY_COORDS[cityA] ? CITY_COORDS[cityA] : null;
-        const cb = cityB && CITY_COORDS[cityB] ? CITY_COORDS[cityB] : null;
-        if (!ca && !cb) return 0;
-        if (ca && !cb) return -1;
-        if (!ca && cb) return 1;
-        const da = haversine(userLocation.latitude, userLocation.longitude, ca!.lat, ca!.lon);
-        const db = haversine(userLocation.latitude, userLocation.longitude, cb!.lat, cb!.lon);
-        return da - db;
-      }
-      default:
-        return 0; // Keep original order for "recent"
-    }
-  });
-
-  const ProductCard = ({ product }: { product: typeof MOCK_PRODUCTS[0] }) => (
+  const ProductCard = ({ product }: { product: Product }) => (
     <TouchableOpacity style={{
       backgroundColor: t.cardBg,
       borderRadius: 12,
@@ -215,18 +163,21 @@ export default function BrowseScreen() {
       borderWidth: 1,
       borderColor: t.border,
       overflow: 'hidden'
-    }}>
+    }}
+    onPress={() => router.push(`/product/${product.id}`)}
+    >
       {/* Product Image */}
       <View style={{ position: 'relative' }}>
         <Image 
           source={{ uri: product.images[0] }}
           style={{ width: '100%', height: 150 }}
-          resizeMode="cover"
+          contentFit="cover"
         />
         {product.featured && (
           <View style={{
             position: 'absolute',
             right: 8,
+            top: 8,
             backgroundColor: '#FFD166',
             paddingHorizontal: 8,
             paddingVertical: 4,
@@ -250,6 +201,29 @@ export default function BrowseScreen() {
             {product.condition}
           </Text>
         </View>
+        
+        {/* Favorite button */}
+        <TouchableOpacity 
+          style={{
+            position: 'absolute',
+            bottom: 8,
+            right: 8,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleToggleFavorite(product.id);
+          }}
+        >
+          <Text style={{ fontSize: 18 }}>
+            {isFavorite(product.id) ? '❤️' : '🤍'}
+          </Text>
+        </TouchableOpacity>
   </View>
 
   {/* Product Details */}
@@ -350,41 +324,49 @@ export default function BrowseScreen() {
         </Text>
       </View>
 
-      <ScrollView style={{ flex: 1 }}>
-        {/* Search and Filters */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-          {/* Search Bar */}
-          <View style={{
-            backgroundColor: t.cardBg,
-            borderRadius: 12,
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            borderWidth: 1,
-            borderColor: t.border,
-            flexDirection: 'row',
-            alignItems: 'center',
-            marginBottom: 16
-          }}>
-            <TextInput
-              style={{
-                flex: 1,
-                fontSize: 16,
-                color: t.heading
-              }}
-              placeholder="Rechercher des produits..."
-              value={searchText}
-              onChangeText={setSearchText}
-              placeholderTextColor={t.muted}
-            />
-            <TouchableOpacity style={{
-              backgroundColor: t.primaryBtn,
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 6
-            }}>
-              <Text style={{ color: t.white, fontWeight: '600', fontSize: 12 }}>🔍</Text>
-            </TouchableOpacity>
-          </View>
+      {/* Search and Filters as ListHeaderComponent */}
+      {!isLoading && !isError && allProducts.length > 0 ? (
+        <FlatList
+          data={allProducts}
+          renderItem={({ item }) => <ProductCard product={item} />}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingBottom: 32 }}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListHeaderComponent={() => (
+            <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+              {/* Search Bar */}
+              <View style={{
+                backgroundColor: t.cardBg,
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                borderWidth: 1,
+                borderColor: t.border,
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: 16
+              }}>
+                <TextInput
+                  style={{
+                    flex: 1,
+                    fontSize: 16,
+                    color: t.heading
+                  }}
+                  placeholder="Rechercher des produits..."
+                  value={searchText}
+                  onChangeText={setSearchText}
+                  placeholderTextColor={t.muted}
+                />
+                <TouchableOpacity style={{
+                  backgroundColor: t.primaryBtn,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 6
+                }}>
+                  <Text style={{ color: t.white, fontWeight: '600', fontSize: 12 }}>🔍</Text>
+                </TouchableOpacity>
+              </View>
 
           {/* Categories */}
           <Text style={{
@@ -406,15 +388,15 @@ export default function BrowseScreen() {
                 paddingHorizontal: 16,
                 paddingVertical: 8,
                 borderRadius: 20,
-                backgroundColor: selectedCategory === null ? t.primaryBtn : t.cardBg,
+                backgroundColor: filters.category === undefined ? t.primaryBtn : t.cardBg,
                 borderWidth: 1,
                 borderColor: t.border,
                 marginRight: 8
               }}
-              onPress={() => setSelectedCategory(null)}
+              onPress={() => handleCategorySelect(null)}
             >
               <Text style={{
-                color: selectedCategory === null ? t.white : t.heading,
+                color: filters.category === undefined ? t.white : t.heading,
                 fontWeight: '600',
                 fontSize: 12
               }}>
@@ -423,15 +405,29 @@ export default function BrowseScreen() {
             </TouchableOpacity>
             
             {CATEGORIES.map((category) => (
-              <CategoryPill
+              <TouchableOpacity
                 key={category.slug}
-                label={category.label}
-                icon={category.icon}
-                onPress={() => setSelectedCategory(
-                  selectedCategory === category.slug ? null : category.slug
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  backgroundColor: filters.category === category.slug ? t.primaryBtn : t.cardBg,
+                  borderWidth: 1,
+                  borderColor: t.border,
+                  marginRight: 8
+                }}
+                onPress={() => handleCategorySelect(
+                  filters.category === category.slug ? null : category.slug
                 )}
-                theme={theme}
-              />
+              >
+                <Text style={{
+                  color: filters.category === category.slug ? t.white : t.heading,
+                  fontWeight: '600',
+                  fontSize: 12
+                }}>
+                  {category.icon} {category.label}
+                </Text>
+              </TouchableOpacity>
             ))}
           </ScrollView>
 
@@ -447,7 +443,7 @@ export default function BrowseScreen() {
               fontWeight: '600',
               color: t.heading
             }}>
-              {sortedProducts.length} résultat{sortedProducts.length > 1 ? 's' : ''}
+              {totalCount} résultat{totalCount > 1 ? 's' : ''}
             </Text>
             
             <View style={{ position: 'relative', zIndex: 100 }}>
@@ -461,17 +457,15 @@ export default function BrowseScreen() {
                   borderColor: t.border
                 }}
                 onPress={() => {
-                  console.log('Tri clicked, current showSortOptions:', showSortOptions);
                   setShowSortOptions(v => !v);
                 }}
               >
                 <Text style={{ color: t.heading, fontSize: 12 }}>
                   📊 Trier: {
-                    sortBy === 'recent' ? '🕒 Plus récent' : 
-                    sortBy === 'price_low' ? '💰 Prix ↑' : 
-                    sortBy === 'price_high' ? '💎 Prix ↓' : 
-                    sortBy === 'rating' ? '⭐ Note' : 
-                    '📍 Proximité'
+                    filters.sortBy === 'recent' ? '🕒 Plus récent' : 
+                    filters.sortBy === 'price_low' ? '💰 Prix ↑' : 
+                    filters.sortBy === 'price_high' ? '💎 Prix ↓' : 
+                    '⭐ Note'
                   }
                 </Text>
               </TouchableOpacity>
@@ -490,20 +484,22 @@ export default function BrowseScreen() {
                   shadowRadius: 8,
                   elevation: 5,
                   zIndex: 1000
-                }}
-                onLayout={() => console.log('Sort menu rendered!')}
-                >
+                }}>
                   {([
                     { key: 'recent', label: '🕒 Plus récent' },
                     { key: 'price_low', label: '💰 Prix croissant' },
                     { key: 'price_high', label: '💎 Prix décroissant' },
-                    { key: 'rating', label: '⭐ Meilleure note' },
-                    { key: 'distance', label: '📍 Proximité' }
+                    { key: 'rating', label: '⭐ Meilleure note' }
                   ] as const).map(opt => (
                     <TouchableOpacity 
                       key={opt.key}
-                      onPress={() => handleSelectSort(opt.key)}
-                      style={{ paddingHorizontal: 12, paddingVertical: 10, minWidth: 160, backgroundColor: sortBy === opt.key ? t.sectionLight : t.cardBg }}
+                      onPress={() => handleSortSelect(opt.key)}
+                      style={{ 
+                        paddingHorizontal: 12, 
+                        paddingVertical: 10, 
+                        minWidth: 160, 
+                        backgroundColor: filters.sortBy === opt.key ? t.sectionLight : t.cardBg 
+                      }}
                     >
                       <Text style={{ color: t.heading, fontSize: 14 }}>
                         {opt.label}
@@ -514,59 +510,34 @@ export default function BrowseScreen() {
               )}
             </View>
           </View>
-          {sortBy === 'distance' && !userLocation && (
-            <View style={{
-              backgroundColor: t.cardBg,
-              borderWidth: 1,
-              borderColor: t.border,
-              borderRadius: 8,
-              padding: 12,
-              marginBottom: 12
-            }}>
-              <Text style={{ color: t.muted, marginBottom: 8 }}>
-                Activez la localisation pour trier par proximité.
-              </Text>
-              <TouchableOpacity onPress={ensureLocation} style={{ backgroundColor: t.primaryBtn, paddingVertical: 8, borderRadius: 6, alignItems: 'center' }}>
-                <Text style={{ color: t.white, fontWeight: '600' }}>Activer la localisation</Text>
-              </TouchableOpacity>
             </View>
           )}
+          ListFooterComponent={() => 
+            isFetchingNextPage ? (
+              <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color={t.primaryBtn} />
+              </View>
+            ) : null
+          }
+        />
+      ) : isLoading ? (
+        <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}>
+          <ProductCardSkeleton />
+          <ProductCardSkeleton />
+          <ProductCardSkeleton />
         </View>
-
-        {/* Product Grid */}
-        <View style={{ paddingHorizontal: 16, paddingBottom: 32 }}>
-          {sortedProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-          
-          {sortedProducts.length === 0 && (
-            <View style={{
-              backgroundColor: t.cardBg,
-              borderRadius: 12,
-              padding: 32,
-              alignItems: 'center',
-              borderWidth: 1,
-              borderColor: t.border
-            }}>
-              <Text style={{
-                fontSize: 18,
-                color: t.muted,
-                textAlign: 'center',
-                marginBottom: 8
-              }}>
-                🔍 Aucun produit trouvé
-              </Text>
-              <Text style={{
-                fontSize: 14,
-                color: t.muted,
-                textAlign: 'center'
-              }}>
-                Essayez de modifier vos filtres ou votre recherche
-              </Text>
-            </View>
-          )}
+      ) : isError ? (
+        <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}>
+          <EmptyState 
+            type="error" 
+            onAction={refetch}
+          />
         </View>
-      </ScrollView>
+      ) : (
+        <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}>
+          <EmptyState type="search" />
+        </View>
+      )}
     </SafeAreaView>
   );
 }

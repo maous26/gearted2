@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Alert, Pressable, Text, View } from "react-native";
 
@@ -10,13 +11,20 @@ export default function Hero({ mode = "ranger" }: { mode?: "ranger" | "night" })
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={{ borderRadius: 16, padding: 24 }}
       >
-        <Text style={{ 
-          color: isNight ? "white" : "#4e5d2f", 
-          fontSize: 36, 
-          fontWeight: "800" 
-        }}>
-          Gearted
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+          <Image 
+            source={require('../assets/geartedicon.png')} 
+            style={{ width: 64, height: 64, marginRight: 12 }}
+            contentFit="contain"
+          />
+          <Text style={{ 
+            color: isNight ? "white" : "#4e5d2f", 
+            fontSize: 36, 
+            fontWeight: "800" 
+          }}>
+            Gearted
+          </Text>
+        </View>
         <Text style={{ 
           color: isNight ? "rgba(255,255,255,0.8)" : "rgba(78,93,47,0.8)", 
           marginTop: 12, 

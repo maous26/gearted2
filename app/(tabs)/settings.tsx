@@ -1,24 +1,25 @@
+import * as ImagePicker from 'expo-image-picker';
+import { router } from 'expo-router';
 import React, { useState } from "react";
 import {
+    Alert,
+    Image,
     ScrollView,
     StatusBar,
     Switch,
     Text,
-    TouchableOpacity,
-    View,
-    Image,
     TextInput,
-    Alert
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from "../../components/ThemeProvider";
 import { useUser } from "../../components/UserProvider";
 import { THEMES, ThemeKey } from "../../themes";
 
 export default function Settings() {
   const { theme, setTheme } = useTheme();
-  const { user, updateProfile } = useUser();
+  const { user, updateProfile, logout } = useUser();
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -56,6 +57,27 @@ export default function Settings() {
       teamName: editTeamName.trim() || "Sans équipe"
     });
     setIsEditingProfile(false);
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      "Déconnexion",
+      "Êtes-vous sûr de vouloir vous déconnecter ?",
+      [
+        {
+          text: "Annuler",
+          style: "cancel"
+        },
+        {
+          text: "Déconnexion",
+          style: "destructive",
+          onPress: () => {
+            logout();
+            router.replace('/login');
+          }
+        }
+      ]
+    );
   };
 
   const ProfileSection = () => (
@@ -390,7 +412,9 @@ export default function Settings() {
         </View>
 
         {/* Logout */}
-        <TouchableOpacity style={{
+        <TouchableOpacity 
+          onPress={handleLogout}
+          style={{
           marginTop: 32,
           marginBottom: 32,
           paddingVertical: 16,

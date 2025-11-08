@@ -1,146 +1,43 @@
 import React, { useState } from "react";
-import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { THEMES, ThemeKey } from "../themes";
-
-// Simulate dropdown data
-const WEAPON_TYPES = [
-  "Assault Rifle",
-  "SMG",
-  "Sniper Rifle",
-  "Pistol",
-  "LMG",
-  "Shotgun"
-];
-
-const BRANDS = [
-  "Tokyo Marui",
-  "KWA",
-  "VFC",
-  "G&G",
-  "Krytac",
-  "ASG"
-];
-
-interface DropdownProps {
-  label: string;
-  value: string;
-  options: string[];
-  onSelect: (value: string) => void;
-  theme: ThemeKey;
-}
-
-function Dropdown({ label, value, options, onSelect, theme }: DropdownProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const t = THEMES[theme];
-
-  return (
-    <View style={{ flex: 1, marginHorizontal: 4 }}>
-      <Text style={{ 
-        color: t.muted, 
-        fontSize: 12, 
-        marginBottom: 4,
-        fontWeight: '500'
-      }}>
-        {label}
-      </Text>
-      <TouchableOpacity
-        onPress={() => setIsOpen(true)}
-        style={{
-          backgroundColor: t.cardBg,
-          borderWidth: 1,
-          borderColor: t.border,
-          borderRadius: 8,
-          paddingHorizontal: 12,
-          paddingVertical: 10,
-          minHeight: 40,
-          justifyContent: 'center',
-        }}
-      >
-        <Text style={{ 
-          color: value ? t.heading : t.muted,
-          fontSize: 14
-        }}>
-          {value || `Select ${label.toLowerCase()}`}
-        </Text>
-      </TouchableOpacity>
-
-      <Modal
-        visible={isOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsOpen(false)}
-      >
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-          onPress={() => setIsOpen(false)}
-        >
-          <View style={{
-            backgroundColor: t.cardBg,
-            borderRadius: 12,
-            padding: 16,
-            width: '80%',
-            maxHeight: '60%',
-            borderWidth: 1,
-            borderColor: t.border,
-          }}>
-            <Text style={{
-              color: t.heading,
-              fontSize: 16,
-              fontWeight: 'bold',
-              marginBottom: 12,
-              textAlign: 'center'
-            }}>
-              Select {label}
-            </Text>
-            <ScrollView>
-              {options.map((option) => (
-                <TouchableOpacity
-                  key={option}
-                  onPress={() => {
-                    onSelect(option);
-                    setIsOpen(false);
-                  }}
-                  style={{
-                    paddingVertical: 12,
-                    paddingHorizontal: 8,
-                    borderBottomWidth: 1,
-                    borderBottomColor: t.border,
-                  }}
-                >
-                  <Text style={{
-                    color: t.heading,
-                    fontSize: 14,
-                    textAlign: 'center'
-                  }}>
-                    {option}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    </View>
-  );
-}
+import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
+import { compatibilityApi, SearchItem, VerifiedCompatibility } from "../services/compatibility";
+import { ThemeKey, THEMES } from "../themes";
+import { ItemSearch } from "./ItemSearch";
 
 export function CompatibilityTeaser({ 
   theme,
   onOpenDrawer 
 }: { 
   theme: ThemeKey;
-  onOpenDrawer?: () => void;
+  onOpenDrawer?: (item1: SearchItem, item2: SearchItem, result: VerifiedCompatibility) => void;
 }) {
-  const [weaponType, setWeaponType] = useState("");
-  const [brand, setBrand] = useState("");
+  const [item1, setItem1] = useState<SearchItem | null>(null);
+  const [item2, setItem2] = useState<SearchItem | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [result, setResult] = useState<VerifiedCompatibility | null>(null);
   const t = THEMES[theme];
 
-  const canCheck = weaponType && brand;
+  const handleCheckCompatibility = async () => {
+    if (!item1 || !item2) return;
+
+    setChecking(true);
+    setResult(null);
+
+    try {
+      const compatResult = await compatibilityApi.checkItemCompatibility(item1.id, item2.id);
+      setResult(compatResult);
+      
+      if (compatResult && onOpenDrawer) {
+        onOpenDrawer(item1, item2, compatResult);
+      }
+    } catch (error) {
+      console.error('Compatibility check error:', error);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const canCheck = item1 && item2;
 
   return (
     <View style={{
@@ -171,49 +68,158 @@ export function CompatibilityTeaser({
         textAlign: 'center',
         marginBottom: 16
       }}>
-        Find compatible parts for your airsoft weapon
+        Check if two airsoft items are compatible
       </Text>
 
-      <View style={{ 
-        flexDirection: 'row',
-        marginBottom: 16,
-        gap: 8
-      }}>
-        <Dropdown
-          label="Weapon Type"
-          value={weaponType}
-          options={WEAPON_TYPES}
-          onSelect={setWeaponType}
-          theme={theme}
+      <View style={{ marginBottom: 12 }}>
+        <Text style={{
+          color: t.muted,
+          fontSize: 12,
+          marginBottom: 6,
+          fontWeight: '500'
+        }}>
+          First Item
+        </Text>
+        <ItemSearch
+          placeholder="Search for first item..."
+          onSelectItem={setItem1}
+          excludeItemId={item2?.id}
         />
-        <Dropdown
-          label="Brand"
-          value={brand}
-          options={BRANDS}
-          onSelect={setBrand}
-          theme={theme}
+        {item1 && (
+          <View style={{
+            marginTop: 8,
+            padding: 8,
+            backgroundColor: t.rootBg,
+            borderRadius: 6,
+          }}>
+            <Text style={{ color: t.heading, fontSize: 12, fontWeight: '600' }}>
+              {item1.name}
+            </Text>
+            <Text style={{ color: t.muted, fontSize: 10 }}>
+              {item1.manufacturer} • {item1.reference} • {item1.type}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      <View style={{ marginBottom: 16 }}>
+        <Text style={{
+          color: t.muted,
+          fontSize: 12,
+          marginBottom: 6,
+          fontWeight: '500'
+        }}>
+          Second Item
+        </Text>
+        <ItemSearch
+          placeholder="Search for second item..."
+          onSelectItem={setItem2}
+          excludeItemId={item1?.id}
         />
+        {item2 && (
+          <View style={{
+            marginTop: 8,
+            padding: 8,
+            backgroundColor: t.rootBg,
+            borderRadius: 6,
+          }}>
+            <Text style={{ color: t.heading, fontSize: 12, fontWeight: '600' }}>
+              {item2.name}
+            </Text>
+            <Text style={{ color: t.muted, fontSize: 10 }}>
+              {item2.manufacturer} • {item2.reference} • {item2.type}
+            </Text>
+          </View>
+        )}
       </View>
 
       <TouchableOpacity
-        onPress={onOpenDrawer}
-        disabled={!canCheck}
+        onPress={handleCheckCompatibility}
+        disabled={!canCheck || checking}
         style={{
           backgroundColor: canCheck ? t.primaryBtn : t.border,
           borderRadius: 8,
           paddingVertical: 12,
           paddingHorizontal: 16,
           alignItems: 'center',
+          flexDirection: 'row',
+          justifyContent: 'center',
         }}
       >
-        <Text style={{
-          color: canCheck ? t.white : t.muted,
-          fontSize: 14,
-          fontWeight: '600'
-        }}>
-          {canCheck ? "Check Compatibility" : "Select weapon details"}
-        </Text>
+        {checking ? (
+          <ActivityIndicator size="small" color={t.white} />
+        ) : (
+          <Text style={{
+            color: canCheck ? t.white : t.muted,
+            fontSize: 14,
+            fontWeight: '600'
+          }}>
+            {canCheck ? "Check Compatibility" : "Select two items to check"}
+          </Text>
+        )}
       </TouchableOpacity>
+
+      {result && !checking && (
+        <View style={{
+          marginTop: 16,
+          padding: 12,
+          backgroundColor: result.compatible ? '#E7F6ED' : '#FFE5E5',
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: result.compatible ? '#4CAF50' : '#F44336',
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+            <Text style={{ fontSize: 18, marginRight: 8 }}>
+              {result.compatible ? '✅' : '❌'}
+            </Text>
+            <Text style={{
+              fontSize: 14,
+              fontWeight: 'bold',
+              color: result.compatible ? '#2E7D32' : '#C62828',
+            }}>
+              {result.compatible ? 'Compatible' : 'Not Compatible'}
+            </Text>
+          </View>
+
+          {result.verified === false && (
+            <View style={{
+              marginTop: 8,
+              padding: 8,
+              backgroundColor: '#FFF9E6',
+              borderRadius: 6,
+              borderWidth: 1,
+              borderColor: '#FFB300',
+            }}>
+              <Text style={{ fontSize: 12, color: '#F57C00', fontWeight: '600' }}>
+                ⚠️ No verified compatibility data available
+              </Text>
+              <Text style={{ fontSize: 10, color: '#E65100', marginTop: 4 }}>
+                We cannot confirm compatibility between these items. Only purchase if you have verified compatibility yourself.
+              </Text>
+            </View>
+          )}
+
+          {result.compatible && result.verified && (
+            <>
+              {result.score && (
+                <Text style={{ fontSize: 12, color: '#2E7D32', marginTop: 4 }}>
+                  Compatibility Score: {result.score}%
+                </Text>
+              )}
+              {result.requiresModification && (
+                <Text style={{ fontSize: 11, color: '#F57C00', marginTop: 4 }}>
+                  ⚠️ May require modification for proper fit
+                </Text>
+              )}
+              {result.notes && (
+                <Text style={{ fontSize: 11, color: '#555', marginTop: 6 }}>
+                  Note: {result.notes}
+                </Text>
+              )}
+            </>
+          )}
+        </View>
+      )}
     </View>
   );
 }

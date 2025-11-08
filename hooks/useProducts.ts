@@ -1,0 +1,152 @@
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import api from '../services/api';
+import { Product, ProductFilters } from '../stores/productsStore';
+
+interface ProductsResponse {
+  products: Product[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+// Hook pour récupérer les produits
+export const useProducts = (filters?: ProductFilters) => {
+  return useQuery({
+    queryKey: ['products', filters],
+    queryFn: async () => {
+      const response = await api.get<ProductsResponse>('/products', filters);
+      return response;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+// Hook pour infinite scroll
+export const useInfiniteProducts = (filters?: ProductFilters) => {
+  return useInfiniteQuery({
+    queryKey: ['products-infinite', filters],
+    queryFn: async ({ pageParam = 1 }) => {
+      const response = await api.get<ProductsResponse>('/products', {
+        ...filters,
+        page: pageParam,
+        limit: 20,
+      });
+      return response;
+    },
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? lastPage.page + 1 : undefined,
+    initialPageParam: 1,
+  });
+};
+
+// Hook pour un produit spécifique
+export const useProduct = (productId: string) => {
+  return useQuery({
+    queryKey: ['product', productId],
+    queryFn: async () => {
+      const response = await api.get<Product>(`/products/${productId}`);
+      return response;
+    },
+    enabled: !!productId,
+  });
+};
+
+// Hook pour créer un produit
+export const useCreateProduct = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (productData: FormData) => {
+      const response = await api.upload<Product>('/products', productData);
+      return response;
+    },
+    onSuccess: () => {
+      // Invalider le cache des produits pour recharger la liste
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+  });
+};
+
+// Hook pour mettre à jour un produit
+export const useUpdateProduct = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<Product>;
+    }) => {
+      const response = await api.put<Product>(`/products/${id}`, data);
+      return response;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product', data.id] });
+    },
+  });
+};
+
+// Hook pour supprimer un produit
+export const useDeleteProduct = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (productId: string) => {
+      await api.delete(`/products/${productId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+  });
+};
+
+// Hook pour les favoris
+export const useFavorites = () => {
+  return useQuery({
+    queryKey: ['favorites'],
+    queryFn: async () => {
+      const response = await api.get<{ productIds: string[] }>('/favorites');
+      return response.productIds;
+    },
+  });
+};
+
+// Hook pour toggle favorite
+export const useToggleFavorite = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (productId: string) => {
+      await api.post(`/favorites/${productId}/toggle`);
+    },
+    onMutate: async (productId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['favorites'] });
+
+      // Snapshot previous value
+      const previousFavorites = queryClient.getQueryData<string[]>(['favorites']);
+
+      // Optimistically update
+      queryClient.setQueryData<string[]>(['favorites'], (old = []) => {
+        return old.includes(productId)
+          ? old.filter((id) => id !== productId)
+          : [...old, productId];
+      });
+
+      return { previousFavorites };
+    },
+    onError: (err, productId, context) => {
+      // Rollback on error
+      if (context?.previousFavorites) {
+        queryClient.setQueryData(['favorites'], context.previousFavorites);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+    },
+  });
+};

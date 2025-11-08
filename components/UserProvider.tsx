@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, ReactNode, useContext, useState } from "react";
 
 export interface UserProfile {
   id: string;
@@ -12,6 +12,7 @@ interface UserContextValue {
   user: UserProfile | null;
   setUser: (user: UserProfile | null) => void;
   updateProfile: (updates: Partial<UserProfile>) => void;
+  logout: () => void;
   isOnboarded: boolean;
   completeOnboarding: () => void;
 }
@@ -28,12 +29,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const logout = () => {
+    setUser(null);
+    setIsOnboarded(false);
+  };
+
   const completeOnboarding = () => {
     setIsOnboarded(true);
   };
 
   return (
-    <UserContext.Provider value={{ user, setUser, updateProfile, isOnboarded, completeOnboarding }}>
+    <UserContext.Provider value={{ user, setUser, updateProfile, logout, isOnboarded, completeOnboarding }}>
       {children}
     </UserContext.Provider>
   );

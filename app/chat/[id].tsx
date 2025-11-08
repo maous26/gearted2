@@ -1,19 +1,19 @@
-import React, { useState, useRef, useEffect } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StatusBar,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  FlatList
+    FlatList,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../components/ThemeProvider";
 import { THEMES } from "../../themes";
-import { router, useLocalSearchParams } from "expo-router";
 
 interface Message {
   id: string;

@@ -2,17 +2,18 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  Dimensions,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Dimensions,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandLogo } from "../components/BrandLogo";
 import { CategoryPill } from "../components/CategoryPill";
+import { CompatibilityTeaser } from "../components/CompatibilityTeaser";
 import { FeatureCard } from "../components/FeatureCard";
 import { CATEGORIES, FEATURE_CARDS, TRUST } from "../data";
 import { THEMES, ThemeKey } from "../themes";
@@ -296,6 +297,19 @@ export default function GeartedLanding() {
           </View>
         </View>
 
+        {/* Compatibility Section */}
+        <View style={{ paddingHorizontal: 16, paddingVertical: 24 }}>
+          <Text style={{
+            fontSize: 20,
+            fontWeight: 'bold',
+            color: t.heading,
+            marginBottom: 12
+          }}>
+            Vérifier la compatibilité avant d'acheter
+          </Text>
+          <CompatibilityTeaser theme={theme} />
+        </View>
+
         {/* Sample Listings */}
         <View style={{ 
           backgroundColor: t.sectionLight + '66', 
@@ -369,6 +383,68 @@ export default function GeartedLanding() {
                     </Text>
                   </TouchableOpacity>
                 </View>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* How it works */}
+        <View style={{ paddingHorizontal: 16, paddingVertical: 24 }}>
+          <Text style={{
+            fontSize: 20,
+            fontWeight: 'bold',
+            color: t.heading,
+            marginBottom: 16
+          }}>
+            Comment ça marche
+          </Text>
+          {[
+            { step: '1', title: 'Créez votre compte', desc: 'Accédez à la marketplace et personnalisez votre profil.' },
+            { step: '2', title: 'Trouvez du matériel', desc: 'Filtrez par catégories et références précises.' },
+            { step: '3', title: 'Vérifiez la compatibilité', desc: 'Assurez-vous que les pièces correspondent avant l\'achat.' },
+            { step: '4', title: 'Achetez & échangez en confiance', desc: 'Processus fluide et futur système d’évaluation.' }
+          ].map(item => (
+            <View key={item.step} style={{ flexDirection: 'row', marginBottom: 14, alignItems: 'flex-start', gap: 12 }}>
+              <View style={{
+                width: 34,
+                height: 34,
+                borderRadius: 10,
+                backgroundColor: t.cardBg,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1,
+                borderColor: t.border
+              }}>
+                <Text style={{ color: t.heading, fontWeight: '700', fontSize: 16 }}>{item.step}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: t.heading, fontSize: 15, fontWeight: '600', marginBottom: 4 }}>{item.title}</Text>
+                <Text style={{ color: t.muted, fontSize: 13, lineHeight: 18 }}>{item.desc}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* Trust & Transparency */}
+        <View style={{ paddingHorizontal: 16, paddingVertical: 24 }}>
+          <Text style={{
+            fontSize: 20,
+            fontWeight: 'bold',
+            color: t.heading,
+            marginBottom: 12
+          }}>
+            Confiance & Transparence
+          </Text>
+          <View style={{ backgroundColor: t.white, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: t.border }}>
+            {[
+              'Compatibilité vérifiée (≥95%) — pas d’approximations',
+              'Risque réduit d’achat de pièces inadaptées',
+              'Plans: protection des transactions & système d’avis',
+              'Focus sur le long terme: maintenance & optimisation'
+            ].map(line => (
+              <View key={line} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
+                <Text style={{ fontSize: 16 }}>✅</Text>
+                <Text style={{ color: t.muted, fontSize: 13, flex: 1, lineHeight: 20 }}>{line}</Text>
               </View>
             ))}
           </View>

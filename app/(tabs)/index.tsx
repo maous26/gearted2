@@ -26,6 +26,8 @@ export default function AuthenticatedHome() {
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isCompatDrawerOpen, setIsCompatDrawerOpen] = useState(false);
+  const [selectedManufacturer, setSelectedManufacturer] = useState("");
+  const [selectedWeaponType, setSelectedWeaponType] = useState("");
   
   const t = THEMES[theme];
 
@@ -125,7 +127,10 @@ export default function AuthenticatedHome() {
         }}>
           <CompatibilityTeaser 
             theme={theme}
-            onOpenDrawer={() => setIsCompatDrawerOpen(true)}
+            onOpenDrawer={(item1, item2, result) => {
+              // Could open a detailed drawer here in the future
+              console.log('Compatibility check:', item1.name, 'with', item2.name, '=', result.compatible);
+            }}
           />
         </View>
 
@@ -236,6 +241,8 @@ export default function AuthenticatedHome() {
         isVisible={isCompatDrawerOpen}
         onClose={() => setIsCompatDrawerOpen(false)}
         theme={theme}
+        manufacturer={selectedManufacturer}
+        weaponType={selectedWeaponType}
       />
     </SafeAreaView>
   );

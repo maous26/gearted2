@@ -1,14 +1,14 @@
+import { router } from "expo-router";
 import React from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StatusBar
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../components/ThemeProvider";
 import { THEMES } from "../../themes";
-import { router } from "expo-router";
 
 export default function NewChatScreen() {
   const { theme } = useTheme();

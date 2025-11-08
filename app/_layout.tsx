@@ -1,5 +1,7 @@
 import { Stack } from "expo-router";
 import { View } from "react-native";
+import ErrorBoundary from "../components/ErrorBoundary";
+import { QueryProvider } from "../components/QueryProvider";
 import { ThemeProvider, useTheme } from "../components/ThemeProvider";
 import { UserProvider } from "../components/UserProvider";
 import { THEMES } from "../themes";
@@ -16,10 +18,14 @@ function RootInner() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <UserProvider>
-        <RootInner />
-      </UserProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <QueryProvider>
+        <ThemeProvider>
+          <UserProvider>
+            <RootInner />
+          </UserProvider>
+        </ThemeProvider>
+      </QueryProvider>
+    </ErrorBoundary>
   );
 }
