@@ -62,14 +62,14 @@ export default function LoginScreen() {
             textAlign: 'center',
             marginBottom: 8
           }}>
-            Connexion
+            Connecte-toi
           </Text>
           <Text style={{
             fontSize: 16,
             color: t.muted,
             textAlign: 'center'
           }}>
-            Accédez à votre compte Gearted
+            Commence à déposer tes annonces
           </Text>
         </LinearGradient>
 
