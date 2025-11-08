@@ -91,25 +91,7 @@ export default function GeartedLanding() {
               <Text style={{ color: t.primaryBtn }}>airsoft</Text>
             </Text>
             
-            {/* Featured Logo (subtitle only) */}
-            <View
-              style={{
-                alignItems: "center",
-                marginBottom: 12,
-                paddingVertical: 8,
-              }}
-            >
-              <BrandLogo theme={theme} size="large" textVariant="subtitle" />
-            </View>
-            
-            <Text style={{
-              fontSize: 16,
-              color: t.muted,
-              lineHeight: 24,
-              marginBottom: 16
-            }}>
-              Gearted, la marketplace dédiée aux répliques, pièces et gear. Achetez, vendez ou échangez avec paiement sécurisé (escrow), profils vérifiés et vérification de compatibilité.
-            </Text>
+            {/* Removed logo & descriptive paragraph per request */}
 
             {/* Key Points */}
             <View style={{ marginBottom: 24 }}>
