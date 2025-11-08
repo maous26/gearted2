@@ -74,7 +74,7 @@ export default function AuthenticatedHome() {
             marginBottom: 20,
             textAlign: 'center'
           }}>
-            Tes annonces airsoft, ici
+            Trouve ton prochain Gear
           </Text>
 
           {/* Search Bar */}
