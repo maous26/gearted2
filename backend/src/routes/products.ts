@@ -2,8 +2,8 @@ import { Router } from 'express';
 
 const router = Router();
 
-// Mock product data for now
-const MOCK_PRODUCTS = [
+// Base mock product data
+const BASE_PRODUCTS = [
   {
     id: "1",
     title: "AK-74 Kalashnikov Réplique",
@@ -71,6 +71,57 @@ const MOCK_PRODUCTS = [
   }
 ];
 
+// Expand mock products to a larger catalog
+const extraProducts = Array.from({ length: 40 }).map((_, i) => {
+  const id = (i + 10).toString();
+  const categories = ['repliques', 'optiques', 'equipements', 'pieces', 'munitions'];
+  const conds = ['Neuf', 'Excellent', 'Très bon', 'Bon'];
+  const cities = [
+    'Paris, 75001',
+    'Lyon, 69000',
+    'Marseille, 13000',
+    'Toulouse, 31000',
+    'Bordeaux, 33000',
+    'Nice, 06000',
+    'Nantes, 44000',
+    'Lille, 59000',
+  ];
+  const category = categories[i % categories.length];
+  const condition = conds[i % conds.length];
+  const location = cities[i % cities.length];
+  const price = Number((20 + (i % 15) * 12.5 + (i % 7) * 3.2).toFixed(2));
+  const seller = `Seller${(i % 20) + 1}`;
+  const rating = Number((3.8 + (i % 12) * 0.1).toFixed(1));
+  const titlesByCat: Record<string, string[]> = {
+    repliques: ['M4A1', 'AK-74', 'G36C', 'MP5', 'SCAR-L', 'VSR-10'],
+    optiques: ['Red Dot', 'Holographique', 'ACOG 4x', 'Scope 3-9x40'],
+    equipements: ['Gilet Tactique', 'Casque FAST', 'Gants Mechanix', 'Holster'],
+    pieces: ['Canon 6.03', 'Moteur High-Torque', 'Gearbox V2', 'Hop-Up'],
+    munitions: ['Billes 0.25g', 'Billes 0.28g', 'Billes Bio 0.23g'],
+  };
+  const titlePool = titlesByCat[category] || ['Article Airsoft'];
+  const title = `${titlePool[i % titlePool.length]} #${id}`;
+  const hex = ['4B5D3A', '8B4513', '2C3E50', '556B2F', '4682B4', '2F4F4F'][i % 6];
+
+  return {
+    id,
+    title,
+    price,
+    condition,
+    location,
+    seller,
+    sellerId: `u${(i % 20) + 1}`,
+    rating,
+    images: [`https://via.placeholder.com/400x300/${hex}/FFFFFF?text=${encodeURIComponent(title)}`],
+    category,
+    featured: i % 9 === 0,
+    createdAt: new Date(Date.now() - i * 86400000).toISOString(),
+    description: `${title} en ${condition}. Parfait pour compléter ton setup.`,
+  };
+});
+
+const MOCK_PRODUCTS = [...BASE_PRODUCTS, ...extraProducts];
+
 router.get('/', (req, res) => {
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 20;
@@ -104,6 +155,16 @@ router.get('/', (req, res) => {
     limit,
     hasMore: endIndex < products.length
   });
+});
+
+// Get product by id
+router.get('/:id', (req, res) => {
+  const { id } = req.params;
+  const product = MOCK_PRODUCTS.find((p) => p.id === id);
+  if (!product) {
+    return res.status(404).json({ error: 'Product not found' });
+  }
+  return res.json(product);
 });
 
 export default router;

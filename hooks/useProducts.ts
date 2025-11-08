@@ -15,7 +15,7 @@ export const useProducts = (filters?: ProductFilters) => {
   return useQuery({
     queryKey: ['products', filters],
     queryFn: async () => {
-      const response = await api.get<ProductsResponse>('/products', filters);
+  const response = await api.get<ProductsResponse>('/api/products', filters);
       return response;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -27,7 +27,7 @@ export const useInfiniteProducts = (filters?: ProductFilters) => {
   return useInfiniteQuery({
     queryKey: ['products-infinite', filters],
     queryFn: async ({ pageParam = 1 }) => {
-      const response = await api.get<ProductsResponse>('/products', {
+  const response = await api.get<ProductsResponse>('/api/products', {
         ...filters,
         page: pageParam,
         limit: 20,
@@ -45,7 +45,7 @@ export const useProduct = (productId: string) => {
   return useQuery({
     queryKey: ['product', productId],
     queryFn: async () => {
-      const response = await api.get<Product>(`/products/${productId}`);
+  const response = await api.get<Product>(`/api/products/${productId}`);
       return response;
     },
     enabled: !!productId,
@@ -58,7 +58,7 @@ export const useCreateProduct = () => {
 
   return useMutation({
     mutationFn: async (productData: FormData) => {
-      const response = await api.upload<Product>('/products', productData);
+  const response = await api.upload<Product>('/api/products', productData);
       return response;
     },
     onSuccess: () => {
@@ -80,7 +80,7 @@ export const useUpdateProduct = () => {
       id: string;
       data: Partial<Product>;
     }) => {
-      const response = await api.put<Product>(`/products/${id}`, data);
+  const response = await api.put<Product>(`/api/products/${id}`, data);
       return response;
     },
     onSuccess: (data) => {
@@ -96,7 +96,7 @@ export const useDeleteProduct = () => {
 
   return useMutation({
     mutationFn: async (productId: string) => {
-      await api.delete(`/products/${productId}`);
+  await api.delete(`/api/products/${productId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -109,7 +109,7 @@ export const useFavorites = () => {
   return useQuery({
     queryKey: ['favorites'],
     queryFn: async () => {
-      const response = await api.get<{ productIds: string[] }>('/favorites');
+  const response = await api.get<{ productIds: string[] }>('/api/favorites');
       return response.productIds;
     },
   });
@@ -121,7 +121,7 @@ export const useToggleFavorite = () => {
 
   return useMutation({
     mutationFn: async (productId: string) => {
-      await api.post(`/favorites/${productId}/toggle`);
+  await api.post(`/api/favorites/${productId}/toggle`);
     },
     onMutate: async (productId) => {
       // Cancel outgoing refetches
