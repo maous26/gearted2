@@ -46,7 +46,7 @@ export default function AuthenticatedHome() {
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <BrandLogo theme={theme} size="small" showText={true} />
+  <BrandLogo theme={theme} size="small" textVariant="subtitle" />
         <TouchableOpacity 
           style={{
             backgroundColor: t.primaryBtn,
