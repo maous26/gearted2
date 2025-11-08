@@ -31,42 +31,44 @@ export default function GeartedLanding() {
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
       <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
       
-      {/* Header */}
-      <View style={{
-        backgroundColor: t.navBg + 'CC',
-        borderBottomWidth: 1,
-        borderBottomColor: t.border,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <BrandLogo theme={theme} size="small" showText={false} />
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity 
+      {/* Header (Logo left, auth actions right) */}
+      <View
+        style={{
+          backgroundColor: t.navBg + "CC",
+          borderBottomWidth: 1,
+          borderBottomColor: t.border,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <BrandLogo theme={theme} size="small" textVariant="subtitle" />
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <TouchableOpacity
             style={{
-              backgroundColor: 'transparent',
+              backgroundColor: "transparent",
               paddingHorizontal: 16,
               paddingVertical: 8,
               borderRadius: 12,
               borderWidth: 1,
-              borderColor: t.primaryBtn
+              borderColor: t.primaryBtn,
             }}
             onPress={() => router.push("/login" as any)}
           >
-            <Text style={{ color: t.primaryBtn, fontWeight: '600' }}>Connexion</Text>
+            <Text style={{ color: t.primaryBtn, fontWeight: "600" }}>Connexion</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={{
               backgroundColor: t.primaryBtn,
               paddingHorizontal: 16,
               paddingVertical: 8,
-              borderRadius: 12
+              borderRadius: 12,
             }}
             onPress={() => router.push("/register" as any)}
           >
-            <Text style={{ color: t.white, fontWeight: '600' }}>S'inscrire</Text>
+            <Text style={{ color: t.white, fontWeight: "600" }}>S'inscrire</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -89,13 +91,15 @@ export default function GeartedLanding() {
               <Text style={{ color: t.primaryBtn }}>airsoft</Text>
             </Text>
             
-            {/* Featured Logo */}
-            <View style={{ 
-              alignItems: 'center', 
-              marginBottom: 20,
-              paddingVertical: 16
-            }}>
-              <BrandLogo theme={theme} size="large" showText={true} />
+            {/* Featured Logo (subtitle only) */}
+            <View
+              style={{
+                alignItems: "center",
+                marginBottom: 12,
+                paddingVertical: 8,
+              }}
+            >
+              <BrandLogo theme={theme} size="large" textVariant="subtitle" />
             </View>
             
             <Text style={{
@@ -107,59 +111,60 @@ export default function GeartedLanding() {
               Gearted, la marketplace dédiée aux répliques, pièces et gear. Achetez, vendez ou échangez avec paiement sécurisé (escrow), profils vérifiés et vérification de compatibilité.
             </Text>
 
-            {/* Features List */}
+            {/* Key Points */}
             <View style={{ marginBottom: 24 }}>
               {[
-                "Publication en 2 minutes",
-                "Paiement sécurisé (escrow)", 
-                "Profils vérifiés & avis",
-                "Compatibilité technique"
-              ].map((feature, index) => (
-                <View key={index} style={{ 
-                  flexDirection: 'row', 
-                  alignItems: 'center', 
-                  marginBottom: 8 
-                }}>
+                { label: "Publication en 2 minutes" },
+                { label: "Paiement sécurisé (escrow)" },
+                { label: "Profils vérifiés & avis" },
+                { label: "Compatibilité technique" },
+              ].map((item, i) => (
+                <View
+                  key={i}
+                  style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}
+                >
                   <Text style={{ color: t.primaryBtn, marginRight: 8 }}>✓</Text>
-                  <Text style={{ color: t.subtle, fontSize: 14 }}>{feature}</Text>
+                  <Text style={{ color: t.subtle, fontSize: 14 }}>{item.label}</Text>
                 </View>
               ))}
             </View>
 
-            {/* Action Buttons */}
-            <View style={{ 
-              flexDirection: 'row', 
-              flexWrap: 'wrap', 
-              gap: 12, 
-              marginBottom: 24 
-            }}>
-              <TouchableOpacity 
+            {/* Primary CTA Row */}
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 12,
+                marginBottom: 28,
+                justifyContent: "center",
+              }}
+            >
+              <TouchableOpacity
                 style={{
                   backgroundColor: t.primaryBtn,
-                  paddingHorizontal: 20,
-                  paddingVertical: 12,
-                  borderRadius: 12,
-                  flexDirection: 'row',
-                  alignItems: 'center'
+                  paddingHorizontal: 24,
+                  paddingVertical: 14,
+                  borderRadius: 14,
+                  flexDirection: "row",
+                  alignItems: "center",
                 }}
                 onPress={() => router.push("/register" as any)}
               >
-                <Text style={{ color: t.white, fontWeight: '600', marginRight: 8 }}>+</Text>
-                <Text style={{ color: t.white, fontWeight: '600' }}>Déposer une annonce</Text>
+                <Text style={{ color: t.white, fontWeight: "600", marginRight: 8 }}>+</Text>
+                <Text style={{ color: t.white, fontWeight: "600" }}>Créer mon compte</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={{
                   borderWidth: 1,
                   borderColor: t.border,
                   backgroundColor: t.white,
-                  paddingHorizontal: 20,
-                  paddingVertical: 12,
-                  borderRadius: 12
+                  paddingHorizontal: 24,
+                  paddingVertical: 14,
+                  borderRadius: 14,
                 }}
                 onPress={() => router.push("/login" as any)}
               >
-                <Text style={{ color: t.heading, fontWeight: '600' }}>Se connecter</Text>
+                <Text style={{ color: t.heading, fontWeight: "600" }}>Connexion</Text>
               </TouchableOpacity>
             </View>
 
