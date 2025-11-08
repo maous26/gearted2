@@ -46,7 +46,7 @@ export default function AuthenticatedHome() {
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-  <BrandLogo theme={theme} size="small" textVariant="subtitle" />
+  <BrandLogo theme={theme} size="medium" textVariant="subtitle" />
         <TouchableOpacity 
           style={{
             backgroundColor: t.primaryBtn,
@@ -66,20 +66,15 @@ export default function AuthenticatedHome() {
           colors={[t.heroGradStart + 'CC', t.heroGradEnd + '66']}
           style={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 16 }}
         >
+          {/* Removed welcome copy per request to simplify header */}
           <Text style={{
-            fontSize: 24,
+            fontSize: 30,
             fontWeight: 'bold',
             color: t.heading,
-            marginBottom: 8
+            marginBottom: 20,
+            textAlign: 'center'
           }}>
-            Bienvenue sur Gearted 👋
-          </Text>
-          <Text style={{
-            fontSize: 16,
-            color: t.muted,
-            marginBottom: 16
-          }}>
-            Découvrez du matériel airsoft de qualité
+            Tes annonces airsoft, ici
           </Text>
 
           {/* Search Bar */}

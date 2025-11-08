@@ -44,7 +44,7 @@ export default function GeartedLanding() {
           alignItems: "center",
         }}
       >
-        <BrandLogo theme={theme} size="small" textVariant="subtitle" />
+  <BrandLogo theme={theme} size="medium" textVariant="subtitle" />
         <View style={{ flexDirection: "row", gap: 8 }}>
           <TouchableOpacity
             style={{
@@ -81,11 +81,11 @@ export default function GeartedLanding() {
         >
           <View>
             <Text style={{
-              fontSize: 28,
+              fontSize: 34,
               fontWeight: 'bold',
               color: t.heading,
               textAlign: 'center',
-              marginBottom: 16
+              marginBottom: 18
             }}>
               Vendez & échangez votre matériel{'\n'}
               <Text style={{ color: t.primaryBtn }}>airsoft</Text>
