@@ -120,7 +120,7 @@ const extraProducts = Array.from({ length: 40 }).map((_, i) => {
   };
 });
 
-const MOCK_PRODUCTS = [...BASE_PRODUCTS, ...extraProducts];
+let MOCK_PRODUCTS = [...BASE_PRODUCTS, ...extraProducts];
 
 router.get('/', (req, res) => {
   const page = parseInt(req.query.page as string) || 1;
@@ -165,6 +165,51 @@ router.get('/:id', (req, res) => {
     return res.status(404).json({ error: 'Product not found' });
   }
   return res.json(product);
+});
+
+// Create product (temporary in‑memory implementation)
+router.post('/', (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      price,
+      condition,
+      category,
+      location,
+      images = [],
+      seller = 'demoUser',
+      sellerId = 'demo-1'
+    } = req.body;
+
+    if (!title || !description || !condition || !category) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const newId = (MOCK_PRODUCTS.length + 1 + Math.floor(Math.random()*1000)).toString();
+    const numericPrice = price ? Number(price) : 0;
+    const product = {
+      id: newId,
+      title,
+      description,
+      price: numericPrice,
+      condition,
+      category,
+      location: location || 'Paris, 75001',
+      seller,
+      sellerId,
+      rating: 5.0,
+      images: images.length ? images : [
+        `https://via.placeholder.com/400x300/4B5D3A/FFFFFF?text=${encodeURIComponent(title)}`
+      ],
+      featured: false,
+      createdAt: new Date().toISOString(),
+    };
+    MOCK_PRODUCTS.unshift(product); // add to start so it appears first
+    return res.status(201).json(product);
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to create product' });
+  }
 });
 
 export default router;

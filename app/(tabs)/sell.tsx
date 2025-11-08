@@ -18,6 +18,8 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTheme } from "../../components/ThemeProvider";
+import api from "../../services/api";
+import { useQueryClient } from "@tanstack/react-query";
 import { CATEGORIES } from "../../data/index";
 import { THEMES } from "../../themes";
 
@@ -258,6 +260,8 @@ export default function SellScreen() {
   const { theme } = useTheme();
   const [listingType, setListingType] = useState<ListingType>("sell");
   const [images, setImages] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const queryClient = useQueryClient();
   
   const t = THEMES[theme];
 
@@ -282,7 +286,7 @@ export default function SellScreen() {
     setValue('images', images);
   }, [images, setValue]);
 
-  const onSubmit = (data: ListingFormData) => {
+  const onSubmit = async (data: ListingFormData) => {
     // Validate based on listing type
     if (listingType === 'sell' && (!data.price || data.price.trim() === '')) {
       Alert.alert("Erreur", "Le prix est requis pour une vente");
@@ -292,22 +296,55 @@ export default function SellScreen() {
       Alert.alert("Erreur", "Veuillez indiquer ce que vous recherchez en échange");
       return;
     }
+    try {
+      setSubmitting(true);
+      const payload: any = {
+        title: data.title,
+        description: data.description,
+        price: listingType === 'sell' ? Number(data.price) : 0,
+        condition: data.condition,
+        category: data.category,
+        location: 'Paris, 75001',
+        images,
+        listingType,
+        exchangeDetails: listingType === 'exchange' ? data.wantedItems : undefined,
+      };
+      const created = await api.post<{ id: string }>("/api/products", payload);
+      // refresh products list cache
+      queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
 
-    console.log('Form submitted:', data);
-    Alert.alert(
-      "Succès", 
-      listingType === "sell" 
-        ? "Votre annonce de vente a été publiée !" 
-        : "Votre annonce d'échange a été publiée !",
-      [{
-        text: "OK",
-        onPress: () => {
-          reset();
-          setImages([]);
-          router.back();
-        }
-      }]
-    );
+      Alert.alert(
+        "Succès",
+        listingType === 'sell'
+          ? "Votre annonce de vente a été publiée !"
+          : "Votre annonce d'\u00e9change a         t                             ",
+        [
+          {
+            text: "Voir",
+            onPress: () => {
+              reset();
+              setImages([]);
+              router.replace(`/product/${created.id}`);
+            },
+          },
+          {
+            text: "OK",
+            onPress: () => {
+              reset();
+              setImages([]);
+              router.back();
+            },
+            style: 'cancel',
+          },
+        ]
+      );
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Erreur', "Impossible de publier votre annonce");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const pickImage = async () => {
@@ -803,16 +840,22 @@ export default function SellScreen() {
               paddingVertical: 16,
               borderRadius: 12,
               alignItems: 'center',
-              marginBottom: 32
+              marginBottom: 32,
+              opacity: submitting ? 0.6 : 1
             }}
             onPress={handleSubmit(onSubmit)}
+            disabled={submitting}
           >
             <Text style={{
               color: t.white,
               fontWeight: 'bold',
               fontSize: 18
             }}>
-              {listingType === "sell" ? "Publier l'annonce de vente" : "Publier l'annonce d'échange"}
+              {submitting
+                ? 'Publication...'
+                : listingType === "sell" 
+                  ? "Publier l'annonce de vente" 
+                  : "Publier l'annonce d'échange"}
             </Text>
           </TouchableOpacity>
         </View>
