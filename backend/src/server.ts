@@ -20,6 +20,7 @@ import categoryRoutes from './routes/categories';
 import compatibilityRoutes from './routes/compatibility';
 import messageRoutes from './routes/messages';
 import productRoutes from './routes/products';
+import favoritesRoutes from './routes/favorites';
 import reviewRoutes from './routes/reviews';
 import searchRoutes from './routes/search';
 import transactionRoutes from './routes/transactions';
@@ -128,6 +129,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/favorites', favoritesRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/compatibility', compatibilityRoutes);
 app.use('/api/search', searchRoutes);

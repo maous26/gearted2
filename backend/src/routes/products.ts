@@ -127,6 +127,12 @@ router.get('/', (req, res) => {
   const limit = parseInt(req.query.limit as string) || 20;
   const search = req.query.search as string;
   const category = req.query.category as string;
+  const sortBy = (req.query.sortBy as string) as
+    | 'recent'
+    | 'price_low'
+    | 'price_high'
+    | 'rating'
+    | undefined;
   
   let products = [...MOCK_PRODUCTS];
   
@@ -143,6 +149,17 @@ router.get('/', (req, res) => {
     products = products.filter(p => p.category === category);
   }
   
+  // Sorting
+  if (sortBy === 'recent') {
+    products.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  } else if (sortBy === 'price_low') {
+    products.sort((a, b) => a.price - b.price);
+  } else if (sortBy === 'price_high') {
+    products.sort((a, b) => b.price - a.price);
+  } else if (sortBy === 'rating') {
+    products.sort((a, b) => b.rating - a.rating);
+  }
+
   // Pagination
   const startIndex = (page - 1) * limit;
   const endIndex = startIndex + limit;
