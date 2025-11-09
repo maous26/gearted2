@@ -1,9 +1,9 @@
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
     Dimensions,
-    Image,
     ScrollView,
     StatusBar,
     Text,
@@ -12,7 +12,6 @@ import {
     View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { BrandLogo } from "../../components/BrandLogo";
 import { CategoryPill } from "../../components/CategoryPill";
 import { CompatDrawer } from "../../components/CompatDrawer";
 import { CompatibilityTeaser } from "../../components/CompatibilityTeaser";
@@ -39,6 +38,49 @@ export default function AuthenticatedHome() {
   // Fetch category stats to display popular categories
   const { data: categoryStats } = useCategoryStats();
 
+  // Temporary featured listings (fake data)
+  const featuredListings: Array<{
+    id: string;
+    title: string;
+    price: number;
+    location: string;
+    condition: string;
+    image: string;
+    listingType?: 'SALE' | 'TRADE' | 'BOTH';
+    tradeFor?: string;
+  }> = [
+    {
+      id: 'featured-1',
+      title: 'Tokyo Marui M4A1 MWS GBBR',
+      price: 450.00,
+      location: 'Paris, 75',
+      condition: 'like-new',
+      image: 'https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=400',
+      listingType: 'SALE',
+      tradeFor: undefined
+    },
+    {
+      id: 'featured-2',
+      title: 'VFC HK416A5 AEG Noir',
+      price: 380.00,
+      location: 'Lyon, 69',
+      condition: 'new',
+      image: 'https://images.unsplash.com/photo-1584670961778-14523e170d7a?w=400',
+      listingType: 'SALE',
+      tradeFor: undefined
+    },
+    {
+      id: 'featured-3',
+      title: 'Cybergun FNX-45 Tactical GBB',
+      price: 125.00,
+      location: 'Marseille, 13',
+      condition: 'good',
+      image: 'https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=400',
+      listingType: 'SALE',
+      tradeFor: undefined
+    }
+  ];
+
   // Get top 6 categories by product count
   const popularCategories = React.useMemo(() => {
     if (!categoryStats) return CATEGORIES.slice(0, 6);
@@ -50,31 +92,6 @@ export default function AuthenticatedHome() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
       <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
-      
-      {/* Header */}
-      <View style={{
-        backgroundColor: t.navBg + 'CC',
-        borderBottomWidth: 1,
-        borderBottomColor: t.border,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-  <BrandLogo theme={theme} size="medium" textVariant="subtitle" />
-        <TouchableOpacity 
-          style={{
-            backgroundColor: t.primaryBtn,
-            paddingHorizontal: 16,
-            paddingVertical: 8,
-            borderRadius: 12
-          }}
-          onPress={() => router.push("/(tabs)/sell")}
-        >
-          <Text style={{ color: t.white, fontWeight: '600' }}>Vendre</Text>
-        </TouchableOpacity>
-      </View>
 
       <ScrollView style={{ flex: 1 }}>
         {/* Welcome Section */}
@@ -82,17 +99,6 @@ export default function AuthenticatedHome() {
           colors={[t.heroGradStart + 'CC', t.heroGradEnd + '66']}
           style={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 16 }}
         >
-          {/* Removed welcome copy per request to simplify header */}
-          <Text style={{
-            fontSize: 30,
-            fontWeight: 'bold',
-            color: t.heading,
-            marginBottom: 20,
-            textAlign: 'center'
-          }}>
-            Trouve ton prochain Gear
-          </Text>
-
           {/* Search Bar */}
           <View style={{
             backgroundColor: t.white,
@@ -130,6 +136,171 @@ export default function AuthenticatedHome() {
           </View>
         </LinearGradient>
 
+        {/* Featured Listings (Annonces à la une) */}
+        <View style={{ 
+          paddingHorizontal: 16, 
+          paddingVertical: 24,
+          backgroundColor: t.sectionLight + '33'
+        }}>
+          <View style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            marginBottom: 16 
+          }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: '700',
+              color: t.heading,
+              fontFamily: 'Oswald-Bold',
+              letterSpacing: 0.5,
+              textTransform: 'uppercase'
+            }}>
+              ANNONCES À LA UNE
+            </Text>
+            <TouchableOpacity onPress={() => router.push('/browse')}>
+              <Text style={{ color: t.primaryBtn, fontSize: 14, fontWeight: '600' }}>
+                Voir tout →
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              {featuredListings.map((product) => (
+                <TouchableOpacity
+                  key={product.id}
+                  style={{
+                    width: 240,
+                    backgroundColor: t.white,
+                    borderRadius: 16,
+                    borderWidth: 2,
+                    borderColor: t.primaryBtn + '40',
+                    overflow: 'hidden',
+                    shadowColor: t.primaryBtn,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.15,
+                    shadowRadius: 8,
+                    elevation: 5
+                  }}
+                  onPress={() => router.push(`/product/${product.id}` as any)}
+                >
+                  {/* Featured Badge */}
+                  <View style={{
+                    position: 'absolute',
+                    top: 12,
+                    right: 12,
+                    backgroundColor: t.primaryBtn,
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 8,
+                    zIndex: 10,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4
+                  }}>
+                    <Text style={{ color: t.white, fontSize: 12 }}>★</Text>
+                    <Text style={{ color: t.white, fontSize: 11, fontWeight: '600' }}>
+                      À LA UNE
+                    </Text>
+                  </View>
+
+                  <View style={{ backgroundColor: '#f5f5f5' }}>
+                    <Image
+                      source={{ uri: product.image }}
+                      style={{ width: '100%', height: 180 }}
+                      contentFit="contain"
+                      cachePolicy="memory-disk"
+                      transition={200}
+                    />
+                  </View>
+                  <View style={{ padding: 14 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                      <Text
+                        style={{
+                          fontSize: 15,
+                          fontWeight: '700',
+                          color: t.heading,
+                          flex: 1
+                        }}
+                        numberOfLines={2}
+                      >
+                        {product.title}
+                      </Text>
+                      {/* Listing Type Badge */}
+                      {product.listingType && product.listingType !== 'SALE' && (
+                        <View style={{
+                          paddingHorizontal: 6,
+                          paddingVertical: 2,
+                          backgroundColor: product.listingType === 'TRADE' ? '#FF6B35' : '#4ECDC4',
+                          borderRadius: 3,
+                          marginLeft: 4
+                        }}>
+                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF' }}>
+                            {product.listingType === 'TRADE' ? 'ÉCHANGE' : 'V/É'}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={{
+                      fontSize: 18,
+                      fontWeight: 'bold',
+                      color: t.primaryBtn,
+                      marginBottom: 4
+                    }}>
+                      {product.listingType === 'TRADE' ? 'Échange' : `${product.price.toFixed(2)} €`}
+                    </Text>
+                    {/* Show tradeFor if available */}
+                    {product.tradeFor && (
+                      <Text style={{
+                        fontSize: 11,
+                        color: t.muted,
+                        fontStyle: 'italic',
+                        marginBottom: 4
+                      }} numberOfLines={1}>
+                        🔄 {product.tradeFor}
+                      </Text>
+                    )}
+                    <View style={{ 
+                      flexDirection: 'row', 
+                      alignItems: 'center',
+                      gap: 4,
+                      marginBottom: 4
+                    }}>
+                      <Text style={{ fontSize: 12, color: t.muted }}>📍</Text>
+                      <Text style={{
+                        fontSize: 13,
+                        color: t.muted,
+                        flex: 1
+                      }}>
+                        {product.location}
+                      </Text>
+                    </View>
+                    <View style={{
+                      backgroundColor: t.sectionLight + '40',
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 6,
+                      alignSelf: 'flex-start'
+                    }}>
+                      <Text style={{
+                        fontSize: 11,
+                        color: t.muted,
+                        fontWeight: '500'
+                      }}>
+                        {product.condition === 'new' ? 'Neuf' : 
+                         product.condition === 'like-new' ? 'Comme neuf' :
+                         product.condition === 'good' ? 'Bon état' :
+                         product.condition === 'fair' ? 'Correct' : 'Utilisé'}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+
         {/* Compatibility Checker Section */}
         <View style={{ 
           backgroundColor: t.sectionLight + '66', 
@@ -148,12 +319,15 @@ export default function AuthenticatedHome() {
         {/* Categories Section */}
         <View style={{ paddingHorizontal: 16, paddingVertical: 24 }}>
           <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
+            fontSize: 18,
+            fontWeight: '700',
             color: t.heading,
-            marginBottom: 16
+            marginBottom: 16,
+            fontFamily: 'Oswald-Bold',
+            letterSpacing: 0.5,
+            textTransform: 'uppercase'
           }}>
-            Catégories populaires
+            CATÉGORIES POPULAIRES
           </Text>
           
           <View style={{
@@ -182,12 +356,15 @@ export default function AuthenticatedHome() {
         {/* Recent Listings */}
         <View style={{ paddingHorizontal: 16, paddingBottom: 32 }}>
           <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
+            fontSize: 18,
+            fontWeight: '700',
             color: t.heading,
-            marginBottom: 16
+            marginBottom: 16,
+            fontFamily: 'Oswald-Bold',
+            letterSpacing: 0.5,
+            textTransform: 'uppercase'
           }}>
-            Dernières annonces
+            DERNIÈRES ANNONCES
           </Text>
           
           {isLoadingProducts ? (
@@ -222,31 +399,61 @@ export default function AuthenticatedHome() {
                     }}
                     onPress={() => router.push(`/product/${product.id}`)}
                   >
-                    <Image
-                      source={{ uri: product.images[0] }}
-                      style={{ width: '100%', height: 120 }}
-                      resizeMode="cover"
-                    />
+                    <View style={{ backgroundColor: '#f5f5f5' }}>
+                      <Image
+                        source={{ uri: product.images[0] }}
+                        style={{ width: '100%', height: 140 }}
+                        contentFit="contain"
+                        cachePolicy="memory-disk"
+                        transition={200}
+                      />
+                    </View>
                     <View style={{ padding: 12 }}>
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          fontWeight: '600',
-                          color: t.heading,
-                          marginBottom: 4
-                        }}
-                        numberOfLines={2}
-                      >
-                        {product.title}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            fontWeight: '600',
+                            color: t.heading,
+                            flex: 1
+                          }}
+                          numberOfLines={2}
+                        >
+                          {product.title}
+                        </Text>
+                        {/* Listing Type Badge */}
+                        {product.listingType && product.listingType !== 'SALE' && (
+                          <View style={{
+                            paddingHorizontal: 5,
+                            paddingVertical: 2,
+                            backgroundColor: product.listingType === 'TRADE' ? '#FF6B35' : '#4ECDC4',
+                            borderRadius: 3,
+                            marginLeft: 4
+                          }}>
+                            <Text style={{ fontSize: 8, fontWeight: 'bold', color: '#FFF' }}>
+                              {product.listingType === 'TRADE' ? 'ÉCH' : 'V/É'}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={{
                         fontSize: 16,
                         fontWeight: 'bold',
                         color: t.primaryBtn,
                         marginBottom: 4
                       }}>
-                        {product.price.toFixed(2)} €
+                        {product.listingType === 'TRADE' ? 'Échange' : `${product.price.toFixed(2)} €`}
                       </Text>
+                      {product.tradeFor && (
+                        <Text style={{
+                          fontSize: 10,
+                          color: t.muted,
+                          fontStyle: 'italic',
+                          marginBottom: 3
+                        }} numberOfLines={1}>
+                          🔄 {product.tradeFor}
+                        </Text>
+                      )}
                       <Text style={{
                         fontSize: 12,
                         color: t.muted
@@ -264,12 +471,15 @@ export default function AuthenticatedHome() {
         {/* Quick Actions */}
         <View style={{ paddingHorizontal: 16, paddingBottom: 32 }}>
           <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
+            fontSize: 18,
+            fontWeight: '700',
             color: t.heading,
-            marginBottom: 16
+            marginBottom: 16,
+            fontFamily: 'Oswald-Bold',
+            letterSpacing: 0.5,
+            textTransform: 'uppercase'
           }}>
-            Actions rapides
+            ACTIONS RAPIDES
           </Text>
           
           <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -296,7 +506,9 @@ export default function AuthenticatedHome() {
               alignItems: 'center',
               borderWidth: 1,
               borderColor: t.border
-            }}>
+            }}
+            onPress={() => router.push('/favorites' as any)}
+            >
               <Text style={{ color: t.heading, fontWeight: '600' }}>
                 Mes favoris
               </Text>

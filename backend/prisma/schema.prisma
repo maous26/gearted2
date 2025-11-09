@@ -201,6 +201,10 @@ model Product {
   price             Decimal
   currency          String        @default("EUR")
   
+  // Sale or Trade
+  listingType       ListingType   @default(SALE) // SALE, TRADE, or BOTH
+  tradeFor          String?       // Description of what the seller wants in exchange
+  
   // Product status
   status            ProductStatus @default(DRAFT)
   isActive          Boolean       @default(true)
@@ -266,6 +270,12 @@ enum ProductCondition {
   FAIR
   POOR
   FOR_PARTS
+}
+
+enum ListingType {
+  SALE      // Vente uniquement
+  TRADE     // Échange uniquement
+  BOTH      // Vente ou échange
 }
 
 enum ProductStatus {

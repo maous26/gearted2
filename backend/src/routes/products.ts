@@ -231,7 +231,7 @@ router.post('/', (req, res) => {
       location,
       images = [],
       listingType,
-      exchangeDetails,
+      tradeFor,
       handDelivery,
       seller: bodySeller,
       sellerId: bodySellerId
@@ -264,8 +264,8 @@ router.post('/', (req, res) => {
       ],
       featured: false,
       createdAt: new Date().toISOString(),
-      listingType: listingType || 'sell',
-      exchangeDetails: listingType === 'exchange' ? exchangeDetails : undefined,
+      listingType: listingType || 'SALE',
+      tradeFor: (listingType === 'TRADE' || listingType === 'BOTH') ? tradeFor : undefined,
       handDelivery: Boolean(handDelivery)
     };
     MOCK_PRODUCTS.unshift(product);

@@ -1,7 +1,9 @@
+import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Dimensions, Image, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
+import { Dimensions, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import OfferTypeModal from "../../components/OfferTypeModal";
 import RatingModal from "../../components/RatingModal";
 import { useTheme } from "../../components/ThemeProvider";
 import { useProduct } from "../../hooks/useProducts";
@@ -17,6 +19,7 @@ export default function ProductDetailScreen() {
   const { data: product, isLoading, isError } = useProduct(productId);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [showOfferTypeModal, setShowOfferTypeModal] = useState(false);
   const [hasPurchased, setHasPurchased] = useState(false);
 
   const images = useMemo(() => {
@@ -50,7 +53,15 @@ export default function ProductDetailScreen() {
                 setCurrentImageIndex(index);
               }} scrollEventThrottle={16}>
                 {(images.length ? images : [product.images?.[0]]).filter(Boolean).map((image, index) => (
-                  <Image key={index} source={{ uri: image as string }} style={{ width, height: 300 }} resizeMode="cover" />
+                  <Image 
+                    key={index} 
+                    source={{ uri: image as string }} 
+                    style={{ width, height: 300 }} 
+                    contentFit="cover"
+                    priority={index === 0 ? "high" : "normal"}
+                    cachePolicy="memory-disk"
+                    transition={200}
+                  />
                 ))}
               </ScrollView>
               <View style={{ position: 'absolute', bottom: 16, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center' }}>
@@ -65,13 +76,55 @@ export default function ProductDetailScreen() {
 
             {/* Content */}
             <View style={{ padding: 16 }}>
-              <Text style={{ fontSize: 24, fontWeight: 'bold', color: t.heading, marginBottom: 8 }}>{product.title}</Text>
-              <Text style={{ fontSize: 32, fontWeight: 'bold', color: t.primaryBtn, marginBottom: 16 }}>{Number(product.price).toFixed(2)} €</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={{ fontSize: 24, fontWeight: 'bold', color: t.heading, flex: 1 }}>{product.title}</Text>
+                {/* Listing Type Badge */}
+                {product.listingType && product.listingType !== 'SALE' && (
+                  <View style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    backgroundColor: product.listingType === 'TRADE' ? '#FF6B35' : '#4ECDC4',
+                    borderRadius: 6,
+                    marginLeft: 8
+                  }}>
+                    <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#FFF' }}>
+                      {product.listingType === 'TRADE' ? 'ÉCHANGE' : 'VENTE/ÉCHANGE'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text style={{ fontSize: 32, fontWeight: 'bold', color: t.primaryBtn, marginBottom: 16 }}>
+                {product.listingType === 'TRADE' ? 'Échange uniquement' : `${Number(product.price).toFixed(2)} €`}
+              </Text>
+              
+              {/* Show tradeFor section if available */}
+              {product.tradeFor && (
+                <View style={{ 
+                  backgroundColor: t.cardBg, 
+                  borderRadius: 12, 
+                  padding: 14, 
+                  marginBottom: 16, 
+                  borderWidth: 1, 
+                  borderColor: '#4ECDC4'
+                }}>
+                  <Text style={{ fontSize: 14, color: t.muted, marginBottom: 8, fontWeight: '600' }}>
+                    🔄 RECHERCHE EN ÉCHANGE
+                  </Text>
+                  <Text style={{ fontSize: 15, color: t.heading, lineHeight: 22 }}>
+                    {product.tradeFor}
+                  </Text>
+                </View>
+              )}
               <View style={{ backgroundColor: t.cardBg, borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: t.border }}>
                 <Text style={{ fontSize: 14, color: t.muted, marginBottom: 12, fontWeight: '600' }}>VENDEUR</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                    <Image source={{ uri: 'https://via.placeholder.com/50/4B5D3A/FFFFFF?text=U' }} style={{ width: 50, height: 50, borderRadius: 25, marginRight: 12 }} />
+                    <Image 
+                      source={{ uri: 'https://via.placeholder.com/50/4B5D3A/FFFFFF?text=U' }} 
+                      style={{ width: 50, height: 50, borderRadius: 25, marginRight: 12 }}
+                      cachePolicy="memory-disk"
+                      transition={200}
+                    />
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading, marginBottom: 4 }}>{product.seller || 'Vendeur'}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -128,10 +181,36 @@ export default function ProductDetailScreen() {
         <TouchableOpacity style={{ flex: 1, backgroundColor: t.cardBg, borderRadius: 12, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: t.border }} onPress={() => router.push('/(tabs)/messages')}>
           <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>💬 Message</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={{ flex: 2, backgroundColor: t.primaryBtn, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }} onPress={() => setHasPurchased(true)}>
-          <Text style={{ fontSize: 16, fontWeight: '600', color: t.white }}>Acheter maintenant</Text>
+        <TouchableOpacity 
+          style={{ flex: 2, backgroundColor: t.primaryBtn, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }} 
+          onPress={() => {
+            if (product?.listingType === 'BOTH') {
+              setShowOfferTypeModal(true);
+            } else {
+              setHasPurchased(true);
+            }
+          }}
+        >
+          <Text style={{ fontSize: 16, fontWeight: '600', color: t.white }}>
+            {product?.listingType === 'TRADE' ? 'Proposer un échange' : product?.listingType === 'BOTH' ? 'Acheter ou échanger' : 'Acheter maintenant'}
+          </Text>
         </TouchableOpacity>
       </View>
+
+      <OfferTypeModal
+        visible={showOfferTypeModal}
+        onClose={() => setShowOfferTypeModal(false)}
+        productTitle={product?.title || ''}
+        price={product?.price || 0}
+        tradeFor={product?.tradeFor}
+        onBuy={() => {
+          setHasPurchased(true);
+          router.push('/(tabs)/messages');
+        }}
+        onTrade={() => {
+          router.push('/(tabs)/messages');
+        }}
+      />
 
       <RatingModal visible={showRatingModal} onClose={() => setShowRatingModal(false)} onSubmit={(r,c)=>{}} sellerName={product?.seller || 'Vendeur'} />
     </SafeAreaView>

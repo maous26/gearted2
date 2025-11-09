@@ -156,24 +156,6 @@ export default function MessagesScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
       <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
-      
-      {/* Header */}
-      <View style={{
-        backgroundColor: t.navBg + 'CC',
-        borderBottomWidth: 1,
-        borderBottomColor: t.border,
-        paddingHorizontal: 16,
-        paddingVertical: 16
-      }}>
-        <Text style={{
-          fontSize: 24,
-          fontWeight: 'bold',
-          color: t.heading,
-          textAlign: 'center'
-        }}>
-          Messages
-        </Text>
-      </View>
 
       {/* Search Bar */}
       <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>

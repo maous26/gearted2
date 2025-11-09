@@ -5,15 +5,15 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-    Alert,
-    Dimensions,
-    Image,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Dimensions,
+  Image,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -22,6 +22,7 @@ import { useTheme } from "../../components/ThemeProvider";
 import { useUser } from "../../components/UserProvider";
 import { CATEGORIES } from "../../data/index";
 import api from "../../services/api";
+import { useProductsStore } from "../../stores/productsStore";
 import { THEMES } from "../../themes";
 
 type ThemeTokens = typeof THEMES["ranger"];
@@ -70,9 +71,9 @@ function TypeTabButton({
   onPress,
 }: {
   t: ThemeTokens;
-  type: "sell" | "exchange";
+  type: "SALE" | "TRADE" | "BOTH";
   label: string;
-  currentType: "sell" | "exchange";
+  currentType: "SALE" | "TRADE" | "BOTH";
   onPress: () => void;
 }) {
   return (
@@ -256,15 +257,16 @@ const BRANDS = [
 
 const { width } = Dimensions.get('window');
 
-type ListingType = "sell" | "exchange";
+type ListingType = "SALE" | "TRADE" | "BOTH";
 
 export default function SellScreen() {
   const { theme } = useTheme();
   const { user } = useUser();
-  const [listingType, setListingType] = useState<ListingType>("sell");
+  const [listingType, setListingType] = useState<ListingType>("SALE");
   const [images, setImages] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const queryClient = useQueryClient();
+  const addProduct = useProductsStore((state) => state.addProduct);
   
   const t = THEMES[theme];
 
@@ -292,11 +294,11 @@ export default function SellScreen() {
 
   const onSubmit = async (data: ListingFormData) => {
     // Validate based on listing type
-    if (listingType === 'sell' && (!data.price || data.price.trim() === '')) {
+    if (listingType === 'SALE' && (!data.price || data.price.trim() === '')) {
       Alert.alert("Erreur", "Le prix est requis pour une vente");
       return;
     }
-    if (listingType === 'exchange' && (!data.wantedItems || data.wantedItems.trim() === '')) {
+    if ((listingType === 'TRADE' || listingType === 'BOTH') && (!data.wantedItems || data.wantedItems.trim() === '')) {
       Alert.alert("Erreur", "Veuillez indiquer ce que vous recherchez en échange");
       return;
     }
@@ -305,13 +307,13 @@ export default function SellScreen() {
       const payload: any = {
         title: data.title,
         description: data.description,
-        price: listingType === 'sell' ? Number(data.price) : 0,
+        price: (listingType === 'SALE' || listingType === 'BOTH') ? Number(data.price) : 0,
         condition: data.condition,
         category: data.category,
         location: 'Paris, 75001',
         images,
         listingType,
-        exchangeDetails: listingType === 'exchange' ? data.wantedItems : undefined,
+        tradeFor: (listingType === 'TRADE' || listingType === 'BOTH') ? data.wantedItems : undefined,
         handDelivery: Boolean(data.handDelivery),
       };
       const created = await api.post<{ id: string }>("/api/products", {
@@ -321,15 +323,38 @@ export default function SellScreen() {
       }, {
         headers: user?.username ? { 'x-user': user.username } : undefined
       });
+      
+      // Add to local store for persistence
+      addProduct({
+        id: created.id,
+        title: data.title,
+        description: data.description,
+        price: payload.price,
+        condition: data.condition,
+        category: data.category,
+        location: 'Paris, 75001',
+        seller: user?.username || 'Utilisateur',
+        sellerId: user?.id || 'user-1',
+        rating: 4.5,
+        images,
+        featured: false,
+        createdAt: new Date().toISOString(),
+        handDelivery: Boolean(data.handDelivery),
+        listingType,
+        tradeFor: payload.tradeFor,
+      });
+      
       // refresh products list cache
       queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
 
       Alert.alert(
         "Succès",
-        listingType === 'sell'
+        listingType === 'SALE'
           ? "Votre annonce de vente a été publiée !"
-          : "Votre annonce d'\u00e9change a         t                             ",
+          : listingType === 'TRADE'
+          ? "Votre annonce d'échange a été publiée !"
+          : "Votre annonce a été publiée !",
         [
           {
             text: "Voir",
@@ -398,8 +423,9 @@ export default function SellScreen() {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.8,
-        allowsMultipleSelection: false
+        quality: 0.7, // Réduit de 0.8 à 0.7 pour des fichiers plus légers
+        allowsMultipleSelection: false,
+        exif: false, // Retire les métadonnées pour réduire la taille
       });
 
       if (!result.canceled && result.assets[0]) {
@@ -426,7 +452,8 @@ export default function SellScreen() {
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.8
+        quality: 0.7, // Réduit de 0.8 à 0.7 pour des fichiers plus légers
+        exif: false, // Retire les métadonnées
       });
 
       if (!result.canceled && result.assets[0]) {
@@ -605,35 +632,6 @@ export default function SellScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
       <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
-      
-      {/* Header */}
-      <View style={{
-        backgroundColor: t.navBg + 'CC',
-        borderBottomWidth: 1,
-        borderBottomColor: t.border,
-        paddingHorizontal: 16,
-        paddingVertical: 16,
-        flexDirection: 'row',
-        alignItems: 'center'
-      }}>
-        <TouchableOpacity 
-          onPress={() => router.back()}
-          style={{
-            marginRight: 16,
-            padding: 8
-          }}
-        >
-          <Text style={{ fontSize: 18, color: t.primaryBtn }}>←</Text>
-        </TouchableOpacity>
-        <Text style={{
-          fontSize: 20,
-          fontWeight: 'bold',
-          color: t.heading,
-          flex: 1
-        }}>
-          Publier une annonce
-        </Text>
-      </View>
 
       <KeyboardAwareScrollView
         enableOnAndroid
@@ -655,8 +653,9 @@ export default function SellScreen() {
           </Text>
           
           <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
-            <TypeTabButton t={t} type="sell" currentType={listingType} label="💰 Vendre" onPress={() => setListingType('sell')} />
-            <TypeTabButton t={t} type="exchange" currentType={listingType} label="🔄 Échanger" onPress={() => setListingType('exchange')} />
+            <TypeTabButton t={t} type="SALE" currentType={listingType} label="💰 Vente" onPress={() => setListingType('SALE')} />
+            <TypeTabButton t={t} type="TRADE" currentType={listingType} label="🔄 Échange" onPress={() => setListingType('TRADE')} />
+            <TypeTabButton t={t} type="BOTH" currentType={listingType} label="💰🔄 Les deux" onPress={() => setListingType('BOTH')} />
           </View>
         </View>
 
@@ -746,7 +745,7 @@ export default function SellScreen() {
           />
 
           {/* Price or Exchange */}
-          {listingType === "sell" ? (
+          {listingType === "SALE" ? (
             <Controller
               control={control}
               name="price"
@@ -762,7 +761,7 @@ export default function SellScreen() {
                 />
               )}
             />
-          ) : (
+          ) : listingType === "TRADE" ? (
             <>
               <Controller
                 control={control}
@@ -794,7 +793,42 @@ export default function SellScreen() {
                 )}
               />
             </>
+          ) : (
+            <>
+              {/* BOTH: Show both price and wanted items */}
+              <Controller
+                control={control}
+                name="price"
+                render={({ field: { onChange, value } }) => (
+                  <FormInputField 
+                    t={t}
+                    label="Prix de vente"
+                    value={value || ""}
+                    onChangeText={onChange}
+                    placeholder="Ex: 250.00"
+                    keyboardType="numeric"
+                    error={(errors as any).price?.message}
+                  />
+                )}
+              />
+              <Controller
+                control={control}
+                name="wantedItems"
+                render={({ field: { onChange, value } }) => (
+                  <FormInputField 
+                    t={t}
+                    label="Ou accepte en échange"
+                    value={value || ""}
+                    onChangeText={onChange}
+                    placeholder="Décrivez ce que vous recherchez..."
+                    multiline={true}
+                    error={(errors as any).wantedItems?.message}
+                  />
+                )}
+              />
+            </>
           )}
+
 
           {/* Images Section */}
           <View style={{ marginBottom: 24 }}>
@@ -901,9 +935,11 @@ export default function SellScreen() {
             }}>
               {submitting
                 ? 'Publication...'
-                : listingType === "sell" 
+                : listingType === "SALE" 
                   ? "Publier l'annonce de vente" 
-                  : "Publier l'annonce d'échange"}
+                  : listingType === "TRADE"
+                  ? "Publier l'annonce d'échange"
+                  : "Publier l'annonce"}
             </Text>
           </TouchableOpacity>
         </View>

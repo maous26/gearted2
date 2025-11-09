@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 
 export interface Product {
@@ -15,7 +16,12 @@ export interface Product {
   featured: boolean;
   createdAt: string;
   handDelivery?: boolean; // Remise en main propre disponible
+  listingType?: 'SALE' | 'TRADE' | 'BOTH'; // Type d'annonce
+  tradeFor?: string; // Description de ce que le vendeur cherche en échange
 }
+
+const PRODUCTS_STORAGE_KEY = '@gearted_products';
+const FAVORITES_STORAGE_KEY = '@gearted_favorites';
 
 export interface ProductFilters {
   search?: string;
@@ -36,11 +42,13 @@ interface ProductsStore {
 
   // Actions
   setProducts: (products: Product[]) => void;
+  addProduct: (product: Product) => void;
   setFilters: (filters: ProductFilters) => void;
   resetFilters: () => void;
   toggleFavorite: (productId: string) => void;
   isFavorite: (productId: string) => boolean;
   clearError: () => void;
+  loadFromStorage: () => Promise<void>;
 }
 
 const initialFilters: ProductFilters = {
@@ -60,7 +68,24 @@ export const useProductsStore = create<ProductsStore>((set, get) => ({
   isLoading: false,
   error: null,
 
-  setProducts: (products) => set({ products }),
+  setProducts: async (products) => {
+    set({ products });
+    try {
+      await AsyncStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+    } catch (error) {
+      console.error('Error saving products:', error);
+    }
+  },
+
+  addProduct: async (product) => {
+    const products = [...get().products, product];
+    set({ products });
+    try {
+      await AsyncStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+    } catch (error) {
+      console.error('Error saving product:', error);
+    }
+  },
 
   setFilters: (newFilters) =>
     set((state) => ({
@@ -69,15 +94,41 @@ export const useProductsStore = create<ProductsStore>((set, get) => ({
 
   resetFilters: () => set({ filters: initialFilters }),
 
-  toggleFavorite: (productId) =>
-    set((state) => {
-      const favorites = state.favorites.includes(productId)
-        ? state.favorites.filter((id) => id !== productId)
-        : [...state.favorites, productId];
-      return { favorites };
-    }),
+  toggleFavorite: async (productId) => {
+    const state = get();
+    const favorites = state.favorites.includes(productId)
+      ? state.favorites.filter((id) => id !== productId)
+      : [...state.favorites, productId];
+    set({ favorites });
+    try {
+      await AsyncStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
+    } catch (error) {
+      console.error('Error saving favorites:', error);
+    }
+  },
 
   isFavorite: (productId) => get().favorites.includes(productId),
 
   clearError: () => set({ error: null }),
+
+  loadFromStorage: async () => {
+    try {
+      const [productsData, favoritesData] = await Promise.all([
+        AsyncStorage.getItem(PRODUCTS_STORAGE_KEY),
+        AsyncStorage.getItem(FAVORITES_STORAGE_KEY),
+      ]);
+      
+      if (productsData) {
+        const products = JSON.parse(productsData);
+        set({ products });
+      }
+      
+      if (favoritesData) {
+        const favorites = JSON.parse(favoritesData);
+        set({ favorites });
+      }
+    } catch (error) {
+      console.error('Error loading from storage:', error);
+    }
+  },
 }));

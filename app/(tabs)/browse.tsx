@@ -176,11 +176,13 @@ export default function BrowseScreen() {
     onPress={() => router.push(`/product/${product.id}`)}
     >
       {/* Product Image */}
-      <View style={{ position: 'relative' }}>
+      <View style={{ position: 'relative', backgroundColor: '#f5f5f5' }}>
         <Image 
           source={{ uri: product.images[0] }}
-          style={{ width: '100%', height: 150 }}
-          contentFit="cover"
+          style={{ width: '100%', height: 200 }}
+          contentFit="contain"
+          cachePolicy="memory-disk"
+          transition={200}
         />
         {product.featured && (
           <View style={{
@@ -237,23 +239,51 @@ export default function BrowseScreen() {
 
   {/* Product Details */}
       <View style={{ padding: 12 }}>
-        <Text style={{
-          fontSize: 16,
-          fontWeight: '600',
-          color: t.heading,
-          marginBottom: 4
-        }}>
-          {product.title}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+          <Text style={{
+            fontSize: 16,
+            fontWeight: '600',
+            color: t.heading,
+            flex: 1
+          }}>
+            {product.title}
+          </Text>
+          {/* Listing Type Badge */}
+          {product.listingType && product.listingType !== 'SALE' && (
+            <View style={{
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              backgroundColor: product.listingType === 'TRADE' ? '#FF6B35' : '#4ECDC4',
+              borderRadius: 4,
+              marginLeft: 6
+            }}>
+              <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#FFF' }}>
+                {product.listingType === 'TRADE' ? 'ÉCHANGE' : 'VENTE/ÉCHANGE'}
+              </Text>
+            </View>
+          )}
+        </View>
         
         <Text style={{
           fontSize: 20,
           fontWeight: 'bold',
           color: t.primaryBtn,
-          marginBottom: 8
+          marginBottom: 4
         }}>
-          {product.price.toFixed(2)} €
+          {product.listingType === 'TRADE' ? 'Échange' : `${product.price.toFixed(2)} €`}
         </Text>
+
+        {/* Show tradeFor if available */}
+        {product.tradeFor && (
+          <Text style={{
+            fontSize: 12,
+            color: t.muted,
+            fontStyle: 'italic',
+            marginBottom: 6
+          }} numberOfLines={2}>
+            🔄 Recherche: {product.tradeFor}
+          </Text>
+        )}
 
         <View style={{
           flexDirection: 'row',
@@ -314,24 +344,6 @@ export default function BrowseScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
       <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
-      
-      {/* Header */}
-      <View style={{
-        backgroundColor: t.navBg + 'CC',
-        borderBottomWidth: 1,
-        borderBottomColor: t.border,
-        paddingHorizontal: 16,
-        paddingVertical: 16
-      }}>
-        <Text style={{
-          fontSize: 24,
-          fontWeight: 'bold',
-          color: t.heading,
-          textAlign: 'center'
-        }}>
-          Marketplace
-        </Text>
-      </View>
 
       {/* Search and Filters as ListHeaderComponent */}
       {!isLoading && !isError && allProducts.length > 0 ? (

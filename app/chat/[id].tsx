@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
+    Alert,
     FlatList,
     Image,
     KeyboardAvoidingView,
@@ -14,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../components/ThemeProvider";
 import { THEMES } from "../../themes";
+import { filterMessageContent, getBlockedContentWarning } from "../../utils/contentFilter";
 
 interface Message {
   id: string;
@@ -78,6 +80,23 @@ export default function ChatScreen() {
 
   const sendMessage = () => {
     if (inputText.trim() === "") return;
+
+    // Filter message content for phone numbers and emails
+    const filterResult = filterMessageContent(inputText);
+    
+    if (!filterResult.isAllowed) {
+      Alert.alert(
+        "Message bloqué",
+        getBlockedContentWarning(filterResult.violations),
+        [
+          {
+            text: "Compris",
+            style: "cancel"
+          }
+        ]
+      );
+      return;
+    }
 
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -212,6 +231,28 @@ export default function ChatScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <MessageBubble message={item} />}
         contentContainerStyle={{ paddingVertical: 16 }}
+        ListHeaderComponent={() => (
+          <View style={{
+            marginHorizontal: 16,
+            marginBottom: 16,
+            backgroundColor: '#FFF3CD',
+            borderRadius: 12,
+            padding: 14,
+            borderWidth: 1,
+            borderColor: '#FFC107'
+          }}>
+            <Text style={{
+              fontSize: 13,
+              color: '#856404',
+              textAlign: 'center',
+              lineHeight: 18,
+              fontWeight: '500'
+            }}>
+              ⚠️ Ne partagez jamais votre numéro de téléphone ou email. 
+              Toutes les conversations doivent se faire via la messagerie Gearted.
+            </Text>
+          </View>
+        )}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
       />
 
