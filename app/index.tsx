@@ -2,20 +2,17 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  Dimensions,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Dimensions,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { BrandLogo } from "../components/BrandLogo";
 import { CategoryPill } from "../components/CategoryPill";
-import { CompatibilityTeaser } from "../components/CompatibilityTeaser";
-import { FeatureCard } from "../components/FeatureCard";
-import { CATEGORIES, FEATURE_CARDS, TRUST } from "../data";
+import { CATEGORIES, TRUST } from "../data";
 import { THEMES, ThemeKey } from "../themes";
 
 const { width } = Dimensions.get('window');
@@ -30,48 +27,6 @@ export default function GeartedLanding() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
       <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
-      
-      {/* Header (Logo left, auth actions right) */}
-      <View
-        style={{
-          backgroundColor: t.navBg + "CC",
-          borderBottomWidth: 1,
-          borderBottomColor: t.border,
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-  <BrandLogo theme={theme} size="medium" textVariant="subtitle" />
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <TouchableOpacity
-            style={{
-              backgroundColor: "transparent",
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: t.primaryBtn,
-            }}
-            onPress={() => router.push("/login" as any)}
-          >
-            <Text style={{ color: t.primaryBtn, fontWeight: "600" }}>Connexion</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={{
-              backgroundColor: t.primaryBtn,
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              borderRadius: 12,
-            }}
-            onPress={() => router.push("/register" as any)}
-          >
-            <Text style={{ color: t.white, fontWeight: "600" }}>S'inscrire</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
 
       <ScrollView style={{ flex: 1 }}>
         {/* Hero Section */}
@@ -81,14 +36,17 @@ export default function GeartedLanding() {
         >
           <View>
             <Text style={{
-              fontSize: 34,
-              fontWeight: 'bold',
+              fontSize: 28,
+              fontWeight: '700',
               color: t.heading,
               textAlign: 'center',
-              marginBottom: 18
+              marginBottom: 18,
+              fontFamily: 'Oswald-Bold',
+              letterSpacing: 0.5,
+              textTransform: 'uppercase'
             }}>
-              Vendez & échangez votre matériel{'\n'}
-              <Text style={{ color: t.primaryBtn }}>airsoft</Text>
+              VENDEZ & ÉCHANGEZ{'\n'}VOTRE MATÉRIEL{'\n'}
+              <Text style={{ color: t.primaryBtn }}>AIRSOFT</Text>
             </Text>
             
             {/* Removed logo & descriptive paragraph per request */}
@@ -230,12 +188,15 @@ export default function GeartedLanding() {
         {/* Categories Section */}
         <View style={{ paddingHorizontal: 16, paddingVertical: 24 }}>
           <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
+            fontSize: 18,
+            fontWeight: '700',
             color: t.heading,
-            marginBottom: 16
+            marginBottom: 16,
+            fontFamily: 'Oswald-Bold',
+            letterSpacing: 0.5,
+            textTransform: 'uppercase'
           }}>
-            Parcourir par catégorie
+            PARCOURIR PAR CATÉGORIE
           </Text>
           
           <View style={{ 
@@ -255,48 +216,6 @@ export default function GeartedLanding() {
           </View>
         </View>
 
-        {/* Features Section */}
-        <View style={{ 
-          backgroundColor: t.sectionLight + '66', 
-          paddingHorizontal: 16, 
-          paddingVertical: 24 
-        }}>
-          <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
-            color: t.heading,
-            marginBottom: 16,
-            textAlign: 'center'
-          }}>
-            Pourquoi choisir Gearted ?
-          </Text>
-          
-          <View style={{ gap: 16 }}>
-            {FEATURE_CARDS.map((feature, index) => (
-              <FeatureCard
-                key={index}
-                title={feature.title}
-                bullet={feature.bullet}
-                icon={feature.icon}
-                theme={theme}
-              />
-            ))}
-          </View>
-        </View>
-
-        {/* Compatibility Section */}
-        <View style={{ paddingHorizontal: 16, paddingVertical: 24 }}>
-          <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
-            color: t.heading,
-            marginBottom: 12
-          }}>
-            Vérifier la compatibilité avant d'acheter
-          </Text>
-          <CompatibilityTeaser theme={theme} />
-        </View>
-
         {/* Sample Listings */}
         <View style={{ 
           backgroundColor: t.sectionLight + '66', 
@@ -304,12 +223,15 @@ export default function GeartedLanding() {
           paddingVertical: 24 
         }}>
           <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
+            fontSize: 18,
+            fontWeight: '700',
             color: t.heading,
-            marginBottom: 16
+            marginBottom: 16,
+            fontFamily: 'Oswald-Bold',
+            letterSpacing: 0.5,
+            textTransform: 'uppercase'
           }}>
-            Annonces récentes
+            ANNONCES RÉCENTES
           </Text>
           
           <View style={{ 
@@ -378,12 +300,15 @@ export default function GeartedLanding() {
         {/* How it works */}
         <View style={{ paddingHorizontal: 16, paddingVertical: 24 }}>
           <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
+            fontSize: 18,
+            fontWeight: '700',
             color: t.heading,
-            marginBottom: 16
+            marginBottom: 16,
+            fontFamily: 'Oswald-Bold',
+            letterSpacing: 0.5,
+            textTransform: 'uppercase'
           }}>
-            Comment ça marche
+            COMMENT ÇA MARCHE
           </Text>
           {[
             { step: '1', title: 'Créez votre compte', desc: 'Accédez à la marketplace et personnalisez votre profil.' },
@@ -410,31 +335,6 @@ export default function GeartedLanding() {
               </View>
             </View>
           ))}
-        </View>
-
-        {/* Trust & Transparency */}
-        <View style={{ paddingHorizontal: 16, paddingVertical: 24 }}>
-          <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
-            color: t.heading,
-            marginBottom: 12
-          }}>
-            Confiance & Transparence
-          </Text>
-          <View style={{ backgroundColor: t.white, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: t.border }}>
-            {[
-              'Compatibilité vérifiée (≥95%) — pas d’approximations',
-              'Risque réduit d’achat de pièces inadaptées',
-              'Plans: protection des transactions & système d’avis',
-              'Focus sur le long terme: maintenance & optimisation'
-            ].map(line => (
-              <View key={line} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
-                <Text style={{ fontSize: 16 }}>✅</Text>
-                <Text style={{ color: t.muted, fontSize: 13, flex: 1, lineHeight: 20 }}>{line}</Text>
-              </View>
-            ))}
-          </View>
         </View>
 
         {/* Footer */}

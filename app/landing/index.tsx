@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { BrandLogo } from "../../components/BrandLogo";
 import { CategoryPill } from "../../components/CategoryPill";
 import { CompatibilityTeaser } from "../../components/CompatibilityTeaser";
 import { FeatureCard } from "../../components/FeatureCard";
@@ -17,13 +16,6 @@ export default function Landing() {
 
   return (
     <ScrollView style={{ backgroundColor: isNight ? "#0f141a" : "#f7f8f3" }} contentContainerStyle={{ paddingBottom: 72 }}>
-      {/* Top brand header */}
-      <View style={{ paddingHorizontal: 24, paddingTop: 40, paddingBottom: 8 }}>
-        <BrandLogo theme={mode} size="large" textVariant="subtitle" />
-        <Text style={{ marginTop: 8, color: muted, fontSize: 14, lineHeight: 20 }}>
-          Plateforme communautaire dédiée à l'achat, la vente et l'échange de matériel airsoft fiable.
-        </Text>
-      </View>
 
       {/* Hero section */}
       <Hero mode={mode} />

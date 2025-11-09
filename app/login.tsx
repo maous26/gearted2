@@ -57,12 +57,15 @@ export default function LoginScreen() {
         >
           <Text style={{
             fontSize: 32,
-            fontWeight: 'bold',
+            fontWeight: '700',
             color: t.heading,
             textAlign: 'center',
-            marginBottom: 8
+            marginBottom: 8,
+            fontFamily: 'Oswald-Bold',
+            letterSpacing: 0.5,
+            textTransform: 'uppercase'
           }}>
-            Connecte-toi
+            CONNECTE-TOI
           </Text>
           <Text style={{
             fontSize: 16,
