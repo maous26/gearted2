@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 import TokenManager from './storage';
 
 // Configuration de l'API
@@ -37,8 +37,22 @@ class ApiService {
     // Response interceptor - Gérer les erreurs et refresh token
     this.api.interceptors.response.use(
       (response) => response,
-      async (error) => {
-        const originalRequest = error.config;
+      async (error: AxiosError) => {
+        const originalRequest: any = error.config || {};
+
+        // Debug logging for failed requests (helps track 404s)
+        try {
+          const method = (originalRequest.method || 'GET').toUpperCase();
+          const fullUrl = `${originalRequest.baseURL || ''}${originalRequest.url || ''}`;
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[API ${error.response?.status ?? 'ERR'}] ${method} ${fullUrl}`,
+            {
+              params: originalRequest.params,
+              data: originalRequest.data,
+            }
+          );
+        } catch {}
 
         // Si 401 et pas déjà retry, tenter refresh token
         if (error.response?.status === 401 && !originalRequest._retry) {
@@ -50,19 +64,20 @@ class ApiService {
               throw new Error('No refresh token');
             }
 
-            const response = await axios.post(`${API_URL}/auth/refresh`, {
+            // Correct refresh endpoint (server mounts /api/auth and route is /refresh-token)
+            const response = await this.api.post('/api/auth/refresh-token', {
               refreshToken,
             });
 
-            const { accessToken, refreshToken: newRefreshToken } = response.data;
+            const { accessToken, refreshToken: newRefreshToken } = (response as any).data ?? response;
             await TokenManager.saveTokens(accessToken, newRefreshToken);
 
+            originalRequest.headers = originalRequest.headers || {};
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
             return this.api(originalRequest);
           } catch (refreshError) {
             // Refresh failed, logout user
             await TokenManager.clearTokens();
-            // TODO: Redirect to login
             return Promise.reject(refreshError);
           }
         }
@@ -78,23 +93,23 @@ class ApiService {
     return response.data;
   }
 
-  async post<T>(url: string, data?: any): Promise<T> {
-    const response = await this.api.post<T>(url, data);
+  async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.api.post<T>(url, data, config);
     return response.data;
   }
 
-  async put<T>(url: string, data?: any): Promise<T> {
-    const response = await this.api.put<T>(url, data);
+  async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.api.put<T>(url, data, config);
     return response.data;
   }
 
-  async delete<T>(url: string): Promise<T> {
-    const response = await this.api.delete<T>(url);
+  async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.api.delete<T>(url, config);
     return response.data;
   }
 
-  async patch<T>(url: string, data?: any): Promise<T> {
-    const response = await this.api.patch<T>(url, data);
+  async patch<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.api.patch<T>(url, data, config);
     return response.data;
   }
 

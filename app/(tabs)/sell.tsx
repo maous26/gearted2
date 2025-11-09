@@ -1,6 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from 'expo-image-picker';
 import { router } from "expo-router";
 import React, { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import {
     Alert,
     Dimensions,
@@ -14,13 +17,11 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTheme } from "../../components/ThemeProvider";
-import api from "../../services/api";
-import { useQueryClient } from "@tanstack/react-query";
+import { useUser } from "../../components/UserProvider";
 import { CATEGORIES } from "../../data/index";
+import api from "../../services/api";
 import { THEMES } from "../../themes";
 
 type ThemeTokens = typeof THEMES["ranger"];
@@ -36,6 +37,7 @@ const listingSchema = z.object({
   wantedItems: z.string().optional(),
   exchangeValue: z.string().optional(),
   images: z.array(z.string()).min(1, "Au moins une photo est requise").max(5, "Maximum 5 photos"),
+  handDelivery: z.boolean().optional(),
 }).refine(
   (data) => {
     // For sell type, price is required and must be valid
@@ -258,6 +260,7 @@ type ListingType = "sell" | "exchange";
 
 export default function SellScreen() {
   const { theme } = useTheme();
+  const { user } = useUser();
   const [listingType, setListingType] = useState<ListingType>("sell");
   const [images, setImages] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -277,7 +280,8 @@ export default function SellScreen() {
       brand: "",
       wantedItems: "",
       exchangeValue: "",
-      images: []
+  images: [],
+  handDelivery: false
     }
   });
 
@@ -308,8 +312,15 @@ export default function SellScreen() {
         images,
         listingType,
         exchangeDetails: listingType === 'exchange' ? data.wantedItems : undefined,
+        handDelivery: Boolean(data.handDelivery),
       };
-      const created = await api.post<{ id: string }>("/api/products", payload);
+      const created = await api.post<{ id: string }>("/api/products", {
+        ...payload,
+        seller: user?.username,
+        sellerId: user?.id,
+      }, {
+        headers: user?.username ? { 'x-user': user.username } : undefined
+      });
       // refresh products list cache
       queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -505,6 +516,34 @@ export default function SellScreen() {
         autoCorrect={false}
         autoCapitalize="sentences"
       />
+    </View>
+  );
+
+  // Toggle field for Remise en main propre
+  const HandDeliveryToggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => (
+    <View style={{ marginBottom: 16 }}>
+      <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading, marginBottom: 8 }}>
+        Remise en main propre
+      </Text>
+      <TouchableOpacity
+        onPress={() => onChange(!value)}
+        style={{
+          backgroundColor: value ? t.primaryBtn : t.cardBg,
+          borderRadius: 8,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          borderWidth: 1,
+          borderColor: value ? t.primaryBtn : t.border,
+          alignItems: 'center'
+        }}
+      >
+        <Text style={{ color: value ? t.white : t.heading, fontWeight: '600' }}>
+          {value ? '✅ Activée' : 'Activer la remise en main propre'}
+        </Text>
+      </TouchableOpacity>
+      <Text style={{ color: t.muted, fontSize: 12, marginTop: 6 }}>
+        Si activée, l’acheteur devra récupérer l’article en personne.
+      </Text>
     </View>
   );
 
@@ -832,6 +871,15 @@ export default function SellScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* Remise en main propre */}
+          <Controller
+            control={control}
+            name="handDelivery"
+            render={({ field: { value, onChange } }) => (
+              <HandDeliveryToggle value={!!value} onChange={onChange} />
+            )}
+          />
 
           {/* Submit Button */}
           <TouchableOpacity

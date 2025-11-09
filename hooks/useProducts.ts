@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
-import { Product, ProductFilters } from '../stores/productsStore';
+import { Product, ProductFilters, useProductsStore } from '../stores/productsStore';
 
 interface ProductsResponse {
   products: Product[];
@@ -106,12 +106,17 @@ export const useDeleteProduct = () => {
 
 // Hook pour les favoris
 export const useFavorites = () => {
+  const setFavoritesInStore = useProductsStore(state => state.toggleFavorite); // not used directly
+  const store = useProductsStore.getState();
   return useQuery({
     queryKey: ['favorites'],
     queryFn: async () => {
-  const response = await api.get<{ productIds: string[] }>('/api/favorites');
+      const response = await api.get<{ productIds: string[] }>('/api/favorites');
+      // Sync Zustand store (replace instead of toggle)
+      useProductsStore.setState({ favorites: response.productIds });
       return response.productIds;
     },
+    staleTime: 30_000,
   });
 };
 
@@ -136,6 +141,12 @@ export const useToggleFavorite = () => {
           ? old.filter((id) => id !== productId)
           : [...old, productId];
       });
+      // Mirror optimistic update into Zustand store
+      useProductsStore.setState((state) => ({
+        favorites: state.favorites.includes(productId)
+          ? state.favorites.filter(id => id !== productId)
+          : [...state.favorites, productId]
+      }));
 
       return { previousFavorites };
     },
@@ -143,10 +154,23 @@ export const useToggleFavorite = () => {
       // Rollback on error
       if (context?.previousFavorites) {
         queryClient.setQueryData(['favorites'], context.previousFavorites);
+        useProductsStore.setState({ favorites: context.previousFavorites });
       }
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['favorites'] });
     },
+  });
+};
+
+// Hook pour les statistiques de catégories
+export const useCategoryStats = () => {
+  return useQuery({
+    queryKey: ['category-stats'],
+    queryFn: async () => {
+      const response = await api.get<{ categories: Array<{ category: string; count: number }> }>('/api/products/stats/categories');
+      return response.categories;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

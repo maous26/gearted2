@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import {
     Dimensions,
+    Image,
     ScrollView,
     StatusBar,
     Text,
@@ -17,6 +18,7 @@ import { CompatDrawer } from "../../components/CompatDrawer";
 import { CompatibilityTeaser } from "../../components/CompatibilityTeaser";
 import { useTheme } from "../../components/ThemeProvider";
 import { CATEGORIES } from "../../data";
+import { useCategoryStats, useProducts } from "../../hooks/useProducts";
 import { THEMES } from "../../themes";
 
 const { width } = Dimensions.get('window');
@@ -30,6 +32,20 @@ export default function AuthenticatedHome() {
   const [selectedWeaponType, setSelectedWeaponType] = useState("");
   
   const t = THEMES[theme];
+
+  // Fetch recent products
+  const { data: productsData, isLoading: isLoadingProducts } = useProducts({ sortBy: 'recent' });
+  
+  // Fetch category stats to display popular categories
+  const { data: categoryStats } = useCategoryStats();
+
+  // Get top 6 categories by product count
+  const popularCategories = React.useMemo(() => {
+    if (!categoryStats) return CATEGORIES.slice(0, 6);
+    
+    const topCategorySlugs = categoryStats.slice(0, 6).map(stat => stat.category);
+    return CATEGORIES.filter(cat => topCategorySlugs.includes(cat.slug));
+  }, [categoryStats]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
@@ -145,14 +161,18 @@ export default function AuthenticatedHome() {
             flexWrap: 'wrap',
             gap: 8
           }}>
-            {CATEGORIES.slice(0, 6).map((category) => (
+            {popularCategories.map((category) => (
               <CategoryPill
                 key={category.slug}
                 label={category.label}
                 icon={category.icon}
-                onPress={() => setSelectedCategory(
-                  selectedCategory === category.slug ? null : category.slug
-                )}
+                onPress={() => {
+                  // Navigate to browse page with category filter
+                  router.push({
+                    pathname: "/(tabs)/browse",
+                    params: { category: category.slug }
+                  });
+                }}
                 theme={theme}
               />
             ))}
@@ -170,21 +190,75 @@ export default function AuthenticatedHome() {
             Dernières annonces
           </Text>
           
-          <View style={{
-            backgroundColor: t.cardBg,
-            borderRadius: 12,
-            padding: 16,
-            borderWidth: 1,
-            borderColor: t.border
-          }}>
-            <Text style={{
-              fontSize: 16,
-              color: t.muted,
-              textAlign: 'center'
+          {isLoadingProducts ? (
+            <View style={{
+              backgroundColor: t.cardBg,
+              borderRadius: 12,
+              padding: 16,
+              borderWidth: 1,
+              borderColor: t.border
             }}>
-              Chargement des annonces...
-            </Text>
-          </View>
+              <Text style={{
+                fontSize: 16,
+                color: t.muted,
+                textAlign: 'center'
+              }}>
+                Chargement des annonces...
+              </Text>
+            </View>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                {(productsData?.products || []).slice(0, 5).map((product) => (
+                  <TouchableOpacity
+                    key={product.id}
+                    style={{
+                      width: 180,
+                      backgroundColor: t.cardBg,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: t.border,
+                      overflow: 'hidden'
+                    }}
+                    onPress={() => router.push(`/product/${product.id}`)}
+                  >
+                    <Image
+                      source={{ uri: product.images[0] }}
+                      style={{ width: '100%', height: 120 }}
+                      resizeMode="cover"
+                    />
+                    <View style={{ padding: 12 }}>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontWeight: '600',
+                          color: t.heading,
+                          marginBottom: 4
+                        }}
+                        numberOfLines={2}
+                      >
+                        {product.title}
+                      </Text>
+                      <Text style={{
+                        fontSize: 16,
+                        fontWeight: 'bold',
+                        color: t.primaryBtn,
+                        marginBottom: 4
+                      }}>
+                        {product.price.toFixed(2)} €
+                      </Text>
+                      <Text style={{
+                        fontSize: 12,
+                        color: t.muted
+                      }}>
+                        {product.location}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          )}
         </View>
 
         {/* Quick Actions */}

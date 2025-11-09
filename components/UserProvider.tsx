@@ -26,6 +26,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const updateProfile = (updates: Partial<UserProfile>) => {
     if (user) {
       setUser({ ...user, ...updates });
+    } else {
+      // Crée un profil de base si inexistante afin de permettre la première saisie
+      const newUser: UserProfile = {
+        id: 'local-' + Date.now().toString(),
+        username: updates.username || 'NouvelUtilisateur',
+        teamName: updates.teamName || 'Sans équipe',
+        avatar: updates.avatar ?? null,
+        email: updates.email || ''
+      };
+      setUser(newUser);
     }
   };
 

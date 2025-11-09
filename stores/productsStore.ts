@@ -14,6 +14,7 @@ export interface Product {
   images: string[];
   featured: boolean;
   createdAt: string;
+  handDelivery?: boolean; // Remise en main propre disponible
 }
 
 export interface ProductFilters {

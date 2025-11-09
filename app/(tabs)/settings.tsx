@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import {
     Alert,
     Image,
+    Platform,
     ScrollView,
     StatusBar,
     Switch,
@@ -79,149 +80,6 @@ export default function Settings() {
       ]
     );
   };
-
-  const ProfileSection = () => (
-    <View style={{
-      backgroundColor: t.cardBg,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 24,
-      borderWidth: 1,
-      borderColor: t.border
-    }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Text style={{
-          fontSize: 18,
-          fontWeight: 'bold',
-          color: t.heading
-        }}>
-          Mon Profil
-        </Text>
-        <TouchableOpacity
-          onPress={() => {
-            if (isEditingProfile) {
-              saveProfile();
-            } else {
-              setEditUsername(user?.username || "");
-              setEditTeamName(user?.teamName || "");
-              setIsEditingProfile(true);
-            }
-          }}
-        >
-          <Text style={{ fontSize: 14, color: t.primaryBtn, fontWeight: '600' }}>
-            {isEditingProfile ? "Enregistrer" : "Modifier"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Avatar */}
-      <View style={{ alignItems: 'center', marginBottom: 20 }}>
-        <TouchableOpacity onPress={selectAvatar}>
-          <View style={{
-            width: 100,
-            height: 100,
-            borderRadius: 50,
-            backgroundColor: t.border,
-            justifyContent: 'center',
-            alignItems: 'center',
-            overflow: 'hidden',
-            borderWidth: 3,
-            borderColor: t.primaryBtn
-          }}>
-            {user?.avatar ? (
-              <Image source={{ uri: user.avatar }} style={{ width: '100%', height: '100%' }} />
-            ) : (
-              <Text style={{ fontSize: 48 }}>👤</Text>
-            )}
-          </View>
-          <View style={{
-            position: 'absolute',
-            bottom: 0,
-            right: 0,
-            backgroundColor: t.primaryBtn,
-            borderRadius: 15,
-            width: 30,
-            height: 30,
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}>
-            <Text style={{ fontSize: 16 }}>📷</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-
-      {/* Username */}
-      <View style={{ marginBottom: 16 }}>
-        <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>
-          Nom d'utilisateur
-        </Text>
-        {isEditingProfile ? (
-          <TextInput
-            style={{
-              backgroundColor: t.rootBg,
-              borderRadius: 8,
-              padding: 12,
-              fontSize: 16,
-              color: t.heading,
-              borderWidth: 1,
-              borderColor: t.border
-            }}
-            value={editUsername}
-            onChangeText={setEditUsername}
-            placeholder="Votre pseudo"
-            placeholderTextColor={t.muted}
-            maxLength={20}
-          />
-        ) : (
-          <Text style={{ fontSize: 16, color: t.heading, fontWeight: '600' }}>
-            {user?.username || "Non défini"}
-          </Text>
-        )}
-      </View>
-
-      {/* Team Name */}
-      <View>
-        <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>
-          Équipe
-        </Text>
-        {isEditingProfile ? (
-          <TextInput
-            style={{
-              backgroundColor: t.rootBg,
-              borderRadius: 8,
-              padding: 12,
-              fontSize: 16,
-              color: t.heading,
-              borderWidth: 1,
-              borderColor: t.border
-            }}
-            value={editTeamName}
-            onChangeText={setEditTeamName}
-            placeholder="Nom de votre équipe"
-            placeholderTextColor={t.muted}
-            maxLength={30}
-          />
-        ) : (
-          <Text style={{ fontSize: 16, color: t.heading }}>
-            {user?.teamName || "Sans équipe"}
-          </Text>
-        )}
-      </View>
-
-      {isEditingProfile && (
-        <TouchableOpacity
-          onPress={() => {
-            setIsEditingProfile(false);
-            setEditUsername(user?.username || "");
-            setEditTeamName(user?.teamName || "");
-          }}
-          style={{ marginTop: 12, alignItems: 'center' }}
-        >
-          <Text style={{ fontSize: 14, color: t.muted }}>Annuler</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
 
   const ThemeSelector = () => (
     <View style={{ marginTop: 16 }}>
@@ -332,9 +190,154 @@ export default function Settings() {
         </Text>
       </View>
 
-      <ScrollView style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}>
+      <ScrollView 
+        style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}
+        keyboardShouldPersistTaps="always"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'none'}
+      >
         {/* Profile Section */}
-        <ProfileSection />
+        <View style={{
+          backgroundColor: t.cardBg,
+          borderRadius: 12,
+          padding: 16,
+          marginBottom: 24,
+          borderWidth: 1,
+          borderColor: t.border
+        }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: 'bold',
+              color: t.heading
+            }}>
+              Mon Profil
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                if (isEditingProfile) {
+                  saveProfile();
+                } else {
+                  setEditUsername(user?.username || "");
+                  setEditTeamName(user?.teamName || "");
+                  setIsEditingProfile(true);
+                }
+              }}
+            >
+              <Text style={{ fontSize: 14, color: t.primaryBtn, fontWeight: '600' }}>
+                {isEditingProfile ? "Enregistrer" : "Modifier"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Avatar */}
+          <View style={{ alignItems: 'center', marginBottom: 20 }}>
+            <TouchableOpacity onPress={selectAvatar}>
+              <View style={{
+                width: 100,
+                height: 100,
+                borderRadius: 50,
+                backgroundColor: t.border,
+                justifyContent: 'center',
+                alignItems: 'center',
+                overflow: 'hidden',
+                borderWidth: 3,
+                borderColor: t.primaryBtn
+              }}>
+                {user?.avatar ? (
+                  <Image source={{ uri: user.avatar }} style={{ width: '100%', height: '100%' }} />
+                ) : (
+                  <Text style={{ fontSize: 48 }}>👤</Text>
+                )}
+              </View>
+              <View style={{
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                backgroundColor: t.primaryBtn,
+                borderRadius: 15,
+                width: 30,
+                height: 30,
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}>
+                <Text style={{ fontSize: 16 }}>📷</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Username */}
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>
+              Nom d'utilisateur
+            </Text>
+            {isEditingProfile ? (
+              <TextInput
+                style={{
+                  backgroundColor: t.rootBg,
+                  borderRadius: 8,
+                  padding: 12,
+                  fontSize: 16,
+                  color: t.heading,
+                  borderWidth: 1,
+                  borderColor: t.border
+                }}
+                value={editUsername}
+                onChangeText={setEditUsername}
+                placeholder="Votre pseudo"
+                placeholderTextColor={t.muted}
+                maxLength={20}
+                autoFocus={false}
+              />
+            ) : (
+              <Text style={{ fontSize: 16, color: t.heading, fontWeight: '600' }}>
+                {user?.username || "Non défini"}
+              </Text>
+            )}
+          </View>
+
+          {/* Team Name */}
+          <View>
+            <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>
+              Équipe
+            </Text>
+            {isEditingProfile ? (
+              <TextInput
+                style={{
+                  backgroundColor: t.rootBg,
+                  borderRadius: 8,
+                  padding: 12,
+                  fontSize: 16,
+                  color: t.heading,
+                  borderWidth: 1,
+                  borderColor: t.border
+                }}
+                value={editTeamName}
+                onChangeText={setEditTeamName}
+                placeholder="Nom de votre équipe"
+                placeholderTextColor={t.muted}
+                maxLength={30}
+                autoFocus={false}
+              />
+            ) : (
+              <Text style={{ fontSize: 16, color: t.heading }}>
+                {user?.teamName || "Sans équipe"}
+              </Text>
+            )}
+          </View>
+
+          {isEditingProfile && (
+            <TouchableOpacity
+              onPress={() => {
+                setIsEditingProfile(false);
+                setEditUsername(user?.username || "");
+                setEditTeamName(user?.teamName || "");
+              }}
+              style={{ marginTop: 12, alignItems: 'center' }}
+            >
+              <Text style={{ fontSize: 14, color: t.muted }}>Annuler</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Theme Selector */}
         <ThemeSelector />

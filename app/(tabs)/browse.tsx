@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
@@ -18,7 +18,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { ProductCardSkeleton } from "../../components/Skeleton";
 import { useTheme } from "../../components/ThemeProvider";
 import { CATEGORIES } from "../../data";
-import { useInfiniteProducts, useToggleFavorite } from "../../hooks/useProducts";
+import { useFavorites, useInfiniteProducts, useToggleFavorite } from "../../hooks/useProducts";
 import { Product, useProductsStore } from "../../stores/productsStore";
 import { THEMES } from "../../themes";
 
@@ -102,6 +102,7 @@ const MOCK_PRODUCTS = [
 
 export default function BrowseScreen() {
   const { theme } = useTheme();
+  const params = useLocalSearchParams();
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch] = useDebounce(searchText, 500);
   const [showSortOptions, setShowSortOptions] = useState(false);
@@ -109,8 +110,16 @@ export default function BrowseScreen() {
   
   const { filters, setFilters, isFavorite } = useProductsStore();
   const toggleFavorite = useToggleFavorite();
+  const { data: favoriteIds = [] } = useFavorites();
   
   const t = THEMES[theme];
+
+  // Handle category from navigation params
+  useEffect(() => {
+    if (params.category && typeof params.category === 'string') {
+      setFilters({ category: params.category });
+    }
+  }, [params.category]);
 
   // Update filters when search or category changes
   useEffect(() => {
@@ -221,7 +230,7 @@ export default function BrowseScreen() {
           }}
         >
           <Text style={{ fontSize: 18 }}>
-            {isFavorite(product.id) ? '❤️' : '🤍'}
+            {(favoriteIds.includes(product.id) || isFavorite(product.id)) ? '❤️' : '🤍'}
           </Text>
         </TouchableOpacity>
   </View>

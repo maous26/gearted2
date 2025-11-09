@@ -28,7 +28,7 @@ export interface AuthResponse {
 class AuthService {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
-      const response = await api.post<AuthResponse>('/auth/login', credentials);
+  const response = await api.post<AuthResponse>('/api/auth/login', credentials);
       
       // Sauvegarder les tokens
       await TokenManager.saveTokens(
@@ -45,7 +45,7 @@ class AuthService {
 
   async register(data: RegisterData): Promise<AuthResponse> {
     try {
-      const response = await api.post<AuthResponse>('/auth/register', data);
+  const response = await api.post<AuthResponse>('/api/auth/register', data);
       
       // Sauvegarder les tokens
       await TokenManager.saveTokens(
@@ -64,7 +64,7 @@ class AuthService {
     try {
       const refreshToken = await TokenManager.getRefreshToken();
       if (refreshToken) {
-        await api.post('/auth/logout', { refreshToken });
+  await api.post('/api/auth/logout', { refreshToken });
       }
     } catch (error) {
       console.error('Logout error:', error);
@@ -75,7 +75,7 @@ class AuthService {
 
   async getCurrentUser(): Promise<any> {
     try {
-      return await api.get('/auth/me');
+  return await api.get('/api/auth/profile');
     } catch (error) {
       console.error('Get current user error:', error);
       throw error;
