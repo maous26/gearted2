@@ -1,14 +1,14 @@
 import React from "react";
 import {
-  Alert,
-  Dimensions,
-  Modal,
-  Text,
-  TouchableOpacity,
-  View
+    Alert,
+    Dimensions,
+    Modal,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
-import { useTheme } from "./ThemeProvider";
 import { THEMES } from "../themes";
+import { useTheme } from "./ThemeProvider";
 
 const { width } = Dimensions.get('window');
 

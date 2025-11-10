@@ -1,5 +1,5 @@
 import React from "react";
-import { Text, TouchableOpacity } from "react-native";
+import { Pressable, Text } from "react-native";
 import { THEMES, ThemeKey } from "../themes";
 
 export function CategoryPill({
@@ -16,7 +16,7 @@ export function CategoryPill({
   const t = THEMES[theme];
   
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={onPress}
       style={{
         backgroundColor: t.pillBg,
@@ -33,7 +33,6 @@ export function CategoryPill({
         shadowRadius: 2,
         elevation: 2,
       }}
-      activeOpacity={0.8}
     >
       <Text style={{ marginRight: 8, fontSize: 16 }}>{icon}</Text>
       <Text style={{ 
@@ -43,6 +42,6 @@ export function CategoryPill({
       }}>
         {label}
       </Text>
-    </TouchableOpacity>
+    </Pressable>
   );
 }

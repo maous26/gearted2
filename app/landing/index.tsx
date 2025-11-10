@@ -1,13 +1,14 @@
+import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { CategoryPill } from "../../components/CategoryPill";
 import { CompatibilityTeaser } from "../../components/CompatibilityTeaser";
 import { FeatureCard } from "../../components/FeatureCard";
 import Hero from "../../components/Hero";
 import { CATEGORIES } from "../../data";
 
-// Professional landing page keeping existing theme concept (ranger/night) without changing theme definitions
 export default function Landing() {
+  const router = useRouter();
   const [mode] = useState<"ranger" | "night">("ranger");
   const isNight = mode === "night";
   const textColor = isNight ? "#ffffff" : "#4e5d2f";
@@ -64,9 +65,19 @@ export default function Landing() {
       {/* Popular categories */}
       <View style={{ paddingHorizontal: 24, paddingBottom: 32 }}>
         <Text style={{ color: textColor, fontSize: 20, fontWeight: '700', marginBottom: 12 }}>Catégories populaires</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -6 }}>
           {CATEGORIES.slice(0, 8).map(cat => (
-            <CategoryPill key={cat.slug} theme={mode} label={cat.label} icon={cat.icon} />
+            <View key={cat.slug} style={{ padding: 6 }}>
+              <CategoryPill 
+                theme={mode} 
+                label={cat.label} 
+                icon={cat.icon}
+                onPress={() => {
+                  console.log('Category clicked:', cat.slug);
+                  router.push('/register' as any);
+                }}
+              />
+            </View>
           ))}
         </View>
       </View>
@@ -124,9 +135,12 @@ export default function Landing() {
         <View style={{ backgroundColor: isNight ? '#1e262d' : '#e9eddc', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: isNight ? '#2b3842' : '#d6dcc8' }}>
           <Text style={{ color: textColor, fontSize: 18, fontWeight: '700', marginBottom: 8 }}>Rejoignez la communauté</Text>
           <Text style={{ color: muted, fontSize: 13, lineHeight: 20, marginBottom: 16 }}>Créez un compte pour accéder aux fonctionnalités futures: notation vendeur, historique pièce, suivi maintenance.</Text>
-          <TouchableOpacity style={{ backgroundColor: isNight ? '#2F5A3F' : '#4B5D3A', paddingVertical: 14, borderRadius: 10, alignItems: 'center' }}>
+          <Pressable 
+            style={{ backgroundColor: isNight ? '#2F5A3F' : '#4B5D3A', paddingVertical: 14, borderRadius: 10, alignItems: 'center' }}
+            onPress={() => router.push('/register' as any)}
+          >
             <Text style={{ color: '#fff', fontWeight: '600', fontSize: 15 }}>Créer mon compte</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </View>
 

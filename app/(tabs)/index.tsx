@@ -1,18 +1,17 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Dimensions,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Dimensions,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { CategoryPill } from "../../components/CategoryPill";
 import { CompatDrawer } from "../../components/CompatDrawer";
 import { CompatibilityTeaser } from "../../components/CompatibilityTeaser";
 import { useTheme } from "../../components/ThemeProvider";
@@ -23,7 +22,8 @@ import { THEMES } from "../../themes";
 const { width } = Dimensions.get('window');
 
 export default function AuthenticatedHome() {
-  const { theme } = useTheme(); // global theme
+  const router = useRouter();
+  const { theme } = useTheme();
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isCompatDrawerOpen, setIsCompatDrawerOpen] = useState(false);
@@ -32,13 +32,9 @@ export default function AuthenticatedHome() {
   
   const t = THEMES[theme];
 
-  // Fetch recent products
   const { data: productsData, isLoading: isLoadingProducts } = useProducts({ sortBy: 'recent' });
-  
-  // Fetch category stats to display popular categories
   const { data: categoryStats } = useCategoryStats();
 
-  // Temporary featured listings (fake data)
   const featuredListings: Array<{
     id: string;
     title: string;
@@ -81,10 +77,8 @@ export default function AuthenticatedHome() {
     }
   ];
 
-  // Get top 6 categories by product count
   const popularCategories = React.useMemo(() => {
     if (!categoryStats) return CATEGORIES.slice(0, 6);
-    
     const topCategorySlugs = categoryStats.slice(0, 6).map(stat => stat.category);
     return CATEGORIES.filter(cat => topCategorySlugs.includes(cat.slug));
   }, [categoryStats]);
@@ -94,12 +88,11 @@ export default function AuthenticatedHome() {
       <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
 
       <ScrollView style={{ flex: 1 }}>
-        {/* Welcome Section */}
+        {/* Search Bar */}
         <LinearGradient
           colors={[t.heroGradStart + 'CC', t.heroGradEnd + '66']}
           style={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 16 }}
         >
-          {/* Search Bar */}
           <View style={{
             backgroundColor: t.white,
             borderRadius: 12,
@@ -108,35 +101,38 @@ export default function AuthenticatedHome() {
             borderWidth: 1,
             borderColor: t.border,
             flexDirection: 'row',
-            alignItems: 'center',
-            gap: 12
+            alignItems: 'center'
           }}>
             <TextInput
               style={{
                 flex: 1,
                 fontSize: 16,
-                color: t.heading
+                color: t.heading,
+                marginRight: 12
               }}
               placeholder="Rechercher du matériel..."
               value={searchText}
               onChangeText={setSearchText}
               placeholderTextColor={t.muted}
             />
-            <TouchableOpacity 
+            <Pressable 
               style={{
                 backgroundColor: t.primaryBtn,
                 paddingHorizontal: 16,
                 paddingVertical: 8,
                 borderRadius: 8
               }}
-              onPress={() => router.push("/(tabs)/browse")}
+              onPress={() => {
+                console.log('Chercher pressed');
+                router.push('/browse' as any);
+              }}
             >
               <Text style={{ color: t.white, fontWeight: '600' }}>Chercher</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </LinearGradient>
 
-        {/* Featured Listings (Annonces à la une) */}
+        {/* Featured Listings */}
         <View style={{ 
           paddingHorizontal: 16, 
           paddingVertical: 24,
@@ -158,17 +154,20 @@ export default function AuthenticatedHome() {
             }}>
               ANNONCES À LA UNE
             </Text>
-            <TouchableOpacity onPress={() => router.push('/browse')}>
+            <Pressable onPress={() => {
+              console.log('Voir tout pressed');
+              router.push('/browse' as any);
+            }}>
               <Text style={{ color: t.primaryBtn, fontSize: 14, fontWeight: '600' }}>
                 Voir tout →
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
           
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              {featuredListings.map((product) => (
-                <TouchableOpacity
+            <View style={{ flexDirection: 'row' }}>
+              {featuredListings.map((product, idx) => (
+                <Pressable
                   key={product.id}
                   style={{
                     width: 240,
@@ -177,15 +176,13 @@ export default function AuthenticatedHome() {
                     borderWidth: 2,
                     borderColor: t.primaryBtn + '40',
                     overflow: 'hidden',
-                    shadowColor: t.primaryBtn,
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.15,
-                    shadowRadius: 8,
-                    elevation: 5
+                    marginRight: idx < featuredListings.length - 1 ? 12 : 0
                   }}
-                  onPress={() => router.push(`/product/${product.id}` as any)}
+                  onPress={() => {
+                    console.log('Featured product pressed:', product.id);
+                    router.push(`/product/${product.id}` as any);
+                  }}
                 >
-                  {/* Featured Badge */}
                   <View style={{
                     position: 'absolute',
                     top: 12,
@@ -196,10 +193,9 @@ export default function AuthenticatedHome() {
                     borderRadius: 8,
                     zIndex: 10,
                     flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 4
+                    alignItems: 'center'
                   }}>
-                    <Text style={{ color: t.white, fontSize: 12 }}>★</Text>
+                    <Text style={{ color: t.white, fontSize: 12, marginRight: 4 }}>★</Text>
                     <Text style={{ color: t.white, fontSize: 11, fontWeight: '600' }}>
                       À LA UNE
                     </Text>
@@ -215,67 +211,28 @@ export default function AuthenticatedHome() {
                     />
                   </View>
                   <View style={{ padding: 14 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                      <Text
-                        style={{
-                          fontSize: 15,
-                          fontWeight: '700',
-                          color: t.heading,
-                          flex: 1
-                        }}
-                        numberOfLines={2}
-                      >
-                        {product.title}
-                      </Text>
-                      {/* Listing Type Badge */}
-                      {product.listingType && product.listingType !== 'SALE' && (
-                        <View style={{
-                          paddingHorizontal: 6,
-                          paddingVertical: 2,
-                          backgroundColor: product.listingType === 'TRADE' ? '#FF6B35' : '#4ECDC4',
-                          borderRadius: 3,
-                          marginLeft: 4
-                        }}>
-                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF' }}>
-                            {product.listingType === 'TRADE' ? 'ÉCHANGE' : 'V/É'}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        fontWeight: '700',
+                        color: t.heading,
+                        marginBottom: 6
+                      }}
+                      numberOfLines={2}
+                    >
+                      {product.title}
+                    </Text>
                     <Text style={{
                       fontSize: 18,
                       fontWeight: 'bold',
                       color: t.primaryBtn,
                       marginBottom: 4
                     }}>
-                      {product.listingType === 'TRADE' ? 'Échange' : `${product.price.toFixed(2)} €`}
+                      {product.price.toFixed(2)} €
                     </Text>
-                    {/* Show tradeFor if available */}
-                    {product.tradeFor && (
-                      <Text style={{
-                        fontSize: 11,
-                        color: t.muted,
-                        fontStyle: 'italic',
-                        marginBottom: 4
-                      }} numberOfLines={1}>
-                        🔄 {product.tradeFor}
-                      </Text>
-                    )}
-                    <View style={{ 
-                      flexDirection: 'row', 
-                      alignItems: 'center',
-                      gap: 4,
-                      marginBottom: 4
-                    }}>
-                      <Text style={{ fontSize: 12, color: t.muted }}>📍</Text>
-                      <Text style={{
-                        fontSize: 13,
-                        color: t.muted,
-                        flex: 1
-                      }}>
-                        {product.location}
-                      </Text>
-                    </View>
+                    <Text style={{ fontSize: 13, color: t.muted, marginBottom: 4 }}>
+                      📍 {product.location}
+                    </Text>
                     <View style={{
                       backgroundColor: t.sectionLight + '40',
                       paddingHorizontal: 8,
@@ -283,25 +240,20 @@ export default function AuthenticatedHome() {
                       borderRadius: 6,
                       alignSelf: 'flex-start'
                     }}>
-                      <Text style={{
-                        fontSize: 11,
-                        color: t.muted,
-                        fontWeight: '500'
-                      }}>
+                      <Text style={{ fontSize: 11, color: t.muted, fontWeight: '500' }}>
                         {product.condition === 'new' ? 'Neuf' : 
                          product.condition === 'like-new' ? 'Comme neuf' :
-                         product.condition === 'good' ? 'Bon état' :
-                         product.condition === 'fair' ? 'Correct' : 'Utilisé'}
+                         product.condition === 'good' ? 'Bon état' : 'Utilisé'}
                       </Text>
                     </View>
                   </View>
-                </TouchableOpacity>
+                </Pressable>
               ))}
             </View>
           </ScrollView>
         </View>
 
-        {/* Compatibility Checker Section */}
+        {/* Compatibility */}
         <View style={{ 
           backgroundColor: t.sectionLight + '66', 
           paddingHorizontal: 16, 
@@ -310,13 +262,12 @@ export default function AuthenticatedHome() {
           <CompatibilityTeaser 
             theme={theme}
             onOpenDrawer={(item1, item2, result) => {
-              // Could open a detailed drawer here in the future
-              console.log('Compatibility check:', item1.name, 'with', item2.name, '=', result.compatible);
+              console.log('Compatibility check:', item1.name, 'with', item2.name);
             }}
           />
         </View>
 
-        {/* Categories Section */}
+        {/* Categories */}
         <View style={{ paddingHorizontal: 16, paddingVertical: 24 }}>
           <Text style={{
             fontSize: 18,
@@ -330,25 +281,31 @@ export default function AuthenticatedHome() {
             CATÉGORIES POPULAIRES
           </Text>
           
-          <View style={{
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            gap: 8
-          }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 }}>
             {popularCategories.map((category) => (
-              <CategoryPill
-                key={category.slug}
-                label={category.label}
-                icon={category.icon}
-                onPress={() => {
-                  // Navigate to browse page with category filter
-                  router.push({
-                    pathname: "/(tabs)/browse",
-                    params: { category: category.slug }
-                  });
-                }}
-                theme={theme}
-              />
+              <View key={category.slug} style={{ padding: 4 }}>
+                <Pressable
+                  style={{
+                    backgroundColor: t.pillBg,
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    borderRadius: 20,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: t.border
+                  }}
+                  onPress={() => {
+                    console.log('Category pressed:', category.slug);
+                    router.push('/browse' as any);
+                  }}
+                >
+                  <Text style={{ marginRight: 8, fontSize: 16 }}>{category.icon}</Text>
+                  <Text style={{ color: t.heading, fontWeight: '500', fontSize: 14 }}>
+                    {category.label}
+                  </Text>
+                </Pressable>
+              </View>
             ))}
           </View>
         </View>
@@ -375,19 +332,15 @@ export default function AuthenticatedHome() {
               borderWidth: 1,
               borderColor: t.border
             }}>
-              <Text style={{
-                fontSize: 16,
-                color: t.muted,
-                textAlign: 'center'
-              }}>
-                Chargement des annonces...
+              <Text style={{ fontSize: 16, color: t.muted, textAlign: 'center' }}>
+                Chargement...
               </Text>
             </View>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={{ flexDirection: 'row', gap: 12 }}>
-                {(productsData?.products || []).slice(0, 5).map((product) => (
-                  <TouchableOpacity
+              <View style={{ flexDirection: 'row' }}>
+                {(productsData?.products || []).slice(0, 5).map((product, index) => (
+                  <Pressable
                     key={product.id}
                     style={{
                       width: 180,
@@ -395,9 +348,13 @@ export default function AuthenticatedHome() {
                       borderRadius: 12,
                       borderWidth: 1,
                       borderColor: t.border,
-                      overflow: 'hidden'
+                      overflow: 'hidden',
+                      marginRight: index < 4 ? 12 : 0
                     }}
-                    onPress={() => router.push(`/product/${product.id}`)}
+                    onPress={() => {
+                      console.log('Product pressed:', product.id);
+                      router.push(`/product/${product.id}` as any);
+                    }}
                   >
                     <View style={{ backgroundColor: '#f5f5f5' }}>
                       <Image
@@ -405,37 +362,17 @@ export default function AuthenticatedHome() {
                         style={{ width: '100%', height: 140 }}
                         contentFit="contain"
                         cachePolicy="memory-disk"
-                        transition={200}
                       />
                     </View>
                     <View style={{ padding: 12 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                        <Text
-                          style={{
-                            fontSize: 14,
-                            fontWeight: '600',
-                            color: t.heading,
-                            flex: 1
-                          }}
-                          numberOfLines={2}
-                        >
-                          {product.title}
-                        </Text>
-                        {/* Listing Type Badge */}
-                        {product.listingType && product.listingType !== 'SALE' && (
-                          <View style={{
-                            paddingHorizontal: 5,
-                            paddingVertical: 2,
-                            backgroundColor: product.listingType === 'TRADE' ? '#FF6B35' : '#4ECDC4',
-                            borderRadius: 3,
-                            marginLeft: 4
-                          }}>
-                            <Text style={{ fontSize: 8, fontWeight: 'bold', color: '#FFF' }}>
-                              {product.listingType === 'TRADE' ? 'ÉCH' : 'V/É'}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
+                      <Text style={{
+                        fontSize: 14,
+                        fontWeight: '600',
+                        color: t.heading,
+                        marginBottom: 4
+                      }} numberOfLines={2}>
+                        {product.title}
+                      </Text>
                       <Text style={{
                         fontSize: 16,
                         fontWeight: 'bold',
@@ -444,24 +381,11 @@ export default function AuthenticatedHome() {
                       }}>
                         {product.listingType === 'TRADE' ? 'Échange' : `${product.price.toFixed(2)} €`}
                       </Text>
-                      {product.tradeFor && (
-                        <Text style={{
-                          fontSize: 10,
-                          color: t.muted,
-                          fontStyle: 'italic',
-                          marginBottom: 3
-                        }} numberOfLines={1}>
-                          🔄 {product.tradeFor}
-                        </Text>
-                      )}
-                      <Text style={{
-                        fontSize: 12,
-                        color: t.muted
-                      }}>
+                      <Text style={{ fontSize: 12, color: t.muted }}>
                         {product.location}
                       </Text>
                     </View>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </View>
             </ScrollView>
@@ -470,54 +394,43 @@ export default function AuthenticatedHome() {
 
         {/* Quick Actions */}
         <View style={{ paddingHorizontal: 16, paddingBottom: 32 }}>
-          <Text style={{
-            fontSize: 18,
-            fontWeight: '700',
-            color: t.heading,
-            marginBottom: 16,
-            fontFamily: 'Oswald-Bold',
-            letterSpacing: 0.5,
-            textTransform: 'uppercase'
-          }}>
-            ACTIONS RAPIDES
-          </Text>
-          
-          <View style={{ flexDirection: 'row', gap: 12 }}>
-            <TouchableOpacity 
+          <View style={{ flexDirection: 'row' }}>
+            <Pressable 
               style={{
                 flex: 1,
                 backgroundColor: t.primaryBtn,
                 paddingVertical: 16,
                 borderRadius: 12,
-                alignItems: 'center'
+                alignItems: 'center',
+                marginRight: 12
               }}
-              onPress={() => router.push("/(tabs)/sell")}
+              onPress={() => router.push('/sell' as any)}
             >
               <Text style={{ color: t.white, fontWeight: '600' }}>
                 Vendre un article
               </Text>
-            </TouchableOpacity>
+            </Pressable>
             
-            <TouchableOpacity style={{
-              flex: 1,
-              backgroundColor: t.cardBg,
-              paddingVertical: 16,
-              borderRadius: 12,
-              alignItems: 'center',
-              borderWidth: 1,
-              borderColor: t.border
-            }}
-            onPress={() => router.push('/favorites' as any)}
+            <Pressable 
+              style={{
+                flex: 1,
+                backgroundColor: t.cardBg,
+                paddingVertical: 16,
+                borderRadius: 12,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: t.border
+              }}
+              onPress={() => router.push('/favorites' as any)}
             >
               <Text style={{ color: t.heading, fontWeight: '600' }}>
                 Mes favoris
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </ScrollView>
 
-      {/* Compatibility Drawer */}
       <CompatDrawer
         isVisible={isCompatDrawerOpen}
         onClose={() => setIsCompatDrawerOpen(false)}

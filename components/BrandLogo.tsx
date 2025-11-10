@@ -31,9 +31,9 @@ export function BrandLogo({
   const t = THEMES[theme];
 
   const sizeConfig = {
-    small: { logoSize: 32, fontSize: 14, spacing: 8 },
-    medium: { logoSize: 40, fontSize: 18, spacing: 10 },
-    large: { logoSize: 56, fontSize: 24, spacing: 12 },
+    small: { logoSize: 48, fontSize: 14, spacing: 8 },
+    medium: { logoSize: 56, fontSize: 18, spacing: 10 },
+    large: { logoSize: 72, fontSize: 24, spacing: 12 },
   } as const;
 
   const config = sizeConfig[size];
@@ -56,7 +56,7 @@ export function BrandLogo({
       }}
     >
       <Image
-        source={require("../assets/geartedicon.png")}
+        source={require("../assets/GEARTEDicon5.png")}
         style={{
           width: (config as any).logoSize,
           height: (config as any).logoSize,
@@ -65,30 +65,16 @@ export function BrandLogo({
       />
       {resolvedVariant !== "none" && (
         <View>
-          {resolvedVariant === "full" && (
-            <Text
-              style={{
-                color: t.heading,
-                fontSize: (config as any).fontSize,
-                fontWeight: "bold",
-                fontFamily: "System",
-                letterSpacing: -0.5,
-              }}
-            >
-              GEARTED
-            </Text>
-          )}
           <Text
             style={{
-              color: t.muted,
-              fontSize: (config as any).fontSize * 0.6,
-              fontWeight: "500",
+              color: t.heading,
+              fontSize: (config as any).fontSize,
+              fontWeight: "bold",
               fontFamily: "System",
-              letterSpacing: 0.5,
-              textTransform: "uppercase",
+              letterSpacing: -0.5,
             }}
           >
-            Airsoft Marketplace
+            GEARTED
           </Text>
         </View>
       )}

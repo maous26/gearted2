@@ -13,13 +13,13 @@ export default function Hero({ mode = "ranger" }: { mode?: "ranger" | "night" })
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
           <Image 
-            source={require('../assets/geartedicon.png')} 
-            style={{ width: 64, height: 64, marginRight: 12 }}
+            source={require('../assets/GEARTEDicon5.png')} 
+            style={{ width: 100, height: 100, marginRight: 16 }}
             contentFit="contain"
           />
           <Text style={{ 
             color: isNight ? "white" : "#4e5d2f", 
-            fontSize: 36, 
+            fontSize: 42, 
             fontWeight: "800" 
           }}>
             Gearted
@@ -30,7 +30,7 @@ export default function Hero({ mode = "ranger" }: { mode?: "ranger" | "night" })
           marginTop: 12, 
           fontSize: 16 
         }}>
-          Marketplace & échange de matériel airsoft — sécurisé, simple, et pensé pour la communauté.
+          Échange de matériel airsoft — sécurisé, simple, et pensé pour la communauté.
         </Text>
 
         <View style={{ flexDirection: "row", gap: 12, marginTop: 24 }}>

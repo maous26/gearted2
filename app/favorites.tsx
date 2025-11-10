@@ -2,19 +2,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React from "react";
 import {
-  FlatList,
-  Image,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View
+    FlatList,
+    Image,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { EmptyState } from '../components/EmptyState';
 import { useTheme } from "../components/ThemeProvider";
-import { THEMES } from "../themes";
 import { useProductsStore } from '../stores/productsStore';
+import { THEMES } from "../themes";
 
 export default function FavoritesScreen() {
   const { theme } = useTheme();
