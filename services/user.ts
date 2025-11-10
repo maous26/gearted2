@@ -62,16 +62,62 @@ class UserService {
       return response.data.user;
     } catch (error: any) {
       console.error('[UserService] Update profile error:', error);
+      console.error('[UserService] Error response:', error.response?.data);
+      console.error('[UserService] Error status:', error.response?.status);
+      console.error('[UserService] Error message:', error.message);
       
-      // Extraire le message d'erreur du backend
-      let errorMessage = 'Erreur lors de la mise à jour du profil';
-      const errorData = error.response?.data?.error;
+      // Traduire les erreurs techniques en messages compréhensibles
+      let errorMessage = 'Une erreur est survenue';
       
-      if (errorData) {
-        if (errorData.details && Array.isArray(errorData.details) && errorData.details.length > 0) {
-          errorMessage = errorData.details[0];
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
+      // Erreur réseau
+      if (!error.response) {
+        if (error.message?.includes('Network Error') || error.message?.includes('timeout')) {
+          errorMessage = 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
+        } else if (error.message?.includes('SecureStore') || error.message?.includes('Invalid value')) {
+          errorMessage = 'Erreur de sauvegarde locale. Veuillez réessayer.';
+        } else {
+          errorMessage = 'Problème de connexion au serveur';
+        }
+      } 
+      // Erreur du serveur
+      else {
+        const errorData = error.response?.data?.error;
+        
+        if (errorData) {
+          // Messages du backend
+          if (errorData.details && Array.isArray(errorData.details) && errorData.details.length > 0) {
+            const detail = errorData.details[0];
+            // Traduire les erreurs Joi courantes
+            if (detail.includes('must be a valid email')) {
+              errorMessage = 'Format d\'email invalide';
+            } else if (detail.includes('is required')) {
+              errorMessage = 'Tous les champs requis doivent être remplis';
+            } else if (detail.includes('must be a string')) {
+              errorMessage = 'Format de données invalide';
+            } else {
+              errorMessage = detail;
+            }
+          } else if (errorData.message) {
+            // Messages spécifiques du backend déjà en français
+            if (errorData.message.includes('déjà pris') || errorData.message.includes('already')) {
+              errorMessage = 'Ce nom d\'utilisateur est déjà utilisé';
+            } else if (errorData.message.includes('non authentifié') || errorData.message.includes('Unauthorized')) {
+              errorMessage = 'Session expirée. Veuillez vous reconnecter.';
+            } else {
+              errorMessage = errorData.message;
+            }
+          }
+        }
+        
+        // Erreurs HTTP standard
+        if (error.response?.status === 401) {
+          errorMessage = 'Session expirée. Veuillez vous reconnecter.';
+        } else if (error.response?.status === 403) {
+          errorMessage = 'Action non autorisée';
+        } else if (error.response?.status === 404) {
+          errorMessage = 'Profil introuvable';
+        } else if (error.response?.status >= 500) {
+          errorMessage = 'Le serveur rencontre un problème. Réessayez dans quelques instants.';
         }
       }
       

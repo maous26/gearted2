@@ -57,22 +57,37 @@ class AuthService {
       console.error('[Login] Error:', error);
       console.error('[Login] Error response:', error.response?.data);
       
-      // Extraire le message d'erreur
-      let errorMessage = 'Login failed';
+      // Traduire les erreurs en messages compréhensibles
+      let errorMessage = 'Erreur de connexion';
       
-      if (error.response?.data?.error) {
+      // Erreur réseau
+      if (!error.response) {
+        if (error.message?.includes('Network Error') || error.message?.includes('timeout')) {
+          errorMessage = 'Impossible de se connecter au serveur';
+        } else {
+          errorMessage = 'Problème de connexion';
+        }
+      } 
+      // Erreur du serveur
+      else if (error.response?.data?.error) {
         const errorData = error.response.data.error;
         
-        // Si c'est une erreur de validation avec des détails
         if (errorData.details && Array.isArray(errorData.details) && errorData.details.length > 0) {
-          errorMessage = errorData.details[0];
-        } 
-        // Sinon prendre le message
-        else if (errorData.message) {
+          const detail = errorData.details[0];
+          if (detail.includes('not allowed to be empty')) {
+            errorMessage = 'Tous les champs sont requis';
+          } else if (detail.includes('must be a valid email')) {
+            errorMessage = 'Format d\'email invalide';
+          } else {
+            errorMessage = detail;
+          }
+        } else if (errorData.message) {
           errorMessage = errorData.message;
         }
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Email ou mot de passe incorrect';
+      } else if (error.response?.status >= 500) {
+        errorMessage = 'Le serveur rencontre un problème';
       }
       
       throw new Error(errorMessage);
@@ -105,27 +120,45 @@ class AuthService {
       console.error('[Register] Error response:', error.response?.data);
       console.error('[Register] Error status:', error.response?.status);
       
-      // Extraire le message d'erreur de validation
-      let errorMessage = 'Registration failed';
+      // Traduire les erreurs en messages compréhensibles
+      let errorMessage = 'Erreur lors de l\'inscription';
       
-      if (error.response?.data?.error) {
+      // Erreur réseau
+      if (!error.response) {
+        if (error.message?.includes('Network Error') || error.message?.includes('timeout')) {
+          errorMessage = 'Impossible de se connecter au serveur';
+        } else {
+          errorMessage = 'Problème de connexion';
+        }
+      }
+      // Erreur du serveur
+      else if (error.response?.data?.error) {
         const errorData = error.response.data.error;
         
-        // Si c'est une erreur de validation avec des détails
         if (errorData.details && Array.isArray(errorData.details) && errorData.details.length > 0) {
-          // Prendre le premier message de détail
-          errorMessage = errorData.details[0];
+          const detail = errorData.details[0];
+          // Traduire les erreurs courantes
+          if (detail.includes('not allowed to be empty')) {
+            errorMessage = 'Tous les champs sont requis';
+          } else if (detail.includes('must be a valid email')) {
+            errorMessage = 'Format d\'email invalide';
+          } else if (detail.includes('at least')) {
+            errorMessage = 'Le mot de passe doit contenir au moins 8 caractères';
+          } else {
+            errorMessage = detail;
+          }
+        } else if (errorData.message) {
+          // Messages déjà en français du backend
+          if (errorData.message.includes('déjà utilisé') || errorData.message.includes('already')) {
+            errorMessage = 'Cet email est déjà utilisé';
+          } else {
+            errorMessage = errorData.message;
+          }
         }
-        // Si c'est une erreur avec un champ spécifique (email déjà utilisé, etc.)
-        else if (errorData.message && errorData.field) {
-          errorMessage = errorData.message;
-        } 
-        // Sinon prendre le message général
-        else if (errorData.message) {
-          errorMessage = errorData.message;
-        }
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 409) {
+        errorMessage = 'Cet email ou nom d\'utilisateur est déjà utilisé';
+      } else if (error.response?.status >= 500) {
+        errorMessage = 'Le serveur rencontre un problème';
       }
       
       throw new Error(errorMessage);
