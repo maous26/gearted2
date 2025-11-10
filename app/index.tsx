@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
     Dimensions,
@@ -18,6 +18,7 @@ import { THEMES, ThemeKey } from "../themes";
 const { width } = Dimensions.get('window');
 
 export default function GeartedLanding() {
+  const router = useRouter();
   const [theme, setTheme] = useState<ThemeKey>("ranger");
   const [searchText, setSearchText] = useState("");
   const [location, setLocation] = useState("");
@@ -159,7 +160,18 @@ export default function GeartedLanding() {
                 paddingVertical: 14,
                 borderRadius: 12,
                 alignItems: 'center'
-              }}>
+              }}
+              onPress={() => {
+                console.log('Search pressed with:', searchText, location);
+                router.push({
+                  pathname: '/(tabs)/browse',
+                  params: { 
+                    search: searchText,
+                    location: location 
+                  }
+                } as any);
+              }}
+              >
                 <Text style={{ color: t.white, fontWeight: '600', fontSize: 16 }}>Chercher</Text>
               </TouchableOpacity>
             </View>
@@ -210,7 +222,13 @@ export default function GeartedLanding() {
                 label={category.label}
                 icon={category.icon}
                 theme={theme}
-                onPress={() => console.log(`Pressed ${category.label}`)}
+                onPress={() => {
+                  console.log(`Category pressed: ${category.label}`);
+                  router.push({
+                    pathname: '/(tabs)/browse',
+                    params: { category: category.slug }
+                  } as any);
+                }}
               />
             ))}
           </View>
@@ -282,7 +300,12 @@ export default function GeartedLanding() {
                     paddingHorizontal: 12,
                     paddingVertical: 6,
                     borderRadius: 8
-                  }}>
+                  }}
+                  onPress={() => {
+                    console.log(`Viewing sample listing #${i}`);
+                    router.push('/(tabs)/browse' as any);
+                  }}
+                  >
                     <Text style={{ 
                       fontSize: 12, 
                       color: t.heading,
