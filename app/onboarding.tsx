@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import {
     Alert,
     Image,
+    ScrollView,
     StatusBar,
     Text,
     TextInput,
@@ -96,7 +97,7 @@ export default function OnboardingScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
         <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
         
-        <View style={{ flex: 1, padding: 24, paddingTop: 60 }}>
+        <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 60 }}>
           {/* Progress */}
           <View style={{ flexDirection: 'row', marginBottom: 40 }}>
             <View style={{ flex: 1, height: 4, backgroundColor: t.primaryBtn, borderRadius: 2, marginRight: 8 }} />
@@ -218,7 +219,7 @@ export default function OnboardingScreen() {
               Passer cette étape
             </Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -227,8 +228,8 @@ export default function OnboardingScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
       <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
-
-      <View style={{ flex: 1, padding: 24, paddingTop: 60 }}>
+      
+      <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 60 }}>
         {/* Progress */}
         <View style={{ flexDirection: 'row', marginBottom: 40 }}>
           <View style={{ flex: 1, height: 4, backgroundColor: t.primaryBtn, borderRadius: 2, marginRight: 8 }} />
@@ -363,7 +364,7 @@ export default function OnboardingScreen() {
             Passer cette étape
           </Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
