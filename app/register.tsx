@@ -179,14 +179,27 @@ export default function RegisterScreen() {
       console.error('[Register] Error:', error);
       
       // Analyser le message d'erreur
-      const errorMessage = error.message || "Impossible de créer le compte";
+      let errorMessage = error.message || "Impossible de créer le compte";
+      
+      // Traduire les messages courants en français
+      if (errorMessage.includes('Password must contain at least one uppercase letter')) {
+        errorMessage = "Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre et un caractère spécial";
+      } else if (errorMessage.includes('not allowed to be empty')) {
+        if (errorMessage.includes('password')) {
+          errorMessage = "Le mot de passe est requis";
+        } else if (errorMessage.includes('email')) {
+          errorMessage = "L'email est requis";
+        } else if (errorMessage.includes('username')) {
+          errorMessage = "Le nom d'utilisateur est requis";
+        }
+      }
       
       // Déterminer le type d'erreur
-      if (errorMessage.toLowerCase().includes('email')) {
+      if (errorMessage.toLowerCase().includes('email') || errorMessage.toLowerCase().includes('mail')) {
         setEmailError(errorMessage);
       } else if (errorMessage.toLowerCase().includes('username') || errorMessage.toLowerCase().includes('utilisateur')) {
         setUsernameError(errorMessage);
-      } else if (errorMessage.toLowerCase().includes('mot de passe') || errorMessage.toLowerCase().includes('password')) {
+      } else if (errorMessage.toLowerCase().includes('mot de passe') || errorMessage.toLowerCase().includes('password') || errorMessage.toLowerCase().includes('majuscule') || errorMessage.toLowerCase().includes('caractère spécial')) {
         setPasswordError(errorMessage);
       } else {
         setGeneralError(errorMessage);

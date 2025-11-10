@@ -86,10 +86,21 @@ export default function LoginScreen() {
       console.error('[Login] Error:', error);
       
       // Analyser le message d'erreur
-      const errorMessage = error.message || "Identifiants invalides";
+      let errorMessage = error.message || "Identifiants invalides";
+      
+      // Traduire les messages courants en français
+      if (errorMessage.includes('not allowed to be empty')) {
+        if (errorMessage.includes('password')) {
+          errorMessage = "Le mot de passe est requis";
+        } else if (errorMessage.includes('email')) {
+          errorMessage = "L'email est requis";
+        }
+      } else if (errorMessage.includes('must be a valid email')) {
+        errorMessage = "L'email doit être valide";
+      }
       
       // Déterminer si c'est une erreur d'email, de mot de passe ou générale
-      if (errorMessage.toLowerCase().includes('email')) {
+      if (errorMessage.toLowerCase().includes('email') || errorMessage.toLowerCase().includes('mail')) {
         setEmailError(errorMessage);
       } else if (errorMessage.toLowerCase().includes('mot de passe') || errorMessage.toLowerCase().includes('password')) {
         setPasswordError(errorMessage);
