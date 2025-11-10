@@ -76,29 +76,50 @@ export default function Settings() {
     try {
       console.log('[Settings] Saving profile to backend');
       
-      // Envoyer au backend (sans avatar pour l'instant)
-      const updatedUser = await userService.updateProfile({
-        username: editUsername.trim(),
-      });
-      
-      console.log('[Settings] Profile saved to backend');
-      
-      // Mettre à jour le state local avec les données du backend + données locales (avatar, teamName)
-      await updateProfile({
-        id: updatedUser.id,
-        email: updatedUser.email,
-        username: updatedUser.username,
-        avatar: user?.avatar ?? null, // Garder l'avatar local
-        teamName: editTeamName.trim() || "Sans équipe", // Garder teamName local
-        firstName: updatedUser.firstName,
-        lastName: updatedUser.lastName,
-        location: updatedUser.location,
-        phone: updatedUser.phone,
-        bio: updatedUser.bio
-      });
+      // Essayer d'envoyer au backend, mais continuer même si ça échoue
+      let backendSuccess = false;
+      try {
+        const updatedUser = await userService.updateProfile({
+          username: editUsername.trim(),
+        });
+        console.log('[Settings] Profile saved to backend');
+        backendSuccess = true;
+        
+        // Mettre à jour avec les données du backend
+        await updateProfile({
+          id: updatedUser.id,
+          email: updatedUser.email,
+          username: updatedUser.username,
+          avatar: user?.avatar ?? null,
+          teamName: editTeamName.trim() || "Sans équipe",
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          location: updatedUser.location,
+          phone: updatedUser.phone,
+          bio: updatedUser.bio
+        });
+      } catch (backendError: any) {
+        console.warn('[Settings] Backend unavailable, saving locally only:', backendError.message);
+        
+        // Sauvegarder localement même si le backend échoue
+        await updateProfile({
+          ...user!,
+          username: editUsername.trim(),
+          teamName: editTeamName.trim() || "Sans équipe",
+        });
+      }
       
       setIsEditingProfile(false);
-      Alert.alert("Succès", "Profil mis à jour");
+      
+      // Informer l'utilisateur du résultat
+      if (backendSuccess) {
+        Alert.alert("Succès", "Profil mis à jour");
+      } else {
+        Alert.alert(
+          "Sauvegardé localement", 
+          "Les modifications sont sauvegardées sur cet appareil. Elles seront synchronisées avec le serveur lors de la prochaine connexion."
+        );
+      }
     } catch (error: any) {
       console.error('[Settings] Error saving profile:', error);
       Alert.alert("Erreur", error.message || "Impossible de sauvegarder le profil");
