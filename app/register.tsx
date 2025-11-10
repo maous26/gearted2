@@ -34,6 +34,13 @@ export default function RegisterScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isRequestingLocation, setIsRequestingLocation] = useState(false);
   
+  // États pour les erreurs
+  const [emailError, setEmailError] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  const [generalError, setGeneralError] = useState("");
+  
   const t = THEMES[theme];
 
   const handleRequestLocation = async () => {
@@ -72,24 +79,65 @@ export default function RegisterScreen() {
     }
   };
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleRegister = async () => {
-    if (!firstName || !lastName || !username || !email || !password) {
-      Alert.alert("Erreur", "Veuillez remplir tous les champs");
-      return;
+    // Réinitialiser les erreurs
+    setEmailError("");
+    setUsernameError("");
+    setPasswordError("");
+    setConfirmPasswordError("");
+    setGeneralError("");
+
+    // Validation
+    let hasError = false;
+
+    if (!firstName || !lastName) {
+      setGeneralError("Veuillez remplir votre nom et prénom");
+      hasError = true;
+    }
+
+    if (!email) {
+      setEmailError("L'email est requis");
+      hasError = true;
+    } else if (!validateEmail(email)) {
+      setEmailError("Format d'email invalide");
+      hasError = true;
+    }
+
+    if (!username) {
+      setUsernameError("Le nom d'utilisateur est requis");
+      hasError = true;
+    } else if (username.length < 3) {
+      setUsernameError("Minimum 3 caractères");
+      hasError = true;
+    }
+
+    if (!password) {
+      setPasswordError("Le mot de passe est requis");
+      hasError = true;
+    } else if (password.length < 8) {
+      setPasswordError("Minimum 8 caractères");
+      hasError = true;
+    }
+
+    if (!confirmPassword) {
+      setConfirmPasswordError("Veuillez confirmer le mot de passe");
+      hasError = true;
+    } else if (password !== confirmPassword) {
+      setConfirmPasswordError("Les mots de passe ne correspondent pas");
+      hasError = true;
     }
 
     if (!city || !postalCode) {
-      Alert.alert("Erreur", "Veuillez indiquer votre ville et code postal");
-      return;
+      setGeneralError("Veuillez indiquer votre ville et code postal");
+      hasError = true;
     }
 
-    if (password !== confirmPassword) {
-      Alert.alert("Erreur", "Les mots de passe ne correspondent pas");
-      return;
-    }
-
-    if (password.length < 8) {
-      Alert.alert("Erreur", "Le mot de passe doit contenir au moins 8 caractères");
+    if (hasError) {
       return;
     }
 
@@ -130,9 +178,19 @@ export default function RegisterScreen() {
       setIsLoading(false);
       console.error('[Register] Error:', error);
       
-      // Afficher un message d'erreur approprié
+      // Analyser le message d'erreur
       const errorMessage = error.message || "Impossible de créer le compte";
-      Alert.alert("Erreur", errorMessage);
+      
+      // Déterminer le type d'erreur
+      if (errorMessage.toLowerCase().includes('email')) {
+        setEmailError(errorMessage);
+      } else if (errorMessage.toLowerCase().includes('username') || errorMessage.toLowerCase().includes('utilisateur')) {
+        setUsernameError(errorMessage);
+      } else if (errorMessage.toLowerCase().includes('mot de passe') || errorMessage.toLowerCase().includes('password')) {
+        setPasswordError(errorMessage);
+      } else {
+        setGeneralError(errorMessage);
+      }
     }
   };
 
@@ -177,6 +235,23 @@ export default function RegisterScreen() {
 
         {/* Register Form */}
         <View style={{ paddingHorizontal: 24, paddingTop: 32 }}>
+          {/* Message d'erreur général */}
+          {generalError ? (
+            <View style={{
+              backgroundColor: '#FEE2E2',
+              borderLeftWidth: 4,
+              borderLeftColor: '#DC2626',
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              borderRadius: 8,
+              marginBottom: 20
+            }}>
+              <Text style={{ color: '#991B1B', fontSize: 14, fontWeight: '600' }}>
+                {generalError}
+              </Text>
+            </View>
+          ) : null}
+
           <View style={{ flexDirection: 'row', marginBottom: 20 }}>
             <View style={{ flex: 1, marginRight: 12 }}>
               <Text style={{
@@ -200,7 +275,10 @@ export default function RegisterScreen() {
                 }}
                 placeholder="John"
                 value={firstName}
-                onChangeText={setFirstName}
+                onChangeText={(text) => {
+                  setFirstName(text);
+                  if (generalError) setGeneralError("");
+                }}
                 placeholderTextColor={t.muted}
               />
             </View>
@@ -227,7 +305,10 @@ export default function RegisterScreen() {
                 }}
                 placeholder="Doe"
                 value={lastName}
-                onChangeText={setLastName}
+                onChangeText={(text) => {
+                  setLastName(text);
+                  if (generalError) setGeneralError("");
+                }}
                 placeholderTextColor={t.muted}
               />
             </View>
@@ -251,15 +332,24 @@ export default function RegisterScreen() {
                 fontSize: 16,
                 color: t.heading,
                 borderWidth: 1,
-                borderColor: t.border
+                borderColor: usernameError ? '#DC2626' : t.border
               }}
               placeholder="johndoe"
               value={username}
-              onChangeText={setUsername}
+              onChangeText={(text) => {
+                setUsername(text);
+                if (usernameError) setUsernameError("");
+                if (generalError) setGeneralError("");
+              }}
               placeholderTextColor={t.muted}
               autoCapitalize="none"
               autoCorrect={false}
             />
+            {usernameError ? (
+              <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 4, marginLeft: 4 }}>
+                {usernameError}
+              </Text>
+            ) : null}
           </View>
 
           <View style={{ marginBottom: 20 }}>
@@ -280,16 +370,25 @@ export default function RegisterScreen() {
                 fontSize: 16,
                 color: t.heading,
                 borderWidth: 1,
-                borderColor: t.border
+                borderColor: emailError ? '#DC2626' : t.border
               }}
               placeholder="votre.email@exemple.com"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (emailError) setEmailError("");
+                if (generalError) setGeneralError("");
+              }}
               placeholderTextColor={t.muted}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
             />
+            {emailError ? (
+              <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 4, marginLeft: 4 }}>
+                {emailError}
+              </Text>
+            ) : null}
           </View>
 
           {/* Localisation Section */}
@@ -432,14 +531,23 @@ export default function RegisterScreen() {
                 fontSize: 16,
                 color: t.heading,
                 borderWidth: 1,
-                borderColor: t.border
+                borderColor: passwordError ? '#DC2626' : t.border
               }}
               placeholder="••••••••"
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(text) => {
+                setPassword(text);
+                if (passwordError) setPasswordError("");
+                if (generalError) setGeneralError("");
+              }}
               placeholderTextColor={t.muted}
               secureTextEntry
             />
+            {passwordError ? (
+              <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 4, marginLeft: 4 }}>
+                {passwordError}
+              </Text>
+            ) : null}
           </View>
 
           <View style={{ marginBottom: 32 }}>
@@ -460,14 +568,23 @@ export default function RegisterScreen() {
                 fontSize: 16,
                 color: t.heading,
                 borderWidth: 1,
-                borderColor: t.border
+                borderColor: confirmPasswordError ? '#DC2626' : t.border
               }}
               placeholder="••••••••"
               value={confirmPassword}
-              onChangeText={setConfirmPassword}
+              onChangeText={(text) => {
+                setConfirmPassword(text);
+                if (confirmPasswordError) setConfirmPasswordError("");
+                if (generalError) setGeneralError("");
+              }}
               placeholderTextColor={t.muted}
               secureTextEntry
             />
+            {confirmPasswordError ? (
+              <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 4, marginLeft: 4 }}>
+                {confirmPasswordError}
+              </Text>
+            ) : null}
           </View>
 
           <TouchableOpacity

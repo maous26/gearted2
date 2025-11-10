@@ -21,12 +21,40 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [generalError, setGeneralError] = useState("");
   
   const t = THEMES[theme];
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert("Erreur", "Veuillez remplir tous les champs");
+    // Réinitialiser les erreurs
+    setEmailError("");
+    setPasswordError("");
+    setGeneralError("");
+
+    // Validation
+    let hasError = false;
+
+    if (!email) {
+      setEmailError("L'email est requis");
+      hasError = true;
+    } else if (!validateEmail(email)) {
+      setEmailError("Format d'email invalide");
+      hasError = true;
+    }
+
+    if (!password) {
+      setPasswordError("Le mot de passe est requis");
+      hasError = true;
+    }
+
+    if (hasError) {
       return;
     }
 
@@ -57,9 +85,19 @@ export default function LoginScreen() {
       setIsLoading(false);
       console.error('[Login] Error:', error);
       
-      // Afficher un message d'erreur approprié
+      // Analyser le message d'erreur
       const errorMessage = error.message || "Identifiants invalides";
-      Alert.alert("Erreur de connexion", errorMessage);
+      
+      // Déterminer si c'est une erreur d'email, de mot de passe ou générale
+      if (errorMessage.toLowerCase().includes('email')) {
+        setEmailError(errorMessage);
+      } else if (errorMessage.toLowerCase().includes('mot de passe') || errorMessage.toLowerCase().includes('password')) {
+        setPasswordError(errorMessage);
+      } else if (errorMessage.toLowerCase().includes('identifiants') || errorMessage.toLowerCase().includes('credentials')) {
+        setGeneralError("Email ou mot de passe incorrect");
+      } else {
+        setGeneralError(errorMessage);
+      }
     }
   };
 
@@ -100,6 +138,23 @@ export default function LoginScreen() {
 
         {/* Login Form */}
         <View style={{ paddingHorizontal: 24, paddingTop: 32 }}>
+          {/* Message d'erreur général */}
+          {generalError ? (
+            <View style={{
+              backgroundColor: '#FEE2E2',
+              borderLeftWidth: 4,
+              borderLeftColor: '#DC2626',
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              borderRadius: 8,
+              marginBottom: 20
+            }}>
+              <Text style={{ color: '#991B1B', fontSize: 14, fontWeight: '600' }}>
+                {generalError}
+              </Text>
+            </View>
+          ) : null}
+
           <View style={{ marginBottom: 20 }}>
             <Text style={{
               fontSize: 16,
@@ -118,16 +173,25 @@ export default function LoginScreen() {
                 fontSize: 16,
                 color: t.heading,
                 borderWidth: 1,
-                borderColor: t.border
+                borderColor: emailError ? '#DC2626' : t.border
               }}
               placeholder="votre.email@exemple.com"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (emailError) setEmailError("");
+                if (generalError) setGeneralError("");
+              }}
               placeholderTextColor={t.muted}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
             />
+            {emailError ? (
+              <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 4, marginLeft: 4 }}>
+                {emailError}
+              </Text>
+            ) : null}
           </View>
 
           <View style={{ marginBottom: 32 }}>
@@ -148,14 +212,23 @@ export default function LoginScreen() {
                 fontSize: 16,
                 color: t.heading,
                 borderWidth: 1,
-                borderColor: t.border
+                borderColor: passwordError ? '#DC2626' : t.border
               }}
               placeholder="••••••••"
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(text) => {
+                setPassword(text);
+                if (passwordError) setPasswordError("");
+                if (generalError) setGeneralError("");
+              }}
               placeholderTextColor={t.muted}
               secureTextEntry
             />
+            {passwordError ? (
+              <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 4, marginLeft: 4 }}>
+                {passwordError}
+              </Text>
+            ) : null}
           </View>
 
           <TouchableOpacity
