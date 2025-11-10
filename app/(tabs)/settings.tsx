@@ -11,12 +11,14 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View
+    View,
+    ActivityIndicator
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../components/ThemeProvider";
 import { useUser } from "../../components/UserProvider";
 import { THEMES, ThemeKey } from "../../themes";
+import userService from "../../services/user";
 
 export default function Settings() {
   const { theme, setTheme } = useTheme();
@@ -26,6 +28,7 @@ export default function Settings() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editUsername, setEditUsername] = useState(user?.username || "");
   const [editTeamName, setEditTeamName] = useState(user?.teamName || "");
+  const [isSaving, setIsSaving] = useState(false);
   
   const t = THEMES[theme];
 
@@ -46,8 +49,33 @@ export default function Settings() {
     if (!result.canceled && user) {
       const avatarUri = result.assets[0].uri;
       console.log('[Settings] Avatar selected:', avatarUri);
-      await updateProfile({ avatar: avatarUri });
-      console.log('[Settings] Avatar saved to profile');
+      
+      setIsSaving(true);
+      try {
+        // Envoyer au backend
+        const updatedUser = await userService.updateProfile({ avatar: avatarUri });
+        console.log('[Settings] Avatar saved to backend');
+        
+        // Mettre à jour le state local
+        await updateProfile({
+          id: updatedUser.id,
+          email: updatedUser.email,
+          username: updatedUser.username,
+          avatar: updatedUser.avatar,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          location: updatedUser.location,
+          phone: updatedUser.phone,
+          bio: updatedUser.bio
+        });
+        
+        Alert.alert("Succès", "Photo de profil mise à jour");
+      } catch (error: any) {
+        console.error('[Settings] Error saving avatar:', error);
+        Alert.alert("Erreur", error.message || "Impossible de sauvegarder la photo");
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -56,14 +84,41 @@ export default function Settings() {
       Alert.alert("Erreur", "Le nom d'utilisateur ne peut pas être vide");
       return;
     }
-    console.log('[Settings] Saving profile - keeping avatar:', user?.avatar);
-    await updateProfile({
-      username: editUsername.trim(),
-      teamName: editTeamName.trim() || "Sans équipe",
-      // IMPORTANT: keep the existing avatar
-      avatar: user?.avatar ?? null
-    });
-    setIsEditingProfile(false);
+    
+    setIsSaving(true);
+    try {
+      console.log('[Settings] Saving profile to backend');
+      
+      // Envoyer au backend
+      const updatedUser = await userService.updateProfile({
+        username: editUsername.trim(),
+        // Note: teamName n'est pas encore dans le backend, on le garde local pour l'instant
+      });
+      
+      console.log('[Settings] Profile saved to backend');
+      
+      // Mettre à jour le state local avec les données du backend
+      await updateProfile({
+        id: updatedUser.id,
+        email: updatedUser.email,
+        username: updatedUser.username,
+        avatar: updatedUser.avatar,
+        teamName: editTeamName.trim() || "Sans équipe", // Garder teamName local
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        location: updatedUser.location,
+        phone: updatedUser.phone,
+        bio: updatedUser.bio
+      });
+      
+      setIsEditingProfile(false);
+      Alert.alert("Succès", "Profil mis à jour");
+    } catch (error: any) {
+      console.error('[Settings] Error saving profile:', error);
+      Alert.alert("Erreur", error.message || "Impossible de sauvegarder le profil");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleLogout = () => {
@@ -210,10 +265,15 @@ export default function Settings() {
                   setIsEditingProfile(true);
                 }
               }}
+              disabled={isSaving}
             >
-              <Text style={{ fontSize: 14, color: t.primaryBtn, fontWeight: '600' }}>
-                {isEditingProfile ? "Enregistrer" : "Modifier"}
-              </Text>
+              {isSaving ? (
+                <ActivityIndicator size="small" color={t.primaryBtn} />
+              ) : (
+                <Text style={{ fontSize: 14, color: t.primaryBtn, fontWeight: '600' }}>
+                  {isEditingProfile ? "Enregistrer" : "Modifier"}
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
 

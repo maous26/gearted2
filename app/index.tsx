@@ -21,7 +21,6 @@ const { width } = Dimensions.get('window');
 
 export default function GeartedLanding() {
   const router = useRouter();
-  const { user } = useUser();
   const [theme, setTheme] = useState<ThemeKey>("ranger");
   const [searchText, setSearchText] = useState("");
   const [location, setLocation] = useState("");
@@ -34,11 +33,14 @@ export default function GeartedLanding() {
     const checkAuth = async () => {
       try {
         const hasValidToken = await TokenManager.hasValidToken();
-        if (hasValidToken && user) {
-          // Utilisateur connecté, rediriger vers l'app
-          console.log('[Landing] User authenticated, redirecting to home');
+        
+        if (hasValidToken) {
+          // Token valide trouvé, rediriger vers l'app
+          // Le UserProvider chargera automatiquement le profil depuis AsyncStorage
+          console.log('[Landing] Valid token found, redirecting to home');
           router.replace("/(tabs)" as any);
         } else {
+          console.log('[Landing] No valid token, showing landing page');
           setIsCheckingAuth(false);
         }
       } catch (error) {
@@ -48,7 +50,7 @@ export default function GeartedLanding() {
     };
 
     checkAuth();
-  }, [user]);
+  }, []);
 
   // Afficher un écran vide pendant la vérification
   if (isCheckingAuth) {

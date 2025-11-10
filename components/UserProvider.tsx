@@ -99,14 +99,28 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    // Ne pas supprimer le profil, juste réinitialiser l'état en mémoire
-    // Les données restent dans AsyncStorage pour la prochaine connexion
-    setUser(null);
+    // Déconnexion : on vide le state MAIS on recharge immédiatement depuis AsyncStorage
+    // Cela permet de garder les infos du profil affichées même après déconnexion
     setIsOnboarded(false);
-    console.log('[UserProvider] User logged out (profile data preserved in storage)');
     
-    // Note: Le profil reste dans AsyncStorage pour être rechargé à la prochaine connexion
-    // Seuls les tokens JWT sont supprimés par TokenManager
+    try {
+      // Recharger le profil depuis le stockage pour le garder affiché
+      const storedUser = await AsyncStorage.getItem(USER_STORAGE_KEY);
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        console.log('[UserProvider] Logout: profile reloaded from storage and kept in state');
+      } else {
+        setUser(null);
+        console.log('[UserProvider] Logout: no stored profile found');
+      }
+    } catch (error) {
+      console.error('[UserProvider] Error reloading profile after logout:', error);
+      setUser(null);
+    }
+    
+    // Note: Les tokens JWT sont supprimés par TokenManager.clearTokens()
+    // Le profil reste visible mais l'utilisateur devra se reconnecter pour accéder à l'app
   };
 
   const completeOnboarding = () => {
