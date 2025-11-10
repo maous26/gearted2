@@ -65,16 +65,37 @@ class ApiService {
             }
 
             // Correct refresh endpoint (server mounts /api/auth and route is /refresh-token)
-            const response = await this.api.post('/api/auth/refresh-token', {
-              refreshToken,
-            });
+              const response = await this.api.post('/api/auth/refresh-token', { refreshToken });
 
-            const { accessToken, refreshToken: newRefreshToken } = (response as any).data ?? response;
-            await TokenManager.saveTokens(accessToken, newRefreshToken);
+              // Extraire proprement les tokens du payload
+              const payload = (response as any).data ?? response;
+              const accessToken = payload?.accessToken ?? payload?.tokens?.accessToken ?? null;
+              const newRefreshToken = payload?.refreshToken ?? payload?.tokens?.refreshToken ?? null;
 
-            originalRequest.headers = originalRequest.headers || {};
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-            return this.api(originalRequest);
+              // Valider les tokens avant de tenter de les sauvegarder
+              if (typeof accessToken !== 'string' || typeof newRefreshToken !== 'string' || !accessToken || !newRefreshToken) {
+                console.error('[API] Invalid tokens received from refresh endpoint:', {
+                  accessToken,
+                  newRefreshToken,
+                  payload
+                });
+                // Nettoyer les tokens existants et forcer la sortie
+                await TokenManager.clearTokens();
+                throw new Error('Session expirée');
+              }
+
+              try {
+                await TokenManager.saveTokens(accessToken, newRefreshToken);
+              } catch (saveError) {
+                console.error('[API] Error saving refreshed tokens:', saveError);
+                // Si on ne peut pas sauvegarder les tokens, on les efface pour éviter incohérences
+                await TokenManager.clearTokens();
+                throw saveError;
+              }
+
+              originalRequest.headers = originalRequest.headers || {};
+              originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+              return this.api(originalRequest);
           } catch (refreshError) {
             // Refresh failed, logout user
             await TokenManager.clearTokens();
