@@ -58,6 +58,20 @@ class UserService {
     try {
       console.log('[UserService] Updating profile:', data);
       const response = await api.patch<BackendResponse<{ user: UserProfile }>>('/api/users/me', data);
+      console.log('[UserService] Raw response:', response);
+      console.log('[UserService] Response data:', response.data);
+      console.log('[UserService] Response data.user:', response.data?.user);
+      
+      // Vérifier la structure de la réponse
+      if (!response || !response.data) {
+        throw new Error('Réponse invalide du serveur');
+      }
+      
+      if (!response.data.user) {
+        console.error('[UserService] No user in response. Full response:', JSON.stringify(response, null, 2));
+        throw new Error('Format de réponse invalide');
+      }
+      
       console.log('[UserService] Profile updated successfully');
       return response.data.user;
     } catch (error: any) {

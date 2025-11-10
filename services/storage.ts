@@ -6,10 +6,32 @@ class TokenManager {
 
   static async saveTokens(accessToken: string, refreshToken: string): Promise<void> {
     try {
+      // Validation : s'assurer que les tokens sont des strings
+      if (typeof accessToken !== 'string' || typeof refreshToken !== 'string') {
+        console.error('[TokenManager] Invalid token type:', { 
+          accessToken: typeof accessToken, 
+          refreshToken: typeof refreshToken,
+          accessTokenValue: accessToken,
+          refreshTokenValue: refreshToken
+        });
+        throw new Error('Les tokens doivent être des chaînes de caractères');
+      }
+      
+      if (!accessToken || !refreshToken) {
+        console.error('[TokenManager] Empty tokens:', { 
+          hasAccessToken: !!accessToken, 
+          hasRefreshToken: !!refreshToken 
+        });
+        throw new Error('Les tokens ne peuvent pas être vides');
+      }
+      
+      console.log('[TokenManager] Saving tokens...');
       await SecureStore.setItemAsync(this.ACCESS_TOKEN_KEY, accessToken);
       await SecureStore.setItemAsync(this.REFRESH_TOKEN_KEY, refreshToken);
-    } catch (error) {
-      console.error('Error saving tokens:', error);
+      console.log('[TokenManager] Tokens saved successfully');
+    } catch (error: any) {
+      console.error('[TokenManager] Error saving tokens:', error);
+      console.error('[TokenManager] Error message:', error.message);
       throw error;
     }
   }
