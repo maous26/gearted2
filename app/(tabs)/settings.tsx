@@ -44,18 +44,24 @@ export default function Settings() {
     });
 
     if (!result.canceled && user) {
-      updateProfile({ avatar: result.assets[0].uri });
+      const avatarUri = result.assets[0].uri;
+      console.log('[Settings] Avatar selected:', avatarUri);
+      await updateProfile({ avatar: avatarUri });
+      console.log('[Settings] Avatar saved to profile');
     }
   };
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
     if (!editUsername.trim()) {
       Alert.alert("Erreur", "Le nom d'utilisateur ne peut pas être vide");
       return;
     }
-    updateProfile({
+    console.log('[Settings] Saving profile - keeping avatar:', user?.avatar);
+    await updateProfile({
       username: editUsername.trim(),
-      teamName: editTeamName.trim() || "Sans équipe"
+      teamName: editTeamName.trim() || "Sans équipe",
+      // IMPORTANT: keep the existing avatar
+      avatar: user?.avatar ?? null
     });
     setIsEditingProfile(false);
   };

@@ -38,7 +38,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
-        console.log('[UserProvider] Loaded user profile:', parsedUser.username);
+        console.log('[UserProvider] Loaded user profile:', {
+          username: parsedUser.username,
+          avatar: parsedUser.avatar ? 'YES' : 'NO',
+          teamName: parsedUser.teamName
+        });
+      } else {
+        console.log('[UserProvider] No stored profile found');
       }
     } catch (error) {
       console.error('[UserProvider] Error loading user profile:', error);
@@ -50,7 +56,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const saveUserProfile = async (userProfile: UserProfile) => {
     try {
       await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userProfile));
-      console.log('[UserProvider] Saved user profile:', userProfile.username);
+      console.log('[UserProvider] Saved user profile:', {
+        username: userProfile.username,
+        avatar: userProfile.avatar ? 'YES' : 'NO',
+        teamName: userProfile.teamName
+      });
     } catch (error) {
       console.error('[UserProvider] Error saving user profile:', error);
     }
