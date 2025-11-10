@@ -4,6 +4,8 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StatusBar,
   Switch,
@@ -110,9 +112,18 @@ export default function RegisterScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
       <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
       
-      <ScrollView style={{ flex: 1 }}>
-        {/* Header */}
-        <LinearGradient
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={0}
+      >
+        <ScrollView 
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Header */}
+          <LinearGradient
           colors={[t.heroGradStart + 'CC', t.heroGradEnd + '66']}
           style={{ paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40 }}
         >
@@ -472,6 +483,7 @@ export default function RegisterScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

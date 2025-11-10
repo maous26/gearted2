@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/AuthService';
-// TODO: We'll need to import Prisma client when we have database setup
-// import { prisma } from '../utils/database';
+import { prisma } from '../utils/database';
 
 interface RegisterRequest {
   email: string;
@@ -59,75 +58,66 @@ export class AuthController {
         return;
       }
 
-      // TODO: Check if user already exists
-      // const existingUser = await prisma.user.findFirst({
-      //   where: {
-      //     OR: [
-      //       { email: email.toLowerCase() },
-      //       { username: username }
-      //     ]
-      //   }
-      // });
+      // Generate username if not provided
+      const finalUsername = username || AuthService.generateUsername(email);
 
-      // if (existingUser) {
-      //   res.status(409).json({
-      //     success: false,
-      //     error: {
-      //       message: existingUser.email === email.toLowerCase() 
-      //         ? 'Email already registered' 
-      //         : 'Username already taken'
-      //     }
-      //   });
-      //   return;
-      // }
+      // Check if user already exists (email or username)
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { email: email.toLowerCase() },
+            { username: finalUsername }
+          ]
+        }
+      });
+
+      if (existingUser) {
+        const field = existingUser.email === email.toLowerCase() ? 'email' : 'username';
+        res.status(409).json({
+          success: false,
+          error: {
+            message: field === 'email' 
+              ? 'Cet email est déjà utilisé' 
+              : 'Ce nom d\'utilisateur est déjà pris',
+            field
+          }
+        });
+        return;
+      }
 
       // Hash password
       const hashedPassword = await AuthService.hashPassword(password);
 
-      // Generate username if not provided
-      const finalUsername = username || AuthService.generateUsername(email);
-
-      // Create email verification token
+      // Create email verification token (for future email verification feature)
       const { token: emailVerificationToken, expires: emailVerificationExpires } = 
         AuthService.createEmailVerificationToken();
 
-      // TODO: Create user in database
-      // const user = await prisma.user.create({
-      //   data: {
-      //     email: email.toLowerCase(),
-      //     username: finalUsername,
-      //     password: hashedPassword,
-      //     firstName,
-      //     lastName,
-      //     emailVerificationToken,
-      //     emailVerificationExpires
-      //   }
-      // });
-
-      // For now, mock user creation
-      const mockUser = {
-        id: 'mock-user-id',
-        email: email.toLowerCase(),
-        username: finalUsername,
-        firstName,
-        lastName,
-        role: 'USER',
-        isEmailVerified: false,
-        createdAt: new Date()
-      };
+      // Create user in database
+      const user = await prisma.user.create({
+        data: {
+          email: email.toLowerCase(),
+          username: finalUsername,
+          password: hashedPassword,
+          firstName,
+          lastName,
+          isEmailVerified: false,
+          isActive: true,
+          role: 'USER'
+        }
+      });
 
       // Generate tokens
       const tokens = AuthService.generateTokens({
-        userId: mockUser.id,
-        email: mockUser.email,
-        role: mockUser.role
+        userId: user.id,
+        email: user.email,
+        role: user.role
       });
 
-      // TODO: Save refresh token to database
-      // await prisma.user.update({
-      //   where: { id: user.id },
-      //   data: { refreshToken: tokens.refreshToken }
-      // });
+      // Save refresh token to database
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { refreshToken: tokens.refreshToken }
+      });
 
       // TODO: Send verification email
       // await EmailService.sendVerificationEmail(user.email, emailVerificationToken);
@@ -136,9 +126,9 @@ export class AuthController {
       res.status(201).json({
         success: true,
         data: {
-          user: AuthService.sanitizeUser(mockUser),
+          user: AuthService.sanitizeUser(user),
           tokens,
-          message: 'Registration successful. Please check your email for verification.'
+          message: 'Inscription réussie. Bienvenue sur Gearted !'
         }
       });
 
@@ -170,61 +160,39 @@ export class AuthController {
         return;
       }
 
-      // TODO: Find user in database
-      // const user = await prisma.user.findUnique({
-      //   where: { email: email.toLowerCase() }
-      // });
+      // Find user in database
+      const user = await prisma.user.findUnique({
+        where: { email: email.toLowerCase() }
+      });
 
-      // if (!user) {
-      //   res.status(401).json({
-      //     success: false,
-      //     error: {
-      //       message: 'Invalid credentials'
-      //     }
-      //   });
-      //   return;
-      // }
-
-      // For now, mock user lookup
-      if (email !== 'test@gearted.com') {
+      if (!user) {
         res.status(401).json({
           success: false,
           error: {
-            message: 'Invalid credentials'
+            message: 'Identifiants invalides'
           }
         });
         return;
       }
 
-      const mockUser = {
-        id: 'mock-user-id',
-        email: 'test@gearted.com',
-        username: 'testuser',
-        password: await AuthService.hashPassword('Test123!'),
-        role: 'USER',
-        isActive: true,
-        firstName: 'Test',
-        lastName: 'User'
-      };
-
       // Check if account is active
-      if (!mockUser.isActive) {
+      if (!user.isActive) {
         res.status(401).json({
           success: false,
           error: {
-            message: 'Account is disabled'
+            message: 'Compte désactivé'
           }
         });
         return;
       }
 
       // Verify password
-      const isPasswordValid = await AuthService.comparePassword(password, mockUser.password);
+      const isPasswordValid = await AuthService.comparePassword(password, user.password);
       if (!isPasswordValid) {
         res.status(401).json({
           success: false,
           error: {
-            message: 'Invalid credentials'
+            message: 'Identifiants invalides'
           }
         });
         return;
@@ -232,24 +200,23 @@ export class AuthController {
 
       // Generate tokens
       const tokens = AuthService.generateTokens({
-        userId: mockUser.id,
-        email: mockUser.email,
-        role: mockUser.role
+        userId: user.id,
+        email: user.email,
+        role: user.role
       });
 
-      // TODO: Update refresh token in database
-      // await prisma.user.update({
-      //   where: { id: user.id },
-      //   data: { 
-      //     refreshToken: tokens.refreshToken,
-      //     lastActiveAt: new Date()
-      //   }
-      // });
+      // Update refresh token in database
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { 
+          refreshToken: tokens.refreshToken
+        }
+      });
 
       res.json({
         success: true,
         data: {
-          user: AuthService.sanitizeUser(mockUser),
+          user: AuthService.sanitizeUser(user),
           tokens
         }
       });
