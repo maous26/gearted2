@@ -16,9 +16,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { THEMES, ThemeKey } from "../themes";
+import authService from "../services/auth";
+import { useUser } from "../components/UserProvider";
 
 export default function RegisterScreen() {
   const [theme] = useState<ThemeKey>("ranger");
+  const { updateProfile } = useUser();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
@@ -92,20 +95,45 @@ export default function RegisterScreen() {
 
     setIsLoading(true);
     
-    // For demo purposes, simulate successful registration
-    setTimeout(() => {
+    try {
+      // Créer le compte avec toutes les informations
+      const response = await authService.register({
+        email: email.trim().toLowerCase(),
+        username: username.trim(),
+        password,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        location: `${city.trim()}, ${postalCode.trim()}`
+      });
+
+      console.log('[Register] Account created:', response.user.email);
+
+      // Sauvegarder le profil utilisateur dans le contexte
+      await updateProfile({
+        username: response.user.username,
+        avatar: response.user.avatar || null,
+        teamName: "Sans équipe"
+      });
+
       setIsLoading(false);
       Alert.alert(
         "Inscription réussie!", 
-        "Votre compte a été créé avec succès en mode démo.",
+        `Bienvenue ${firstName} ! Votre compte a été créé avec succès.`,
         [
           {
-            text: "Se connecter",
-            onPress: () => router.push("/login" as any)
+            text: "Continuer",
+            onPress: () => router.replace("/(tabs)" as any)
           }
         ]
       );
-    }, 1000);
+    } catch (error: any) {
+      setIsLoading(false);
+      console.error('[Register] Error:', error);
+      
+      // Afficher un message d'erreur approprié
+      const errorMessage = error.message || "Impossible de créer le compte";
+      Alert.alert("Erreur", errorMessage);
+    }
   };
 
   return (

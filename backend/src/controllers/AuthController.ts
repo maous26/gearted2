@@ -8,6 +8,7 @@ interface RegisterRequest {
   password: string;
   firstName?: string;
   lastName?: string;
+  location?: string;
 }
 
 interface LoginRequest {
@@ -21,7 +22,7 @@ export class AuthController {
    */
   static async register(req: Request, res: Response): Promise<void> {
     try {
-      const { email, username, password, firstName, lastName }: RegisterRequest = req.body;
+      const { email, username, password, firstName, lastName, location }: RegisterRequest = req.body;
 
       // Validate input
       if (!email || !password) {
@@ -100,6 +101,7 @@ export class AuthController {
           password: hashedPassword,
           firstName,
           lastName,
+          location,
           isEmailVerified: false,
           isActive: true,
           role: 'USER'

@@ -13,6 +13,10 @@ async function checkUsers() {
         username: true,
         firstName: true,
         lastName: true,
+        location: true,
+        phone: true,
+        avatar: true,
+        bio: true,
         createdAt: true,
         isEmailVerified: true,
         isActive: true
@@ -27,6 +31,10 @@ async function checkUsers() {
         console.log(`  Email: ${user.email}`);
         console.log(`  Username: ${user.username}`);
         console.log(`  Name: ${user.firstName || 'N/A'} ${user.lastName || 'N/A'}`);
+        console.log(`  Location: ${user.location || 'N/A'}`);
+        console.log(`  Phone: ${user.phone || 'N/A'}`);
+        console.log(`  Avatar: ${user.avatar || 'N/A'}`);
+        console.log(`  Bio: ${user.bio || 'N/A'}`);
         console.log(`  Active: ${user.isActive}`);
         console.log(`  Email verified: ${user.isEmailVerified}`);
         console.log(`  Created: ${user.createdAt}`);

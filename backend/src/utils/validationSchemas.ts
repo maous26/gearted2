@@ -48,6 +48,15 @@ export const authSchemas = {
         .messages({
           'string.min': 'Last name cannot be empty',
           'string.max': 'Last name cannot exceed 50 characters'
+        }),
+      
+      location: Joi.string()
+        .min(1)
+        .max(200)
+        .optional()
+        .messages({
+          'string.min': 'Location cannot be empty',
+          'string.max': 'Location cannot exceed 200 characters'
         })
     })
   },

@@ -12,9 +12,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { THEMES, ThemeKey } from "../themes";
+import authService from "../services/auth";
+import { useUser } from "../components/UserProvider";
 
 export default function LoginScreen() {
   const [theme] = useState<ThemeKey>("ranger");
+  const { updateProfile } = useUser();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -29,16 +32,35 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     
-    // For demo purposes, allow any login to succeed
-    setTimeout(() => {
+    try {
+      // Connexion avec le backend
+      const response = await authService.login({
+        email: email.trim().toLowerCase(),
+        password
+      });
+
+      console.log('[Login] Success:', response.user.email);
+
+      // Sauvegarder le profil utilisateur dans le contexte
+      await updateProfile({
+        username: response.user.username,
+        avatar: response.user.avatar || null,
+        teamName: "Sans équipe" // TODO: récupérer depuis le backend si disponible
+      });
+
       setIsLoading(false);
-      Alert.alert("Succès", "Connexion réussie en mode démo!", [
-        {
-          text: "OK",
-          onPress: () => router.push("/(tabs)")
-        }
-      ]);
-    }, 1000);
+      
+      // Rediriger vers l'app
+      router.replace("/(tabs)" as any);
+      
+    } catch (error: any) {
+      setIsLoading(false);
+      console.error('[Login] Error:', error);
+      
+      // Afficher un message d'erreur approprié
+      const errorMessage = error.message || "Identifiants invalides";
+      Alert.alert("Erreur de connexion", errorMessage);
+    }
   };
 
   const handleRegister = () => {

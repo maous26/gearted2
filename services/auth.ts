@@ -10,6 +10,9 @@ export interface RegisterData {
   email: string;
   password: string;
   username: string;
+  firstName?: string;
+  lastName?: string;
+  location?: string;
 }
 
 export interface AuthResponse {
