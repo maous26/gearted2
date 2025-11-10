@@ -13,12 +13,18 @@ function RootInner() {
   const { theme } = useTheme();
   const t = THEMES[theme];
   const [showSplash, setShowSplash] = useState(true);
+  const [splashFinished, setSplashFinished] = useState(false);
   const loadFromStorage = useProductsStore((state) => state.loadFromStorage);
 
   // Load products from storage on app start
   useEffect(() => {
     loadFromStorage();
   }, [loadFromStorage]);
+
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+    setSplashFinished(true);
+  };
 
   // Temporarily disable custom fonts due to loading issues
   // const [fontsLoaded, fontError] = useFonts({
@@ -34,8 +40,8 @@ function RootInner() {
 
   return (
     <View style={{ backgroundColor: t.rootBg, flex: 1 }}>
-      {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
-      <Stack screenOptions={{ headerShown: false }} />
+      {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
+      {splashFinished && <Stack screenOptions={{ headerShown: false }} />}
     </View>
   );
 }

@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Dimensions,
     ScrollView,
@@ -12,18 +12,54 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CategoryPill } from "../components/CategoryPill";
+import { useUser } from "../components/UserProvider";
 import { CATEGORIES, TRUST } from "../data";
+import TokenManager from "../services/storage";
 import { THEMES, ThemeKey } from "../themes";
 
 const { width } = Dimensions.get('window');
 
 export default function GeartedLanding() {
   const router = useRouter();
+  const { user } = useUser();
   const [theme, setTheme] = useState<ThemeKey>("ranger");
   const [searchText, setSearchText] = useState("");
   const [location, setLocation] = useState("");
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   
   const t = THEMES[theme];
+
+  // Vérifier si l'utilisateur est déjà connecté au démarrage
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const hasValidToken = await TokenManager.hasValidToken();
+        if (hasValidToken && user) {
+          // Utilisateur connecté, rediriger vers l'app
+          console.log('[Landing] User authenticated, redirecting to home');
+          router.replace("/(tabs)" as any);
+        } else {
+          setIsCheckingAuth(false);
+        }
+      } catch (error) {
+        console.error('[Landing] Auth check error:', error);
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkAuth();
+  }, [user]);
+
+  // Afficher un écran vide pendant la vérification
+  if (isCheckingAuth) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: t.muted }}>Chargement...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>

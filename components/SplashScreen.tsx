@@ -103,7 +103,7 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
             ]}
           >
             <Image
-              source={require("../assets/geartedicon2.png")}
+              source={require("../assets/geartedicon1.png")}
               style={styles.logo}
               contentFit="contain"
             />
