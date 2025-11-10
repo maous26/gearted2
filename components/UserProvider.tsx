@@ -99,14 +99,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    // Ne pas supprimer le profil, juste réinitialiser l'état en mémoire
+    // Les données restent dans AsyncStorage pour la prochaine connexion
     setUser(null);
     setIsOnboarded(false);
-    try {
-      await AsyncStorage.removeItem(USER_STORAGE_KEY);
-      console.log('[UserProvider] User profile cleared');
-    } catch (error) {
-      console.error('[UserProvider] Error clearing user profile:', error);
-    }
+    console.log('[UserProvider] User logged out (profile data preserved in storage)');
+    
+    // Note: Le profil reste dans AsyncStorage pour être rechargé à la prochaine connexion
+    // Seuls les tokens JWT sont supprimés par TokenManager
   };
 
   const completeOnboarding = () => {
