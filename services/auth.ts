@@ -28,38 +28,51 @@ export interface AuthResponse {
   };
 }
 
+// Backend response wrapper
+interface BackendResponse<T> {
+  success: boolean;
+  data: T;
+  error?: any;
+}
+
 class AuthService {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
-  const response = await api.post<AuthResponse>('/api/auth/login', credentials);
+      const response = await api.post<BackendResponse<AuthResponse>>('/api/auth/login', credentials);
+      const authData = response.data;
       
       // Sauvegarder les tokens
       await TokenManager.saveTokens(
-        response.tokens.accessToken,
-        response.tokens.refreshToken
+        authData.tokens.accessToken,
+        authData.tokens.refreshToken
       );
       
-      return response;
+      return authData;
     } catch (error: any) {
       console.error('Login error:', error);
-      throw new Error(error.response?.data?.message || 'Login failed');
+      const errorMessage = error.response?.data?.error?.message || error.response?.data?.message || 'Login failed';
+      throw new Error(errorMessage);
     }
   }
 
   async register(data: RegisterData): Promise<AuthResponse> {
     try {
-  const response = await api.post<AuthResponse>('/api/auth/register', data);
+      const response = await api.post<BackendResponse<AuthResponse>>('/api/auth/register', data);
+      const authData = response.data;
       
       // Sauvegarder les tokens
       await TokenManager.saveTokens(
-        response.tokens.accessToken,
-        response.tokens.refreshToken
+        authData.tokens.accessToken,
+        authData.tokens.refreshToken
       );
       
-      return response;
+      return authData;
     } catch (error: any) {
-      console.error('Register error:', error);
-      throw new Error(error.response?.data?.message || 'Registration failed');
+      console.error('[Register] Full error:', error);
+      console.error('[Register] Error response:', error.response?.data);
+      console.error('[Register] Error status:', error.response?.status);
+      const errorMessage = error.response?.data?.error?.message || error.response?.data?.message || 'Registration failed';
+      throw new Error(errorMessage);
     }
   }
 
