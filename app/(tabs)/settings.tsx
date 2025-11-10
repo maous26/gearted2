@@ -50,31 +50,18 @@ export default function Settings() {
       const avatarUri = result.assets[0].uri;
       console.log('[Settings] Avatar selected:', avatarUri);
       
-      setIsSaving(true);
       try {
-        // Envoyer au backend
-        const updatedUser = await userService.updateProfile({ avatar: avatarUri });
-        console.log('[Settings] Avatar saved to backend');
-        
-        // Mettre à jour le state local
-        await updateProfile({
-          id: updatedUser.id,
-          email: updatedUser.email,
-          username: updatedUser.username,
-          avatar: updatedUser.avatar,
-          firstName: updatedUser.firstName,
-          lastName: updatedUser.lastName,
-          location: updatedUser.location,
-          phone: updatedUser.phone,
-          bio: updatedUser.bio
+        // L'avatar est stocké uniquement en local (pas envoyé au backend pour l'instant)
+        // TODO: Implémenter l'upload d'images au backend
+        await updateProfile({ 
+          ...user,
+          avatar: avatarUri 
         });
-        
+        console.log('[Settings] Avatar saved locally');
         Alert.alert("Succès", "Photo de profil mise à jour");
       } catch (error: any) {
         console.error('[Settings] Error saving avatar:', error);
-        Alert.alert("Erreur", error.message || "Impossible de sauvegarder la photo");
-      } finally {
-        setIsSaving(false);
+        Alert.alert("Erreur", "Impossible de sauvegarder la photo");
       }
     }
   };
@@ -89,20 +76,19 @@ export default function Settings() {
     try {
       console.log('[Settings] Saving profile to backend');
       
-      // Envoyer au backend
+      // Envoyer au backend (sans avatar pour l'instant)
       const updatedUser = await userService.updateProfile({
         username: editUsername.trim(),
-        // Note: teamName n'est pas encore dans le backend, on le garde local pour l'instant
       });
       
       console.log('[Settings] Profile saved to backend');
       
-      // Mettre à jour le state local avec les données du backend
+      // Mettre à jour le state local avec les données du backend + données locales (avatar, teamName)
       await updateProfile({
         id: updatedUser.id,
         email: updatedUser.email,
         username: updatedUser.username,
-        avatar: updatedUser.avatar,
+        avatar: user?.avatar ?? null, // Garder l'avatar local
         teamName: editTeamName.trim() || "Sans équipe", // Garder teamName local
         firstName: updatedUser.firstName,
         lastName: updatedUser.lastName,
