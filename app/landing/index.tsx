@@ -74,7 +74,10 @@ export default function Landing() {
                 icon={cat.icon}
                 onPress={() => {
                   console.log('Category clicked:', cat.slug);
-                  router.push('/register' as any);
+                  router.push({
+                    pathname: '/browse',
+                    params: { category: cat.slug }
+                  } as any);
                 }}
               />
             </View>
