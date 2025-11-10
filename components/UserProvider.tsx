@@ -9,6 +9,11 @@ export interface UserProfile {
   teamName: string;
   avatar: string | null;
   email: string;
+  firstName?: string;
+  lastName?: string;
+  location?: string;
+  phone?: string;
+  bio?: string;
 }
 
 interface UserContextValue {

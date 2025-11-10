@@ -21,6 +21,11 @@ export interface AuthResponse {
     email: string;
     username: string;
     avatar?: string;
+    firstName?: string;
+    lastName?: string;
+    location?: string;
+    phone?: string;
+    bio?: string;
   };
   tokens: {
     accessToken: string;

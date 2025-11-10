@@ -156,11 +156,16 @@ export default function RegisterScreen() {
 
       console.log('[Register] Account created:', response.user.email);
 
-      // Sauvegarder le profil utilisateur dans le contexte
+      // Sauvegarder le profil utilisateur complet dans le contexte
       await updateProfile({
         username: response.user.username,
         avatar: response.user.avatar || null,
-        teamName: "Sans équipe"
+        teamName: "Sans équipe",
+        firstName: response.user.firstName,
+        lastName: response.user.lastName,
+        location: response.user.location,
+        phone: response.user.phone,
+        bio: response.user.bio
       });
 
       setIsLoading(false);
