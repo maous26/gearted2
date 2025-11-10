@@ -78,13 +78,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
       updatedUser = { ...user, ...updates };
       setUser(updatedUser);
     } else {
-      // Crée un profil de base si inexistante afin de permettre la première saisie
+      // Crée un profil de base si inexistant afin de permettre la première saisie
       updatedUser = {
-        id: 'local-' + Date.now().toString(),
+        id: updates.id || 'local-' + Date.now().toString(),
         username: updates.username || 'NouvelUtilisateur',
         teamName: updates.teamName || 'Sans équipe',
         avatar: updates.avatar ?? null,
-        email: updates.email || ''
+        email: updates.email || '',
+        firstName: updates.firstName,
+        lastName: updates.lastName,
+        location: updates.location,
+        phone: updates.phone,
+        bio: updates.bio
       };
       setUser(updatedUser);
     }

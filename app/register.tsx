@@ -158,6 +158,8 @@ export default function RegisterScreen() {
 
       // Sauvegarder le profil utilisateur complet dans le contexte
       await updateProfile({
+        id: response.user.id,
+        email: response.user.email,
         username: response.user.username,
         avatar: response.user.avatar || null,
         teamName: "Sans équipe",
