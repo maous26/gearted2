@@ -213,9 +213,11 @@ class ShippoService {
   filterRatesByZone(rates: ShippingRate[], toCountry: string): ShippingRate[] {
     const countryUpper = toCountry.toUpperCase();
     
-    // Only filter for FR/EU zones, return all rates for other countries
-    if (countryUpper !== 'FR' && !this.isEuropeanCountry(countryUpper)) {
-      return rates;
+    // Only supported countries: FR, BE, CH, LU
+    const supportedCountries = ['FR', 'BE', 'CH', 'LU'];
+    if (!supportedCountries.includes(countryUpper)) {
+      // Should not happen if validation is done, but return empty for safety
+      return [];
     }
 
     const isFrance = countryUpper === 'FR';
@@ -231,21 +233,41 @@ class ShippoService {
       
       const carrierLower = carrier.toLowerCase();
       if (isFrance) {
+        // For France: Colissimo, Chronopost, Mondial Relay
         return franceCarriers.some((fc: string) => carrierLower.includes(fc));
       } else {
-        // For Europe, include both EU carriers and some FR carriers that ship internationally
+        // For BE, CH, LU: International carriers (DHL, UPS, Colissimo International)
         return europeCarriers.some((ec: string) => carrierLower.includes(ec)) ||
-               carrierLower.includes('colissimo_international');
+               carrierLower.includes('colissimo') ||
+               carrierLower.includes('chronopost');
       }
     });
   }
 
   /**
-   * Check if a country is in Europe
+   * Check if a country is supported for shipping
+   * Only France, Belgium, Switzerland, and Luxembourg are supported
    */
   private isEuropeanCountry(country: string): boolean {
-    const euCountries = ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'GB', 'NO', 'CH', 'IS'];
-    return euCountries.includes(country.toUpperCase());
+    const supportedCountries = ['FR', 'BE', 'CH', 'LU'];
+    return supportedCountries.includes(country.toUpperCase());
+  }
+
+  /**
+   * Validate if shipping is allowed to this country
+   */
+  validateShippingCountry(country: string): { valid: boolean; message?: string } {
+    const supportedCountries = ['FR', 'BE', 'CH', 'LU'];
+    const countryUpper = country.toUpperCase();
+    
+    if (!supportedCountries.includes(countryUpper)) {
+      return {
+        valid: false,
+        message: 'Expéditions limitées à la France, Belgique, Suisse et Luxembourg uniquement'
+      };
+    }
+    
+    return { valid: true };
   }
 
   /**

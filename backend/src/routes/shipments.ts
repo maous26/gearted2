@@ -22,6 +22,17 @@ router.post('/calculate-rates', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'From and to addresses are required' });
     }
 
+    // Validate shipping countries (FR, BE, CH, LU only)
+    const fromValidation = shippoService.validateShippingCountry(fromAddress.country);
+    if (!fromValidation.valid) {
+      return res.status(400).json({ error: `Adresse d'expédition invalide: ${fromValidation.message}` });
+    }
+
+    const toValidation = shippoService.validateShippingCountry(toAddress.country);
+    if (!toValidation.valid) {
+      return res.status(400).json({ error: `Adresse de livraison invalide: ${toValidation.message}` });
+    }
+
     let parcelData = parcel;
 
     // If no parcel provided, try to get from product or use default
@@ -59,6 +70,13 @@ router.post('/calculate-rates', async (req: Request, res: Response) => {
         const carrier = rate.provider || rate.carrier || 'Unknown';
         const serviceLevel = rate.servicelevel || rate.service_level;
         
+        // Determine zone based on destination country
+        let zone = 'FR';
+        const destCountry = toAddress.country?.toUpperCase();
+        if (destCountry === 'BE') zone = 'BE';
+        else if (destCountry === 'CH') zone = 'CH';
+        else if (destCountry === 'LU') zone = 'LU';
+        
         return await prisma.shippingRate.create({
           data: {
             carrier: carrier,
@@ -69,7 +87,7 @@ router.post('/calculate-rates', async (req: Request, res: Response) => {
             currency: rate.currency,
             estimatedDays: rate.estimated_days || 0,
             durationTerms: rate.duration_terms || serviceLevel?.terms || '',
-            zone: toAddress.country === 'FR' ? 'FR' : 'EU',
+            zone: zone,
             attributes: JSON.stringify(rate.attributes || []),
           },
         });
@@ -113,6 +131,17 @@ router.post('/create', async (req: Request, res: Response) => {
 
     if (!productId || !buyerId || !fromAddress || !toAddress || !parcel) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Validate shipping countries (FR, BE, CH, LU only)
+    const fromValidation = shippoService.validateShippingCountry(fromAddress.country);
+    if (!fromValidation.valid) {
+      return res.status(400).json({ error: `Adresse d'expédition invalide: ${fromValidation.message}` });
+    }
+
+    const toValidation = shippoService.validateShippingCountry(toAddress.country);
+    if (!toValidation.valid) {
+      return res.status(400).json({ error: `Adresse de livraison invalide: ${toValidation.message}` });
     }
 
     // Get product details
