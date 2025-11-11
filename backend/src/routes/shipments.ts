@@ -55,18 +55,22 @@ router.post('/calculate-rates', async (req: Request, res: Response) => {
     // Save rates to database for future reference
     const savedRates = await Promise.all(
       result.rates.map(async (rate) => {
+        // Shippo uses 'provider' and 'servicelevel', but fallback to legacy names
+        const carrier = rate.provider || rate.carrier || 'Unknown';
+        const serviceLevel = rate.servicelevel || rate.service_level;
+        
         return await prisma.shippingRate.create({
           data: {
-            carrier: rate.carrier,
-            carrierName: rate.carrier,
-            serviceLevelName: rate.service_level.name,
-            serviceLevelToken: rate.service_level.token,
+            carrier: carrier,
+            carrierName: carrier,
+            serviceLevelName: serviceLevel?.name || 'Standard',
+            serviceLevelToken: serviceLevel?.token || 'standard',
             amount: parseFloat(rate.amount),
             currency: rate.currency,
-            estimatedDays: rate.estimated_days,
-            durationTerms: rate.duration_terms || rate.service_level.terms,
+            estimatedDays: rate.estimated_days || 0,
+            durationTerms: rate.duration_terms || serviceLevel?.terms || '',
             zone: toAddress.country === 'FR' ? 'FR' : 'EU',
-            attributes: JSON.stringify(rate.attributes),
+            attributes: JSON.stringify(rate.attributes || []),
           },
         });
       })
@@ -76,7 +80,12 @@ router.post('/calculate-rates', async (req: Request, res: Response) => {
       shipmentId: result.shipmentId,
       rates: savedRates,
       selectedRate: result.selectedRate
-        ? savedRates.find((r) => r.serviceLevelToken === result.selectedRate!.service_level.token)
+        ? (() => {
+            const selectedServiceLevel = result.selectedRate.servicelevel || result.selectedRate.service_level;
+            return selectedServiceLevel
+              ? savedRates.find((r: any) => r.serviceLevelToken === selectedServiceLevel.token)
+              : savedRates[0];
+          })()
         : savedRates[0],
     });
   } catch (error: any) {
@@ -382,7 +391,7 @@ router.post('/export-csv', async (req: Request, res: Response) => {
     });
 
     // Transform to CSV format
-    const csvData = shipments.map((s) => {
+    const csvData = shipments.map((s: any) => {
       const toAddr = JSON.parse(s.toAddress);
       const parcel = s.parcel;
 

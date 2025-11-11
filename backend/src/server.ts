@@ -1,7 +1,10 @@
+// Load environment variables FIRST before any other imports
+import dotenv from 'dotenv';
+dotenv.config();
+
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import slowDown from 'express-slow-down';
@@ -26,9 +29,6 @@ import searchRoutes from './routes/search';
 import shipmentRoutes from './routes/shipments';
 import uploadRoutes from './routes/uploads';
 import userRoutes from './routes/users';
-
-// Load environment variables
-dotenv.config();
 
 const app = express();
 const server = createServer(app);

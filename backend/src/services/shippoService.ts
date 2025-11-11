@@ -19,6 +19,21 @@ interface Address {
   company?: string;
 }
 
+// Helper type for API input that accepts both zip and postal_code
+interface AddressInput {
+  name: string;
+  street1: string;
+  street2?: string;
+  city: string;
+  state?: string;
+  zip?: string;
+  postal_code?: string;
+  country: string;
+  phone?: string;
+  email?: string;
+  company?: string;
+}
+
 interface Parcel {
   length: number;
   width: number;
@@ -32,18 +47,23 @@ interface ShippingRate {
   object_id: string;
   amount: string;
   currency: string;
-  carrier: string;
+  provider: string; // Shippo uses 'provider' not 'carrier'
   carrier_account: string;
-  service_level: {
+  servicelevel: { // Shippo uses 'servicelevel' not 'service_level'
     name: string;
     token: string;
     terms?: string;
   };
   estimated_days: number;
   duration_terms?: string;
-  trackable: boolean;
-  insurance_amount?: string;
   attributes: string[];
+  // Legacy/optional fields for backwards compatibility
+  carrier?: string;
+  service_level?: {
+    name: string;
+    token: string;
+    terms?: string;
+  };
 }
 
 interface Transaction {
@@ -78,10 +98,29 @@ class ShippoService {
   }
 
   /**
+   * Normalize address to Shippo format (converts postal_code to zip)
+   */
+  private normalizeAddress(input: AddressInput): Address {
+    return {
+      name: input.name,
+      street1: input.street1,
+      street2: input.street2,
+      city: input.city,
+      state: input.state,
+      zip: input.zip || input.postal_code || '',
+      country: input.country,
+      phone: input.phone,
+      email: input.email,
+      company: input.company,
+    };
+  }
+
+  /**
    * Validate and create an address in Shippo
    */
-  async createAddress(address: Address): Promise<any> {
+  async createAddress(addressInput: AddressInput): Promise<any> {
     try {
+      const address = this.normalizeAddress(addressInput);
       const response = await this.client.post('/addresses/', address);
       return response.data;
     } catch (error: any) {
@@ -113,8 +152,8 @@ class ShippoService {
    * Create a shipment and get rates
    */
   async createShipment(
-    fromAddress: Address | string,
-    toAddress: Address | string,
+    fromAddress: AddressInput | string,
+    toAddress: AddressInput | string,
     parcel: Parcel | string,
     options?: {
       async?: boolean;
@@ -122,9 +161,17 @@ class ShippoService {
     }
   ): Promise<any> {
     try {
+      // Normalize addresses if they are objects
+      const normalizedFromAddress = typeof fromAddress === 'string' 
+        ? fromAddress 
+        : this.normalizeAddress(fromAddress);
+      const normalizedToAddress = typeof toAddress === 'string' 
+        ? toAddress 
+        : this.normalizeAddress(toAddress);
+
       const shipmentData: any = {
-        address_from: fromAddress,
-        address_to: toAddress,
+        address_from: normalizedFromAddress,
+        address_to: normalizedToAddress,
         parcels: [parcel],
         async: options?.async || false,
       };
@@ -164,12 +211,25 @@ class ShippoService {
    * Filter rates by zone (France vs Europe)
    */
   filterRatesByZone(rates: ShippingRate[], toCountry: string): ShippingRate[] {
-    const isFrance = toCountry.toUpperCase() === 'FR';
+    const countryUpper = toCountry.toUpperCase();
+    
+    // Only filter for FR/EU zones, return all rates for other countries
+    if (countryUpper !== 'FR' && !this.isEuropeanCountry(countryUpper)) {
+      return rates;
+    }
+
+    const isFrance = countryUpper === 'FR';
     const franceCarriers = shippoConfig.carriers.france.map((c: any) => c.id);
     const europeCarriers = shippoConfig.carriers.europe.map((c: any) => c.id);
 
     return rates.filter((rate) => {
-      const carrierLower = rate.carrier.toLowerCase();
+      // Skip rates without carrier info (use provider or fallback to carrier)
+      const carrier = rate.provider || rate.carrier;
+      if (!carrier) {
+        return false;
+      }
+      
+      const carrierLower = carrier.toLowerCase();
       if (isFrance) {
         return franceCarriers.some((fc: string) => carrierLower.includes(fc));
       } else {
@@ -178,6 +238,14 @@ class ShippoService {
                carrierLower.includes('colissimo_international');
       }
     });
+  }
+
+  /**
+   * Check if a country is in Europe
+   */
+  private isEuropeanCountry(country: string): boolean {
+    const euCountries = ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'GB', 'NO', 'CH', 'IS'];
+    return euCountries.includes(country.toUpperCase());
   }
 
   /**
@@ -299,8 +367,8 @@ class ShippoService {
    * Calculate all available rates for a shipment
    */
   async calculateRates(
-    fromAddress: Address,
-    toAddress: Address,
+    fromAddress: AddressInput,
+    toAddress: AddressInput,
     parcel: Parcel,
     options?: {
       filterByZone?: boolean;
@@ -308,6 +376,9 @@ class ShippoService {
     }
   ): Promise<{ shipmentId: string; rates: ShippingRate[]; selectedRate?: ShippingRate }> {
     try {
+      // Normalize addresses
+      const normalizedToAddress = this.normalizeAddress(toAddress);
+      
       // Create shipment
       const shipment = await this.createShipment(fromAddress, toAddress, parcel);
 
@@ -316,7 +387,7 @@ class ShippoService {
 
       // Filter by zone if requested
       if (options?.filterByZone) {
-        rates = this.filterRatesByZone(rates, toAddress.country);
+        rates = this.filterRatesByZone(rates, normalizedToAddress.country);
       }
 
       // Select best rate if requested
@@ -340,8 +411,8 @@ class ShippoService {
    * Complete shipping flow: calculate rates + create label
    */
   async createShippingLabel(
-    fromAddress: Address,
-    toAddress: Address,
+    fromAddress: AddressInput,
+    toAddress: AddressInput,
     parcel: Parcel,
     rateObjectId?: string,
     options?: {
@@ -422,4 +493,5 @@ class ShippoService {
 }
 
 export default new ShippoService();
+
 
