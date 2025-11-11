@@ -12,245 +12,265 @@ datasource db {
 
 // User Management
 model User {
-  id                String   @id @default(cuid())
-  email             String   @unique
-  username          String   @unique
-  password          String
-  firstName         String?
-  lastName          String?
-  avatar            String?
-  phone             String?
-  
+  id        String  @id @default(cuid())
+  email     String  @unique
+  username  String  @unique
+  password  String
+  firstName String?
+  lastName  String?
+  avatar    String?
+  phone     String?
+
   // Account status
-  isEmailVerified   Boolean  @default(false)
-  isActive          Boolean  @default(true)
-  role              UserRole @default(USER)
-  
+  isEmailVerified Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  role            UserRole @default(USER)
+
   // Profile information
-  bio               String?
-  location          String?
-  
+  bio      String?
+  location String?
+
   // Security
-  refreshToken      String?
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  refreshToken String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  products          Product[]
-  favorites         Favorite[]
-  
+  products      Product[]
+  sentMessages  Message[]
+  conversations Conversation[] @relation("ConversationParticipants")
+
   @@map("users")
 }
 
 // Product Management
 model Category {
-  id                String    @id @default(cuid())
-  name              String    @unique
-  slug              String    @unique
-  description       String?
-  icon              String?
-  isActive          Boolean   @default(true)
-  
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  
+  id          String  @id @default(cuid())
+  name        String  @unique
+  slug        String  @unique
+  description String?
+  icon        String?
+  isActive    Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  products          Product[]
-  
+  products Product[]
+
   @@map("categories")
 }
 
+// Chat & Messaging
+model Conversation {
+  id           String    @id @default(cuid())
+  participants User[]    @relation("ConversationParticipants")
+  messages     Message[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id])
+  content        String
+  sentAt         DateTime     @default(now())
+
+  @@map("messages")
+}
+
 model Brand {
-  id                String   @id @default(cuid())
-  name              String   @unique
-  slug              String   @unique
-  description       String?
-  logo              String?
-  isActive          Boolean  @default(true)
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  id          String  @id @default(cuid())
+  name        String  @unique
+  slug        String  @unique
+  description String?
+  logo        String?
+  isActive    Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  products          Product[]
-  manufacturers     Manufacturer[]
-  
+  products      Product[]
+  manufacturers Manufacturer[]
+
   @@map("brands")
 }
 
 // Airsoft Weapon Manufacturers/Constructors
 model Manufacturer {
-  id                String   @id @default(cuid())
-  name              String   @unique
-  slug              String   @unique
-  country           String?
-  description       String?
-  logo              String?
-  website           String?
-  popularity        Int      @default(0) // For ranking top constructors
-  isActive          Boolean  @default(true)
-  
+  id          String  @id @default(cuid())
+  name        String  @unique
+  slug        String  @unique
+  country     String?
+  description String?
+  logo        String?
+  website     String?
+  popularity  Int     @default(0) // For ranking top constructors
+  isActive    Boolean @default(true)
+
   // Relation to Brand (optional - some manufacturers are also brands)
-  brandId           String?
-  brand             Brand?   @relation(fields: [brandId], references: [id])
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  brandId String?
+  brand   Brand?  @relation(fields: [brandId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  weaponModels      WeaponModel[]
-  
+  weaponModels WeaponModel[]
+
   @@map("manufacturers")
 }
 
 // Weapon Models (specific guns from manufacturers)
 model WeaponModel {
-  id                String        @id @default(cuid())
-  name              String
-  manufacturerId    String
-  manufacturer      Manufacturer  @relation(fields: [manufacturerId], references: [id])
-  
-  weaponType        WeaponType
-  model             String        // e.g., "AK-47", "M4A1"
-  version           String?       // e.g., "V2", "2023"
-  
+  id             String       @id @default(cuid())
+  name           String
+  manufacturerId String
+  manufacturer   Manufacturer @relation(fields: [manufacturerId], references: [id])
+
+  weaponType WeaponType
+  model      String // e.g., "AK-47", "M4A1"
+  version    String? // e.g., "V2", "2023"
+
   // Technical specifications
-  gearboxType       String?       // e.g., "V2", "V3"
-  hopUpType         String?
-  barrelLength      Float?        // in mm
-  magazineType      String?
-  
-  isActive          Boolean       @default(true)
-  
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  
+  gearboxType  String? // e.g., "V2", "V3"
+  hopUpType    String?
+  barrelLength Float? // in mm
+  magazineType String?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  compatibleParts   PartCompatibility[]
-  
+  compatibleParts PartCompatibility[]
+
   @@unique([manufacturerId, model, version])
   @@map("weapon_models")
 }
 
 // Compatible Parts and Accessories
 model Part {
-  id                String   @id @default(cuid())
-  name              String
-  manufacturer      String
-  partType          PartType
-  
+  id           String   @id @default(cuid())
+  name         String
+  manufacturer String
+  partType     PartType
+
   // Specifications
-  specifications    String?  // JSON string for flexible specs
-  price             Decimal?
-  priceRange        String?  // e.g., "$20-$30"
-  
-  isActive          Boolean  @default(true)
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  specifications String? // JSON string for flexible specs
+  price          Decimal?
+  priceRange     String? // e.g., "$20-$30"
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  compatibility     PartCompatibility[]
-  
+  compatibility PartCompatibility[]
+
   @@map("parts")
 }
 
 // Compatibility Matrix
 model PartCompatibility {
-  id                String      @id @default(cuid())
-  
-  weaponModelId     String
-  weaponModel       WeaponModel @relation(fields: [weaponModelId], references: [id])
-  
-  partId            String
-  part              Part        @relation(fields: [partId], references: [id])
-  
+  id String @id @default(cuid())
+
+  weaponModelId String
+  weaponModel   WeaponModel @relation(fields: [weaponModelId], references: [id])
+
+  partId String
+  part   Part   @relation(fields: [partId], references: [id])
+
   // Compatibility score (0-100)
-  compatibilityScore Int        @default(100)
-  
+  compatibilityScore Int @default(100)
+
   // Additional info
-  notes             String?
-  requiresModification Boolean  @default(false)
-  
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
-  
+  notes                String?
+  requiresModification Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@unique([weaponModelId, partId])
   @@map("part_compatibility")
 }
 
 model Product {
-  id                String        @id @default(cuid())
-  title             String
-  description       String
-  slug              String        @unique
-  
+  id          String @id @default(cuid())
+  title       String
+  description String
+  slug        String @unique
+
   // Basic information
-  categoryId        String
-  category          Category      @relation(fields: [categoryId], references: [id])
-  brandId           String?
-  brand             Brand?        @relation(fields: [brandId], references: [id])
-  
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+  brandId    String?
+  brand      Brand?   @relation(fields: [brandId], references: [id])
+
   // Seller information
-  sellerId          String
-  seller            User          @relation(fields: [sellerId], references: [id])
-  
+  sellerId String
+  seller   User   @relation(fields: [sellerId], references: [id])
+
   // Product details
-  condition         ProductCondition
-  price             Decimal
-  currency          String        @default("EUR")
-  
+  condition ProductCondition
+  price     Decimal
+  currency  String           @default("EUR")
+
   // Sale or Trade
-  listingType       ListingType   @default(SALE) // SALE, TRADE, or BOTH
-  tradeFor          String?       // Description of what the seller wants in exchange
-  
+  listingType ListingType @default(SALE) // SALE, TRADE, or BOTH
+  tradeFor    String? // Description of what the seller wants in exchange
+
   // Product status
-  status            ProductStatus @default(DRAFT)
-  isActive          Boolean       @default(true)
-  
+  status   ProductStatus @default(DRAFT)
+  isActive Boolean       @default(true)
+
   // Location and shipping
-  location          String?
-  shippingIncluded  Boolean       @default(false)
-  shippingCost      Decimal?
-  
+  location         String?
+  shippingIncluded Boolean  @default(false)
+  shippingCost     Decimal?
+
   // Analytics
-  views             Int           @default(0)
-  
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  
+  views Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  images            ProductImage[]
-  favorites         Favorite[]
-  
+  images ProductImage[]
+
   @@map("products")
 }
 
 model ProductImage {
-  id                String   @id @default(cuid())
-  productId         String
-  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
-  url               String
-  alt               String?
-  sortOrder         Int      @default(0)
-  isPrimary         Boolean  @default(false)
-  
-  createdAt         DateTime @default(now())
-  
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  url       String
+  alt       String?
+  sortOrder Int     @default(0)
+  isPrimary Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
   @@map("product_images")
 }
 
 model Favorite {
-  id                String   @id @default(cuid())
-  userId            String
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  productId         String
-  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
-  createdAt         DateTime @default(now())
-  
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
   @@unique([userId, productId])
   @@map("favorites")
 }
@@ -273,9 +293,9 @@ enum ProductCondition {
 }
 
 enum ListingType {
-  SALE      // Vente uniquement
-  TRADE     // Échange uniquement
-  BOTH      // Vente ou échange
+  SALE // Vente uniquement
+  TRADE // Échange uniquement
+  BOTH // Vente ou échange
 }
 
 enum ProductStatus {

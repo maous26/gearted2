@@ -1,130 +1,45 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
-    FlatList,
-    Image,
-    ScrollView,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  FlatList,
+  Image,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { EmptyState } from '../components/EmptyState';
 import { useTheme } from "../components/ThemeProvider";
-import { Product, useProductsStore } from '../stores/productsStore';
+import { useFavorites, useToggleFavorite } from '../hooks/useProducts';
+import { Product } from '../stores/productsStore';
 import { THEMES } from "../themes";
-
-// Mock data fallback (same as in useProducts hook)
-const MOCK_PRODUCTS: Product[] = [
-  {
-    id: "1",
-    title: "AK-74 Kalashnikov Réplique",
-    price: 289.99,
-    condition: "Excellent",
-    location: "Paris, 75001",
-    seller: "AirsoftPro92",
-    sellerId: "mock-user-1",
-    rating: 4.8,
-    images: ["https://via.placeholder.com/200x150/4B5D3A/FFFFFF?text=AK-74"],
-    category: "repliques",
-    featured: true,
-    description: "Réplique AEG en excellent état, peu utilisée",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "2", 
-    title: "Red Dot Sight - EOTech 552",
-    price: 45.50,
-    condition: "Très bon",
-    location: "Lyon, 69000",
-    seller: "TacticalGear",
-    sellerId: "mock-user-2",
-    rating: 4.9,
-    images: ["https://via.placeholder.com/200x150/8B4513/FFFFFF?text=Red+Dot"],
-    category: "optiques",
-    featured: false,
-    description: "Viseur holographique réplique EOTech",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "3",
-    title: "Gilet Tactique MultiCam",
-    price: 120.00,
-    condition: "Neuf",
-    location: "Marseille, 13000", 
-    seller: "MilSimStore",
-    sellerId: "mock-user-3",
-    rating: 4.7,
-    images: ["https://via.placeholder.com/200x150/556B2F/FFFFFF?text=Gilet"],
-    category: "equipement",
-    featured: true,
-    description: "Gilet plate carrier MultiCam neuf, jamais utilisé",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "4",
-    title: "Billes 0.25g Bio (5000pcs)",
-    price: 18.99,
-    condition: "Neuf",
-    location: "Toulouse, 31000",
-    seller: "BioBB_Shop",
-    sellerId: "mock-user-4",
-    rating: 4.6,
-    images: ["https://via.placeholder.com/200x150/2F4F4F/FFFFFF?text=Billes"],
-    category: "munitions",
-    featured: false,
-    description: "Billes biodégradables 0.25g, sachet de 5000",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "5",
-    title: "M4A1 Custom Build",
-    price: 450.00,
-    condition: "Excellent",
-    location: "Nice, 06000",
-    seller: "CustomBuilds",
-    sellerId: "mock-user-5",
-    rating: 5.0,
-    images: ["https://via.placeholder.com/200x150/4B5D3A/FFFFFF?text=M4A1"],
-    category: "repliques", 
-    featured: true,
-    description: "M4A1 custom avec upgrades internes",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "6",
-    title: "Chargeur M4 120 billes",
-    price: 12.50,
-    condition: "Bon",
-    location: "Bordeaux, 33000",
-    seller: "PartsPro",
-    sellerId: "mock-user-6",
-    rating: 4.4,
-    images: ["https://via.placeholder.com/200x150/696969/FFFFFF?text=Chargeur"],
-    category: "pieces",
-    featured: false,
-    description: "Chargeur mid-cap 120 billes pour M4",
-    createdAt: new Date().toISOString()
-  }
-];
 
 export default function FavoritesScreen() {
   const { theme } = useTheme();
   const t = THEMES[theme];
   
-  const products = useProductsStore(state => state.products);
-  const favorites = useProductsStore(state => state.favorites);
-  const toggleFavorite = useProductsStore(state => state.toggleFavorite);
+  // Use React Query hooks for API integration
+  const { data: favoritesData, isLoading: isLoadingFavorites } = useFavorites();
+  const toggleFavoriteMutation = useToggleFavorite();
   
-  // Use mock products if store is empty (backend unavailable)
-  const allProducts = products.length > 0 ? products : MOCK_PRODUCTS;
+  const favoriteProducts: Product[] = favoritesData?.products ?? [];
+  const favoriteIds = favoritesData?.productIds ?? [];
   
-  // Filter products to only show favorites
-  const favoriteProducts = allProducts.filter(product => favorites.includes(product.id));
+  const isLoading = isLoadingFavorites;
 
-  const renderProduct = ({ item }: { item: any }) => (
+  const renderProduct = ({ item }: { item: Product }) => {
+    const priceLabel =
+      item.listingType === 'TRADE'
+        ? 'ÉCHANGE'
+        : `${Number(item.price ?? 0).toFixed(2)}€`;
+
+    const previewImage = item.images?.[0] || 'https://via.placeholder.com/150';
+
+    return (
     <TouchableOpacity
       style={{
         backgroundColor: t.cardBg,
@@ -138,7 +53,7 @@ export default function FavoritesScreen() {
       onPress={() => router.push(`/product/${item.id}` as any)}
     >
       <Image
-        source={{ uri: item.images?.[0] || 'https://via.placeholder.com/150' }}
+        source={{ uri: previewImage }}
         style={{ width: 120, height: 120 }}
       />
       
@@ -168,13 +83,13 @@ export default function FavoritesScreen() {
             fontWeight: '700',
             color: t.primaryBtn
           }}>
-            {item.listingType === 'TRADE' ? 'ÉCHANGE' : `${item.price}€`}
+            {priceLabel}
           </Text>
           
           <TouchableOpacity
             onPress={(e) => {
               e.stopPropagation();
-              toggleFavorite(item.id);
+              toggleFavoriteMutation.mutate(item.id);
             }}
             style={{
               padding: 8,
@@ -188,6 +103,7 @@ export default function FavoritesScreen() {
       </View>
     </TouchableOpacity>
   );
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
@@ -231,7 +147,12 @@ export default function FavoritesScreen() {
       </View>
 
       {/* Products List */}
-      {favoriteProducts.length === 0 ? (
+      {isLoading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={t.primaryBtn} />
+          <Text style={{ color: t.muted, marginTop: 12 }}>Chargement des favoris...</Text>
+        </View>
+      ) : favoriteProducts.length === 0 ? (
         <ScrollView contentContainerStyle={{ flex: 1 }}>
           <EmptyState
             type="favorites"

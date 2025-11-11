@@ -9,6 +9,7 @@ import {
   StatusBar,
   Text,
   TextInput,
+  TouchableOpacity,
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,7 +17,7 @@ import { CompatDrawer } from "../../components/CompatDrawer";
 import { CompatibilityTeaser } from "../../components/CompatibilityTeaser";
 import { useTheme } from "../../components/ThemeProvider";
 import { CATEGORIES } from "../../data";
-import { useCategoryStats, useProducts } from "../../hooks/useProducts";
+import { useCategoryStats, useFavorites, useProducts, useToggleFavorite } from "../../hooks/useProducts";
 import { THEMES } from "../../themes";
 
 const { width } = Dimensions.get('window');
@@ -34,48 +35,18 @@ export default function AuthenticatedHome() {
 
   const { data: productsData, isLoading: isLoadingProducts } = useProducts({ sortBy: 'recent' });
   const { data: categoryStats } = useCategoryStats();
+  const { data: favoritesData } = useFavorites();
+  const toggleFavorite = useToggleFavorite();
+  const favoriteIds = favoritesData?.productIds ?? [];
 
-  const featuredListings: Array<{
-    id: string;
-    title: string;
-    price: number;
-    location: string;
-    condition: string;
-    image: string;
-    listingType?: 'SALE' | 'TRADE' | 'BOTH';
-    tradeFor?: string;
-  }> = [
-    {
-      id: 'featured-1',
-      title: 'Tokyo Marui M4A1 MWS GBBR',
-      price: 450.00,
-      location: 'Paris, 75',
-      condition: 'like-new',
-      image: 'https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=400',
-      listingType: 'SALE',
-      tradeFor: undefined
-    },
-    {
-      id: 'featured-2',
-      title: 'VFC HK416A5 AEG Noir',
-      price: 380.00,
-      location: 'Lyon, 69',
-      condition: 'new',
-      image: 'https://images.unsplash.com/photo-1584670961778-14523e170d7a?w=400',
-      listingType: 'SALE',
-      tradeFor: undefined
-    },
-    {
-      id: 'featured-3',
-      title: 'Cybergun FNX-45 Tactical GBB',
-      price: 125.00,
-      location: 'Marseille, 13',
-      condition: 'good',
-      image: 'https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=400',
-      listingType: 'SALE',
-      tradeFor: undefined
-    }
-  ];
+  // Use real products from the database for featured listings
+  const featuredListings = React.useMemo(() => {
+    if (!productsData?.products) return [];
+    // Filter featured products or take the first 3 recent products
+    const featured = productsData.products.filter((p: any) => p.featured).slice(0, 3);
+    if (featured.length > 0) return featured;
+    return productsData.products.slice(0, 3);
+  }, [productsData]);
 
   const popularCategories = React.useMemo(() => {
     if (!categoryStats) return CATEGORIES.slice(0, 6);
@@ -123,7 +94,7 @@ export default function AuthenticatedHome() {
                 borderRadius: 8
               }}
               onPress={() => {
-                console.log('Chercher pressed');
+                // ...existing code...
                 router.push('/browse' as any);
               }}
             >
@@ -155,7 +126,7 @@ export default function AuthenticatedHome() {
               ANNONCES À LA UNE
             </Text>
             <Pressable onPress={() => {
-              console.log('Voir tout pressed');
+              // ...existing code...
               router.push('/browse' as any);
             }}>
               <Text style={{ color: t.primaryBtn, fontSize: 14, fontWeight: '600' }}>
@@ -166,7 +137,43 @@ export default function AuthenticatedHome() {
           
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={{ flexDirection: 'row' }}>
-              {featuredListings.map((product, idx) => (
+              {isLoadingProducts ? (
+                // Loading skeleton
+                [1, 2, 3].map((idx) => (
+                  <View
+                    key={`skeleton-${idx}`}
+                    style={{
+                      width: 240,
+                      backgroundColor: t.cardBg,
+                      borderRadius: 16,
+                      overflow: 'hidden',
+                      marginRight: idx < 3 ? 12 : 0,
+                      opacity: 0.6
+                    }}
+                  >
+                    <View style={{ width: '100%', height: 180, backgroundColor: t.border }} />
+                    <View style={{ padding: 14 }}>
+                      <View style={{ width: '80%', height: 16, backgroundColor: t.border, marginBottom: 8, borderRadius: 4 }} />
+                      <View style={{ width: '40%', height: 20, backgroundColor: t.border, marginBottom: 8, borderRadius: 4 }} />
+                      <View style={{ width: '60%', height: 14, backgroundColor: t.border, borderRadius: 4 }} />
+                    </View>
+                  </View>
+                ))
+              ) : featuredListings.length === 0 ? (
+                // No products message
+                <View style={{ 
+                  width: 300, 
+                  padding: 32, 
+                  alignItems: 'center',
+                  backgroundColor: t.cardBg,
+                  borderRadius: 16
+                }}>
+                  <Text style={{ fontSize: 48, marginBottom: 12 }}>📦</Text>
+                  <Text style={{ fontSize: 16, color: t.muted, textAlign: 'center' }}>
+                    Aucun produit en vedette pour le moment
+                  </Text>
+                </View>
+              ) : featuredListings.map((product, idx) => (
                 <Pressable
                   key={product.id}
                   style={{
@@ -179,7 +186,7 @@ export default function AuthenticatedHome() {
                     marginRight: idx < featuredListings.length - 1 ? 12 : 0
                   }}
                   onPress={() => {
-                    console.log('Featured product pressed:', product.id);
+                    // ...existing code...
                     router.push(`/product/${product.id}` as any);
                   }}
                 >
@@ -201,9 +208,33 @@ export default function AuthenticatedHome() {
                     </Text>
                   </View>
 
+                  {/* Favorite button */}
+                  <TouchableOpacity
+                    style={{
+                      position: 'absolute',
+                      bottom: 194,
+                      right: 12,
+                      backgroundColor: 'rgba(0,0,0,0.7)',
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 10,
+                    }}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite.mutate(product.id);
+                    }}
+                  >
+                    <Text style={{ fontSize: 18 }}>
+                      {favoriteIds.includes(product.id) ? '❤️' : '🤍'}
+                    </Text>
+                  </TouchableOpacity>
+
                   <View style={{ backgroundColor: '#f5f5f5' }}>
                     <Image
-                      source={{ uri: product.image }}
+                      source={{ uri: (product.images?.[0] || 'https://via.placeholder.com/400x300/4B5D3A/FFFFFF?text=Photo') }}
                       style={{ width: '100%', height: 180 }}
                       contentFit="contain"
                       cachePolicy="memory-disk"
@@ -228,10 +259,10 @@ export default function AuthenticatedHome() {
                       color: t.primaryBtn,
                       marginBottom: 4
                     }}>
-                      {product.price.toFixed(2)} €
+                      {Number(product.price).toFixed(2)} €
                     </Text>
                     <Text style={{ fontSize: 13, color: t.muted, marginBottom: 4 }}>
-                      📍 {product.location}
+                      📍 {product.location || 'Localisation non spécifiée'}
                     </Text>
                     <View style={{
                       backgroundColor: t.sectionLight + '40',
@@ -241,9 +272,11 @@ export default function AuthenticatedHome() {
                       alignSelf: 'flex-start'
                     }}>
                       <Text style={{ fontSize: 11, color: t.muted, fontWeight: '500' }}>
-                        {product.condition === 'new' ? 'Neuf' : 
-                         product.condition === 'like-new' ? 'Comme neuf' :
-                         product.condition === 'good' ? 'Bon état' : 'Utilisé'}
+                        {product.condition === 'NEW' ? 'Neuf' : 
+                         product.condition === 'LIKE_NEW' ? 'Comme neuf' :
+                         product.condition === 'GOOD' ? 'Bon état' : 
+                         product.condition === 'FAIR' ? 'Correct' :
+                         product.condition === 'POOR' ? 'Usé' : 'Utilisé'}
                       </Text>
                     </View>
                   </View>
@@ -262,7 +295,7 @@ export default function AuthenticatedHome() {
           <CompatibilityTeaser 
             theme={theme}
             onOpenDrawer={(item1, item2, result) => {
-              console.log('Compatibility check:', item1.name, 'with', item2.name);
+              // ...existing code...
             }}
           />
         </View>
@@ -296,7 +329,7 @@ export default function AuthenticatedHome() {
                     borderColor: t.border
                   }}
                   onPress={() => {
-                    console.log('Category pressed:', category.slug);
+                    // ...existing code...
                     router.push('/browse' as any);
                   }}
                 >
@@ -352,10 +385,34 @@ export default function AuthenticatedHome() {
                       marginRight: index < 4 ? 12 : 0
                     }}
                     onPress={() => {
-                      console.log('Product pressed:', product.id);
+                      // ...existing code...
                       router.push(`/product/${product.id}` as any);
                     }}
                   >
+                    {/* Favorite button */}
+                    <TouchableOpacity
+                      style={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        backgroundColor: 'rgba(0,0,0,0.7)',
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 10,
+                      }}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite.mutate(product.id);
+                      }}
+                    >
+                      <Text style={{ fontSize: 16 }}>
+                        {favoriteIds.includes(product.id) ? '❤️' : '🤍'}
+                      </Text>
+                    </TouchableOpacity>
+
                     <View style={{ backgroundColor: '#f5f5f5' }}>
                       <Image
                         source={{ uri: product.images[0] }}

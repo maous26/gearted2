@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import OfferTypeModal from "../../components/OfferTypeModal";
 import RatingModal from "../../components/RatingModal";
 import { useTheme } from "../../components/ThemeProvider";
-import { useProduct } from "../../hooks/useProducts";
+import { useFavorites, useProduct, useToggleFavorite } from "../../hooks/useProducts";
 import { THEMES } from "../../themes";
 
 const { width } = Dimensions.get('window');
@@ -21,6 +21,12 @@ export default function ProductDetailScreen() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showOfferTypeModal, setShowOfferTypeModal] = useState(false);
   const [hasPurchased, setHasPurchased] = useState(false);
+  
+  // Favorites integration
+  const { data: favoritesData } = useFavorites();
+  const toggleFavorite = useToggleFavorite();
+  const favoriteIds = favoritesData?.productIds ?? [];
+  const isFavorite = favoriteIds.includes(productId);
 
   const images = useMemo(() => {
     const arr = product?.images || [];
@@ -36,8 +42,10 @@ export default function ProductDetailScreen() {
           <Text style={{ fontSize: 24, color: t.primaryBtn }}>←</Text>
         </TouchableOpacity>
         <Text style={{ fontSize: 18, fontWeight: '600', color: t.heading, flex: 1 }}>Détail du produit</Text>
-        <TouchableOpacity style={{ padding: 8 }}>
-          <Text style={{ fontSize: 20 }}>❤️</Text>
+        <TouchableOpacity style={{ padding: 8 }} onPress={() => toggleFavorite.mutate(productId)}>
+          <Text style={{ fontSize: 20 }}>
+            {isFavorite ? '❤️' : '🤍'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -132,9 +140,7 @@ export default function ProductDetailScreen() {
                       </View>
                     </View>
                   </View>
-                  <TouchableOpacity style={{ backgroundColor: t.primaryBtn, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }} onPress={() => router.push('/(tabs)/messages')}>
-                    <Text style={{ color: t.white, fontWeight: '600', fontSize: 14 }}>💬 Contacter</Text>
-                  </TouchableOpacity>
+                  {/* Bouton 'Contacter' supprimé, seul 'Message' reste */}
                 </View>
               </View>
               <View style={{ marginBottom: 16 }}>
@@ -178,7 +184,29 @@ export default function ProductDetailScreen() {
 
       {/* Bottom Actions */}
       <View style={{ backgroundColor: t.navBg, borderTopWidth: 1, borderTopColor: t.border, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', gap: 12 }}>
-        <TouchableOpacity style={{ flex: 1, backgroundColor: t.cardBg, borderRadius: 12, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: t.border }} onPress={() => router.push('/(tabs)/messages')}>
+        <TouchableOpacity 
+          style={{ 
+            flex: 1, 
+            backgroundColor: t.cardBg, 
+            borderRadius: 12, 
+            paddingVertical: 14, 
+            alignItems: 'center', 
+            borderWidth: 1, 
+            borderColor: t.border 
+          }} 
+          onPress={() => {
+            router.push({
+              pathname: '/chat/new',
+              params: {
+                sellerId: product?.sellerId || product?.id,
+                sellerName: product?.seller,
+                sellerAvatar: `https://via.placeholder.com/50/4B5D3A/FFFFFF?text=${product?.seller?.charAt(0) || 'U'}`,
+                productId: product?.id,
+                productTitle: product?.title
+              }
+            });
+          }}
+        >
           <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>💬 Message</Text>
         </TouchableOpacity>
         <TouchableOpacity 
@@ -205,10 +233,28 @@ export default function ProductDetailScreen() {
         tradeFor={product?.tradeFor}
         onBuy={() => {
           setHasPurchased(true);
-          router.push('/(tabs)/messages');
+          router.push({
+            pathname: '/chat/new',
+            params: {
+              sellerId: product?.sellerId || product?.id,
+              sellerName: product?.seller,
+              sellerAvatar: `https://via.placeholder.com/50/4B5D3A/FFFFFF?text=${product?.seller?.charAt(0) || 'U'}`,
+              productId: product?.id,
+              productTitle: product?.title
+            }
+          });
         }}
         onTrade={() => {
-          router.push('/(tabs)/messages');
+          router.push({
+            pathname: '/chat/new',
+            params: {
+              sellerId: product?.sellerId || product?.id,
+              sellerName: product?.seller,
+              sellerAvatar: `https://via.placeholder.com/50/4B5D3A/FFFFFF?text=${product?.seller?.charAt(0) || 'U'}`,
+              productId: product?.id,
+              productTitle: product?.title
+            }
+          });
         }}
       />
 

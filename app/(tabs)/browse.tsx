@@ -2,115 +2,37 @@ import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Dimensions,
-    FlatList,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  FlatList,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useDebounce } from 'use-debounce';
 import { EmptyState } from "../../components/EmptyState";
 import { ProductCardSkeleton } from "../../components/Skeleton";
 import { useTheme } from "../../components/ThemeProvider";
 import { CATEGORIES } from "../../data";
+import { useDebounce } from "../../hooks/useDebounce";
 import { useFavorites, useInfiniteProducts, useToggleFavorite } from "../../hooks/useProducts";
 import { Product, useProductsStore } from "../../stores/productsStore";
 import { THEMES } from "../../themes";
-
-const { width } = Dimensions.get('window');
-
-// Mock product data
-const MOCK_PRODUCTS = [
-  {
-    id: "1",
-    title: "AK-74 Kalashnikov Réplique",
-    price: 289.99,
-    condition: "Excellent",
-    location: "Paris, 75001",
-    seller: "AirsoftPro92",
-    rating: 4.8,
-    images: ["https://via.placeholder.com/200x150/4B5D3A/FFFFFF?text=AK-74"],
-    category: "repliques",
-    featured: true
-  },
-  {
-    id: "2", 
-    title: "Red Dot Sight - EOTech 552",
-    price: 45.50,
-    condition: "Très bon",
-    location: "Lyon, 69000",
-    seller: "TacticalGear",
-    rating: 4.9,
-    images: ["https://via.placeholder.com/200x150/8B4513/FFFFFF?text=Red+Dot"],
-    category: "optiques",
-    featured: false
-  },
-  {
-    id: "3",
-    title: "Gilet Tactique MultiCam",
-    price: 120.00,
-    condition: "Neuf",
-    location: "Marseille, 13000", 
-    seller: "MilSimStore",
-    rating: 4.7,
-    images: ["https://via.placeholder.com/200x150/556B2F/FFFFFF?text=Gilet"],
-    category: "equipement",
-    featured: true
-  },
-  {
-    id: "4",
-    title: "Billes 0.25g Bio (5000pcs)",
-    price: 18.99,
-    condition: "Neuf",
-    location: "Toulouse, 31000",
-    seller: "BioBB_Shop",
-    rating: 4.6,
-    images: ["https://via.placeholder.com/200x150/2F4F4F/FFFFFF?text=Billes"],
-    category: "munitions",
-    featured: false
-  },
-  {
-    id: "5",
-    title: "M4A1 Custom Build",
-    price: 450.00,
-    condition: "Excellent",
-    location: "Nice, 06000",
-    seller: "CustomBuilds",
-    rating: 5.0,
-    images: ["https://via.placeholder.com/200x150/4B5D3A/FFFFFF?text=M4A1"],
-    category: "repliques", 
-    featured: true
-  },
-  {
-    id: "6",
-    title: "Chargeur M4 120 billes",
-    price: 12.50,
-    condition: "Bon",
-    location: "Bordeaux, 33000",
-    seller: "PartsPro",
-    rating: 4.4,
-    images: ["https://via.placeholder.com/200x150/696969/FFFFFF?text=Chargeur"],
-    category: "pieces",
-    featured: false
-  }
-];
 
 export default function BrowseScreen() {
   const { theme } = useTheme();
   const params = useLocalSearchParams();
   const [searchText, setSearchText] = useState("");
-  const [debouncedSearch] = useDebounce(searchText, 500);
+  const debouncedSearch = useDebounce(searchText, 500);
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   
-  const { filters, setFilters, isFavorite } = useProductsStore();
+  const { filters, setFilters } = useProductsStore();
   const toggleFavorite = useToggleFavorite();
-  const { data: favoriteIds = [] } = useFavorites();
+  const { data: favoritesData } = useFavorites();
+  const favoriteIds = favoritesData?.productIds ?? [];
   
   const t = THEMES[theme];
 
@@ -232,7 +154,7 @@ export default function BrowseScreen() {
           }}
         >
           <Text style={{ fontSize: 18 }}>
-            {(favoriteIds.includes(product.id) || isFavorite(product.id)) ? '❤️' : '🤍'}
+            {favoriteIds.includes(product.id) ? '❤️' : '🤍'}
           </Text>
         </TouchableOpacity>
   </View>
@@ -332,7 +254,19 @@ export default function BrowseScreen() {
               alignItems: 'center',
               justifyContent: 'center'
             }}
-            onPress={() => router.push('/(tabs)/messages')}
+            onPress={() => {
+              // Redirection vers la page de nouveau message avec les infos du produit
+              router.push({
+                pathname: '/chat/new',
+                params: {
+                  sellerId: product.sellerId || product.id,
+                  sellerName: product.seller,
+                  sellerAvatar: `https://via.placeholder.com/40/4B5D3A/FFFFFF?text=${product.seller.charAt(0)}`,
+                  productId: product.id,
+                  productTitle: product.title
+                }
+              });
+            }}
           >
             <Text style={{ fontSize: 18 }}>💬</Text>
           </TouchableOpacity>
@@ -403,28 +337,7 @@ export default function BrowseScreen() {
             horizontal 
             showsHorizontalScrollIndicator={false}
             style={{ marginBottom: 16 }}
-          >
-            <TouchableOpacity 
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 20,
-                backgroundColor: filters.category === undefined ? t.primaryBtn : t.cardBg,
-                borderWidth: 1,
-                borderColor: t.border,
-                marginRight: 8
-              }}
-              onPress={() => handleCategorySelect(null)}
-            >
-              <Text style={{
-                color: filters.category === undefined ? t.white : t.heading,
-                fontWeight: '600',
-                fontSize: 12
-              }}>
-                Tout voir
-              </Text>
-            </TouchableOpacity>
-            
+          >        
             {CATEGORIES.map((category) => (
               <TouchableOpacity
                 key={category.slug}
