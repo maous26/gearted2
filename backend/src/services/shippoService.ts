@@ -222,7 +222,7 @@ class ShippoService {
 
     const isFrance = countryUpper === 'FR';
     const franceCarriers = shippoConfig.carriers.france.map((c: any) => c.id);
-    const europeCarriers = shippoConfig.carriers.europe.map((c: any) => c.id);
+    const internationalCarriers = shippoConfig.carriers.international.map((c: any) => c.id);
 
     return rates.filter((rate) => {
       // Skip rates without carrier info (use provider or fallback to carrier)
@@ -236,10 +236,12 @@ class ShippoService {
         // For France: Colissimo, Chronopost, Mondial Relay
         return franceCarriers.some((fc: string) => carrierLower.includes(fc));
       } else {
-        // For BE, CH, LU: International carriers (DHL, UPS, Colissimo International)
-        return europeCarriers.some((ec: string) => carrierLower.includes(ec)) ||
+        // For BE, CH, LU: International carriers (DHL, UPS, Colissimo International, Chronopost International)
+        return internationalCarriers.some((ic: string) => carrierLower.includes(ic)) ||
                carrierLower.includes('colissimo') ||
-               carrierLower.includes('chronopost');
+               carrierLower.includes('chronopost') ||
+               carrierLower.includes('dhl') ||
+               carrierLower.includes('ups');
       }
     });
   }

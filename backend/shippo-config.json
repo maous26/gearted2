@@ -1,30 +1,64 @@
 {
   "version": "1.0",
   "apiVersion": "2018-02-08",
-  "environment": "test",
+  "environment": "production",
   "defaultCurrency": "EUR",
   "defaultWeightUnit": "kg",
   "defaultDistanceUnit": "cm",
+  
+  "supportedCountries": {
+    "description": "Expéditions limitées à ces pays uniquement",
+    "countries": ["FR", "BE", "CH", "LU"]
+  },
   
   "carriers": {
     "france": [
       {
         "id": "colissimo",
         "name": "La Poste - Colissimo",
+        "provider": "Colissimo",
         "enabled": true,
+        "countries": ["FR"],
+        "description": "Service postal français pour envois nationaux",
         "serviceLevels": [
           {
             "token": "colissimo_home",
             "name": "Colissimo Domicile",
             "deliveryTime": "2-3 jours ouvrés",
             "maxWeight": 30,
+            "maxDimensions": {
+              "length": 150,
+              "width": 100,
+              "height": 100
+            },
             "tracking": true,
             "signature": false,
             "insurance": {
               "included": 150,
               "additional": true,
               "maxValue": 5000
-            }
+            },
+            "features": ["tracking", "proof_of_delivery"]
+          },
+          {
+            "token": "colissimo_pick_up_point",
+            "name": "Colissimo Point Retrait",
+            "deliveryTime": "2-3 jours ouvrés",
+            "maxWeight": 30,
+            "maxDimensions": {
+              "length": 150,
+              "width": 100,
+              "height": 100
+            },
+            "tracking": true,
+            "signature": false,
+            "pickupPoint": true,
+            "insurance": {
+              "included": 150,
+              "additional": true,
+              "maxValue": 5000
+            },
+            "features": ["tracking", "pickup_point", "cheapest"]
           },
           {
             "token": "colissimo_expert",
@@ -37,14 +71,18 @@
               "included": 500,
               "additional": true,
               "maxValue": 5000
-            }
+            },
+            "features": ["tracking", "signature", "insurance"]
           }
         ]
       },
       {
         "id": "chronopost",
         "name": "Chronopost",
+        "provider": "Chronopost",
         "enabled": true,
+        "countries": ["FR"],
+        "description": "Service express de La Poste",
         "serviceLevels": [
           {
             "token": "chronopost_13",
@@ -57,7 +95,8 @@
               "included": 500,
               "additional": true,
               "maxValue": 10000
-            }
+            },
+            "features": ["tracking", "signature", "express", "next_day"]
           },
           {
             "token": "chronopost_18",
@@ -70,20 +109,44 @@
               "included": 300,
               "additional": true,
               "maxValue": 10000
-            }
+            },
+            "features": ["tracking", "signature", "express", "next_day"]
+          },
+          {
+            "token": "chronopost_relais",
+            "name": "Chrono Relais",
+            "deliveryTime": "24-48h",
+            "maxWeight": 20,
+            "tracking": true,
+            "signature": false,
+            "pickupPoint": true,
+            "insurance": {
+              "included": 300,
+              "additional": true,
+              "maxValue": 5000
+            },
+            "features": ["tracking", "pickup_point", "cheapest"]
           }
         ]
       },
       {
         "id": "mondialrelay",
         "name": "Mondial Relay",
+        "provider": "Mondial Relay",
         "enabled": true,
+        "countries": ["FR"],
+        "description": "Réseau de points relais en France",
         "serviceLevels": [
           {
             "token": "mondialrelay_pointrelais",
             "name": "Point Relais",
             "deliveryTime": "2-4 jours ouvrés",
             "maxWeight": 30,
+            "maxDimensions": {
+              "length": 150,
+              "width": 80,
+              "height": 50
+            },
             "tracking": true,
             "signature": false,
             "pickupPoint": true,
@@ -91,51 +154,110 @@
               "included": 100,
               "additional": true,
               "maxValue": 3000
-            }
+            },
+            "features": ["tracking", "pickup_point", "cheapest"]
           }
         ]
       }
     ],
-    "europe": [
+    "international": [
       {
-        "id": "colissimo_international",
+        "id": "colissimo",
         "name": "La Poste - Colissimo International",
+        "provider": "Colissimo",
         "enabled": true,
-        "zones": ["EU", "EU_ZONE_1", "EU_ZONE_2"],
+        "countries": ["BE", "CH", "LU"],
+        "description": "Service postal international de La Poste",
         "serviceLevels": [
           {
-            "token": "colissimo_international_home",
+            "token": "colissimo_home",
             "name": "Colissimo International Domicile",
             "deliveryTime": "3-6 jours ouvrés",
             "maxWeight": 30,
+            "maxDimensions": {
+              "length": 150,
+              "width": 100,
+              "height": 100
+            },
             "tracking": true,
             "signature": false,
             "insurance": {
               "included": 150,
               "additional": true,
               "maxValue": 5000
-            }
+            },
+            "features": ["tracking", "international"],
+            "countryCoverage": ["BE", "CH", "LU"]
           }
         ]
       },
       {
-        "id": "dhl_express",
-        "name": "DHL Express",
+        "id": "chronopost",
+        "name": "Chronopost International",
+        "provider": "Chronopost",
         "enabled": true,
-        "zones": ["EU", "WORLDWIDE"],
+        "countries": ["BE", "CH", "LU"],
+        "description": "Service express international",
+        "serviceLevels": [
+          {
+            "token": "chronopost_classic_international",
+            "name": "Chronopost Classic International",
+            "deliveryTime": "2-4 jours ouvrés",
+            "maxWeight": 30,
+            "tracking": true,
+            "signature": true,
+            "insurance": {
+              "included": 300,
+              "additional": true,
+              "maxValue": 10000
+            },
+            "features": ["tracking", "signature", "international", "express"],
+            "countryCoverage": ["BE", "LU"]
+          },
+          {
+            "token": "chronopost_express_international",
+            "name": "Chronopost Express International",
+            "deliveryTime": "24-48h",
+            "maxWeight": 30,
+            "tracking": true,
+            "signature": true,
+            "insurance": {
+              "included": 500,
+              "additional": true,
+              "maxValue": 10000
+            },
+            "features": ["tracking", "signature", "international", "express", "fastest"],
+            "countryCoverage": ["BE", "CH", "LU"]
+          }
+        ]
+      },
+      {
+        "id": "dhl",
+        "name": "DHL Express",
+        "provider": "DHL Express",
+        "enabled": true,
+        "countries": ["BE", "CH", "LU"],
+        "description": "Service express international premium",
         "serviceLevels": [
           {
             "token": "dhl_express_worldwide",
             "name": "DHL Express Worldwide",
             "deliveryTime": "1-3 jours ouvrés",
             "maxWeight": 70,
+            "maxDimensions": {
+              "length": 120,
+              "width": 80,
+              "height": 80
+            },
             "tracking": true,
             "signature": true,
             "insurance": {
               "included": 100,
               "additional": true,
               "maxValue": 50000
-            }
+            },
+            "features": ["tracking", "signature", "international", "express", "fastest", "premium"],
+            "countryCoverage": ["BE", "CH", "LU"]
           },
           {
             "token": "dhl_express_12_00",
@@ -148,28 +270,39 @@
               "included": 100,
               "additional": true,
               "maxValue": 50000
-            }
+            },
+            "features": ["tracking", "signature", "international", "express", "fastest", "premium", "time_definite"],
+            "countryCoverage": ["BE", "LU"]
           }
         ]
       },
       {
         "id": "ups",
         "name": "UPS",
+        "provider": "UPS",
         "enabled": true,
-        "zones": ["EU", "WORLDWIDE"],
+        "countries": ["BE", "CH", "LU"],
+        "description": "Service de livraison international UPS",
         "serviceLevels": [
           {
             "token": "ups_standard",
             "name": "UPS Standard",
-            "deliveryTime": "1-5 jours ouvrés",
+            "deliveryTime": "2-5 jours ouvrés",
             "maxWeight": 70,
+            "maxDimensions": {
+              "length": 274,
+              "width": 274,
+              "height": 274
+            },
             "tracking": true,
             "signature": false,
             "insurance": {
               "included": 100,
               "additional": true,
               "maxValue": 50000
-            }
+            },
+            "features": ["tracking", "international"],
+            "countryCoverage": ["BE", "CH", "LU"]
           },
           {
             "token": "ups_express_saver",
@@ -182,7 +315,24 @@
               "included": 100,
               "additional": true,
               "maxValue": 50000
-            }
+            },
+            "features": ["tracking", "signature", "international", "express", "next_day"],
+            "countryCoverage": ["BE", "CH", "LU"]
+          },
+          {
+            "token": "ups_express",
+            "name": "UPS Express",
+            "deliveryTime": "24-48h",
+            "maxWeight": 70,
+            "tracking": true,
+            "signature": true,
+            "insurance": {
+              "included": 100,
+              "additional": true,
+              "maxValue": 50000
+            },
+            "features": ["tracking", "signature", "international", "express"],
+            "countryCoverage": ["BE", "CH", "LU"]
           }
         ]
       }
@@ -192,94 +342,127 @@
   "zones": {
     "FR": {
       "name": "France métropolitaine",
-      "countries": ["FR"]
+      "countries": ["FR"],
+      "zone": "domestic"
     },
-    "EU_ZONE_1": {
-      "name": "Europe Zone 1",
-      "countries": ["BE", "DE", "ES", "IT", "LU", "NL", "PT"]
+    "BE": {
+      "name": "Belgique",
+      "countries": ["BE"],
+      "zone": "international_eu"
     },
-    "EU_ZONE_2": {
-      "name": "Europe Zone 2",
-      "countries": ["AT", "CH", "DK", "FI", "GB", "GR", "IE", "NO", "PL", "SE", "CZ", "HU", "RO"]
+    "CH": {
+      "name": "Suisse",
+      "countries": ["CH"],
+      "zone": "international_non_eu",
+      "customsRequired": true
     },
-    "EU": {
-      "name": "Union Européenne",
-      "countries": ["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE"]
+    "LU": {
+      "name": "Luxembourg",
+      "countries": ["LU"],
+      "zone": "international_eu"
     }
   },
   
   "parcelTemplates": {
+    "description": "Templates de dimensions pour répliques airsoft et accessoires",
     "airsoft_replicas": [
       {
-        "id": "ak_standard",
-        "name": "AK Series Standard",
+        "id": "ak_series",
+        "name": "Fusil AK (AK47, AKM, AK74)",
         "length": 88,
         "width": 30,
         "height": 10,
         "weight": 3.5,
-        "weaponTypes": ["ASSAULT_RIFLE"]
+        "weaponTypes": ["ASSAULT_RIFLE"],
+        "category": "fusil"
       },
       {
-        "id": "m4_standard",
-        "name": "M4/AR15 Series Standard",
+        "id": "m4_ar15_series",
+        "name": "Fusil M4/AR15",
         "length": 85,
         "width": 28,
         "height": 10,
         "weight": 3.2,
-        "weaponTypes": ["ASSAULT_RIFLE", "CARBINE"]
+        "weaponTypes": ["ASSAULT_RIFLE", "CARBINE"],
+        "category": "fusil"
       },
       {
-        "id": "sniper_standard",
-        "name": "Sniper Rifle Standard",
+        "id": "sniper_rifle",
+        "name": "Fusil de précision (Sniper)",
         "length": 120,
         "width": 32,
         "height": 12,
         "weight": 4.5,
-        "weaponTypes": ["SNIPER_RIFLE", "DMR"]
+        "weaponTypes": ["SNIPER_RIFLE", "DMR"],
+        "category": "fusil"
       },
       {
-        "id": "pistol_standard",
-        "name": "Pistol Standard",
+        "id": "pistol",
+        "name": "Pistolet",
         "length": 25,
         "width": 18,
         "height": 8,
         "weight": 0.8,
-        "weaponTypes": ["PISTOL"]
+        "weaponTypes": ["PISTOL"],
+        "category": "pistolet"
       },
       {
-        "id": "smg_standard",
-        "name": "SMG Standard",
+        "id": "smg",
+        "name": "Pistolet mitrailleur (SMG)",
         "length": 60,
         "width": 25,
         "height": 9,
         "weight": 2.5,
-        "weaponTypes": ["SMG"]
+        "weaponTypes": ["SMG"],
+        "category": "smg"
+      },
+      {
+        "id": "shotgun",
+        "name": "Fusil à pompe",
+        "length": 95,
+        "width": 30,
+        "height": 12,
+        "weight": 3.8,
+        "weaponTypes": ["SHOTGUN"],
+        "category": "fusil"
       }
     ],
     "accessories": [
       {
-        "id": "accessory_small",
-        "name": "Petit accessoire",
-        "length": 20,
-        "width": 15,
+        "id": "accessory_xs",
+        "name": "Très petit accessoire (billes, pièces détachées)",
+        "length": 15,
+        "width": 10,
         "height": 5,
-        "weight": 0.3
+        "weight": 0.2,
+        "examples": ["Billes", "Ressorts", "Joints", "Vis"]
+      },
+      {
+        "id": "accessory_small",
+        "name": "Petit accessoire (chargeurs, viseurs)",
+        "length": 25,
+        "width": 15,
+        "height": 8,
+        "weight": 0.5,
+        "examples": ["Chargeurs", "Viseurs red dot", "Batteries", "Lunettes de protection"]
       },
       {
         "id": "accessory_medium",
-        "name": "Accessoire moyen",
+        "name": "Accessoire moyen (optiques, équipements)",
         "length": 40,
         "width": 30,
-        "height": 10,
-        "weight": 1.0
+        "height": 15,
+        "weight": 1.5,
+        "examples": ["Lunettes de visée", "Gilets tactiques", "Holsters"]
       },
       {
         "id": "accessory_large",
-        "name": "Grand accessoire",
-        "length": 60,
+        "name": "Grand accessoire (sacs, équipements volumineux)",
+        "length": 70,
         "width": 40,
-        "height": 15,
-        "weight": 2.0
+        "height": 20,
+        "weight": 2.5,
+        "examples": ["Sacs de transport", "Plaques de protection", "Casques"]
       }
     ]
   },
@@ -287,6 +470,7 @@
   "csvExport": {
     "enabled": true,
     "format": "shippo_v2",
+    "description": "Format CSV compatible avec l'import en masse de Shippo",
     "fields": [
       "Order Number",
       "Order Date",
@@ -316,12 +500,38 @@
   },
   
   "notifications": {
-    "labelCreated": true,
-    "inTransit": true,
-    "outForDelivery": true,
-    "delivered": true,
-    "failed": true,
-    "returned": true
+    "description": "Notifications webhook Shippo pour le suivi des colis",
+    "webhookUrl": "/api/shipments/tracking-webhook",
+    "events": {
+      "labelCreated": {
+        "enabled": true,
+        "description": "Étiquette créée et prête à imprimer"
+      },
+      "inTransit": {
+        "enabled": true,
+        "description": "Colis en transit"
+      },
+      "outForDelivery": {
+        "enabled": true,
+        "description": "Colis en cours de livraison"
+      },
+      "delivered": {
+        "enabled": true,
+        "description": "Colis livré avec succès"
+      },
+      "failed": {
+        "enabled": true,
+        "description": "Échec de livraison"
+      },
+      "returned": {
+        "enabled": true,
+        "description": "Colis retourné à l'expéditeur"
+      },
+      "availableForPickup": {
+        "enabled": true,
+        "description": "Colis disponible en point retrait"
+      }
+    }
   },
   
   "features": {
@@ -330,7 +540,34 @@
     "allowPickupPoints": true,
     "requireSignature": false,
     "insuranceByDefault": true,
-    "trackingEnabled": true
+    "trackingEnabled": true,
+    "customsFormsEnabled": true,
+    "returnLabelsEnabled": true
+  },
+  
+  "pricing": {
+    "commissionRate": 0,
+    "description": "Pas de commission - l'acheteur paie le prix réel du transporteur"
+  },
+  
+  "customsInfo": {
+    "CH": {
+      "required": true,
+      "description": "La Suisse requiert des documents douaniers (hors UE)",
+      "contentTypeDefault": "merchandise",
+      "incotermDefault": "DDU"
+    },
+    "BE": {
+      "required": false,
+      "description": "Belgique - Union Européenne, pas de douane"
+    },
+    "LU": {
+      "required": false,
+      "description": "Luxembourg - Union Européenne, pas de douane"
+    },
+    "FR": {
+      "required": false,
+      "description": "France - Livraison nationale, pas de douane"
+    }
   }
 }
-

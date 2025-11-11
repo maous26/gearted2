@@ -180,6 +180,11 @@ router.post('/create', async (req: Request, res: Response) => {
     // Generate order number if not provided
     const generatedOrderNumber = orderNumber || `#${Date.now()}`;
 
+    // Extract carrier and service level (Shippo uses provider/servicelevel or carrier/service_level)
+    const carrier = rate.provider || rate.carrier || 'Unknown';
+    const serviceLevel = rate.servicelevel || rate.service_level;
+    const serviceLevelToken = serviceLevel?.token || 'standard';
+
     // Create shipment record
     const shipment = await prisma.shipment.create({
       data: {
@@ -194,9 +199,9 @@ router.post('/create', async (req: Request, res: Response) => {
         fromAddress: JSON.stringify(fromAddress),
         toAddress: JSON.stringify(toAddress),
         parcelId: parcelDimensions.id,
-        carrier: rate.carrier,
-        serviceLevelToken: rate.service_level.token,
-        estimatedDays: rate.estimated_days,
+        carrier: carrier,
+        serviceLevelToken: serviceLevelToken,
+        estimatedDays: rate.estimated_days || 0,
         amount: parseFloat(rate.amount),
         currency: rate.currency,
         status: 'LABEL_CREATED',
@@ -207,7 +212,7 @@ router.post('/create', async (req: Request, res: Response) => {
     // Register tracking webhook
     try {
       await shippoService.registerTrackingWebhook(
-        rate.carrier,
+        carrier,
         transaction.tracking_number,
         JSON.stringify({ shipmentId: shipment.id, productId })
       );
