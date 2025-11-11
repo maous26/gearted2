@@ -1,0 +1,336 @@
+{
+  "version": "1.0",
+  "apiVersion": "2018-02-08",
+  "environment": "test",
+  "defaultCurrency": "EUR",
+  "defaultWeightUnit": "kg",
+  "defaultDistanceUnit": "cm",
+  
+  "carriers": {
+    "france": [
+      {
+        "id": "colissimo",
+        "name": "La Poste - Colissimo",
+        "enabled": true,
+        "serviceLevels": [
+          {
+            "token": "colissimo_home",
+            "name": "Colissimo Domicile",
+            "deliveryTime": "2-3 jours ouvrés",
+            "maxWeight": 30,
+            "tracking": true,
+            "signature": false,
+            "insurance": {
+              "included": 150,
+              "additional": true,
+              "maxValue": 5000
+            }
+          },
+          {
+            "token": "colissimo_expert",
+            "name": "Colissimo Expert",
+            "deliveryTime": "24-48h",
+            "maxWeight": 30,
+            "tracking": true,
+            "signature": true,
+            "insurance": {
+              "included": 500,
+              "additional": true,
+              "maxValue": 5000
+            }
+          }
+        ]
+      },
+      {
+        "id": "chronopost",
+        "name": "Chronopost",
+        "enabled": true,
+        "serviceLevels": [
+          {
+            "token": "chronopost_13",
+            "name": "Chrono 13",
+            "deliveryTime": "Livraison avant 13h le lendemain",
+            "maxWeight": 30,
+            "tracking": true,
+            "signature": true,
+            "insurance": {
+              "included": 500,
+              "additional": true,
+              "maxValue": 10000
+            }
+          },
+          {
+            "token": "chronopost_18",
+            "name": "Chrono 18",
+            "deliveryTime": "Livraison avant 18h le lendemain",
+            "maxWeight": 30,
+            "tracking": true,
+            "signature": true,
+            "insurance": {
+              "included": 300,
+              "additional": true,
+              "maxValue": 10000
+            }
+          }
+        ]
+      },
+      {
+        "id": "mondialrelay",
+        "name": "Mondial Relay",
+        "enabled": true,
+        "serviceLevels": [
+          {
+            "token": "mondialrelay_pointrelais",
+            "name": "Point Relais",
+            "deliveryTime": "2-4 jours ouvrés",
+            "maxWeight": 30,
+            "tracking": true,
+            "signature": false,
+            "pickupPoint": true,
+            "insurance": {
+              "included": 100,
+              "additional": true,
+              "maxValue": 3000
+            }
+          }
+        ]
+      }
+    ],
+    "europe": [
+      {
+        "id": "colissimo_international",
+        "name": "La Poste - Colissimo International",
+        "enabled": true,
+        "zones": ["EU", "EU_ZONE_1", "EU_ZONE_2"],
+        "serviceLevels": [
+          {
+            "token": "colissimo_international_home",
+            "name": "Colissimo International Domicile",
+            "deliveryTime": "3-6 jours ouvrés",
+            "maxWeight": 30,
+            "tracking": true,
+            "signature": false,
+            "insurance": {
+              "included": 150,
+              "additional": true,
+              "maxValue": 5000
+            }
+          }
+        ]
+      },
+      {
+        "id": "dhl_express",
+        "name": "DHL Express",
+        "enabled": true,
+        "zones": ["EU", "WORLDWIDE"],
+        "serviceLevels": [
+          {
+            "token": "dhl_express_worldwide",
+            "name": "DHL Express Worldwide",
+            "deliveryTime": "1-3 jours ouvrés",
+            "maxWeight": 70,
+            "tracking": true,
+            "signature": true,
+            "insurance": {
+              "included": 100,
+              "additional": true,
+              "maxValue": 50000
+            }
+          },
+          {
+            "token": "dhl_express_12_00",
+            "name": "DHL Express 12:00",
+            "deliveryTime": "Livraison avant 12h le lendemain",
+            "maxWeight": 70,
+            "tracking": true,
+            "signature": true,
+            "insurance": {
+              "included": 100,
+              "additional": true,
+              "maxValue": 50000
+            }
+          }
+        ]
+      },
+      {
+        "id": "ups",
+        "name": "UPS",
+        "enabled": true,
+        "zones": ["EU", "WORLDWIDE"],
+        "serviceLevels": [
+          {
+            "token": "ups_standard",
+            "name": "UPS Standard",
+            "deliveryTime": "1-5 jours ouvrés",
+            "maxWeight": 70,
+            "tracking": true,
+            "signature": false,
+            "insurance": {
+              "included": 100,
+              "additional": true,
+              "maxValue": 50000
+            }
+          },
+          {
+            "token": "ups_express_saver",
+            "name": "UPS Express Saver",
+            "deliveryTime": "Livraison en fin de journée le lendemain",
+            "maxWeight": 70,
+            "tracking": true,
+            "signature": true,
+            "insurance": {
+              "included": 100,
+              "additional": true,
+              "maxValue": 50000
+            }
+          }
+        ]
+      }
+    ]
+  },
+  
+  "zones": {
+    "FR": {
+      "name": "France métropolitaine",
+      "countries": ["FR"]
+    },
+    "EU_ZONE_1": {
+      "name": "Europe Zone 1",
+      "countries": ["BE", "DE", "ES", "IT", "LU", "NL", "PT"]
+    },
+    "EU_ZONE_2": {
+      "name": "Europe Zone 2",
+      "countries": ["AT", "CH", "DK", "FI", "GB", "GR", "IE", "NO", "PL", "SE", "CZ", "HU", "RO"]
+    },
+    "EU": {
+      "name": "Union Européenne",
+      "countries": ["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE"]
+    }
+  },
+  
+  "parcelTemplates": {
+    "airsoft_replicas": [
+      {
+        "id": "ak_standard",
+        "name": "AK Series Standard",
+        "length": 88,
+        "width": 30,
+        "height": 10,
+        "weight": 3.5,
+        "weaponTypes": ["ASSAULT_RIFLE"]
+      },
+      {
+        "id": "m4_standard",
+        "name": "M4/AR15 Series Standard",
+        "length": 85,
+        "width": 28,
+        "height": 10,
+        "weight": 3.2,
+        "weaponTypes": ["ASSAULT_RIFLE", "CARBINE"]
+      },
+      {
+        "id": "sniper_standard",
+        "name": "Sniper Rifle Standard",
+        "length": 120,
+        "width": 32,
+        "height": 12,
+        "weight": 4.5,
+        "weaponTypes": ["SNIPER_RIFLE", "DMR"]
+      },
+      {
+        "id": "pistol_standard",
+        "name": "Pistol Standard",
+        "length": 25,
+        "width": 18,
+        "height": 8,
+        "weight": 0.8,
+        "weaponTypes": ["PISTOL"]
+      },
+      {
+        "id": "smg_standard",
+        "name": "SMG Standard",
+        "length": 60,
+        "width": 25,
+        "height": 9,
+        "weight": 2.5,
+        "weaponTypes": ["SMG"]
+      }
+    ],
+    "accessories": [
+      {
+        "id": "accessory_small",
+        "name": "Petit accessoire",
+        "length": 20,
+        "width": 15,
+        "height": 5,
+        "weight": 0.3
+      },
+      {
+        "id": "accessory_medium",
+        "name": "Accessoire moyen",
+        "length": 40,
+        "width": 30,
+        "height": 10,
+        "weight": 1.0
+      },
+      {
+        "id": "accessory_large",
+        "name": "Grand accessoire",
+        "length": 60,
+        "width": 40,
+        "height": 15,
+        "weight": 2.0
+      }
+    ]
+  },
+  
+  "csvExport": {
+    "enabled": true,
+    "format": "shippo_v2",
+    "fields": [
+      "Order Number",
+      "Order Date",
+      "Recipient Name",
+      "Company",
+      "Email",
+      "Phone",
+      "Street Line 1",
+      "Street Number",
+      "Street Line 2",
+      "City",
+      "State/Province",
+      "Zip/Postal Code",
+      "Country",
+      "Item Title",
+      "SKU",
+      "Quantity",
+      "Item Weight",
+      "Item Weight Unit",
+      "Item Price",
+      "Item Currency",
+      "Order Weight",
+      "Order Weight Unit",
+      "Order Amount",
+      "Order Currency"
+    ]
+  },
+  
+  "notifications": {
+    "labelCreated": true,
+    "inTransit": true,
+    "outForDelivery": true,
+    "delivered": true,
+    "failed": true,
+    "returned": true
+  },
+  
+  "features": {
+    "autoSelectCheapest": true,
+    "autoSelectFastest": false,
+    "allowPickupPoints": true,
+    "requireSignature": false,
+    "insuranceByDefault": true,
+    "trackingEnabled": true
+  }
+}
+

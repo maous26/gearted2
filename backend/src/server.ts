@@ -23,6 +23,7 @@ import messageRoutes from './routes/messages';
 import productRoutes from './routes/products';
 import reviewRoutes from './routes/reviews';
 import searchRoutes from './routes/search';
+import shipmentRoutes from './routes/shipments';
 import uploadRoutes from './routes/uploads';
 import userRoutes from './routes/users';
 
@@ -129,12 +130,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/favorites', favoritesRoutes);
-app.use('/api/favorites', favoritesRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/compatibility', compatibilityRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/shipments', shipmentRoutes);
 app.use('/api/uploads', uploadRoutes);
 
 // Serve static files (uploads)

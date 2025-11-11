@@ -338,3 +338,124 @@ enum PartType {
   NOZZLE
   TAPPET_PLATE
 }
+
+// Shipping & Logistics Models
+model Shipment {
+  id              String         @id @default(cuid())
+  
+  // Order reference
+  productId       String
+  buyerId         String
+  sellerId        String
+  orderNumber     String         @unique // Format: #1000, #1001, etc.
+  
+  // Shippo tracking
+  shippoObjectId  String?        @unique // Shippo transaction ID
+  trackingNumber  String?
+  labelUrl        String?
+  trackingStatus  String?        @default("UNKNOWN")
+  
+  // Addresses
+  fromAddress     String         // JSON string
+  toAddress       String         // JSON string
+  
+  // Parcel details
+  parcelId        String?
+  parcel          ParcelDimensions? @relation(fields: [parcelId], references: [id])
+  
+  // Shipping details
+  carrier         String?        // e.g., "colissimo", "chronopost"
+  serviceLevelToken String?      // Shippo service level token
+  estimatedDays   Int?
+  
+  // Costs
+  amount          Decimal
+  currency        String         @default("EUR")
+  
+  // Status
+  status          ShipmentStatus @default(PENDING)
+  isPaid          Boolean        @default(false)
+  
+  // Metadata
+  metadata        String?        // JSON for extra data
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+  
+  @@map("shipments")
+}
+
+model ParcelDimensions {
+  id              String    @id @default(cuid())
+  
+  // Reference (optional - from catalog or manual)
+  weaponModelId   String?
+  manufacturerId  String?
+  
+  // Dimensions (in cm)
+  length          Float
+  width           Float
+  height          Float
+  
+  // Weight (in kg)
+  weight          Float
+  
+  // Metadata
+  name            String?   // e.g., "AK-47 Standard Box"
+  isFromCatalog   Boolean   @default(false)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  shipments       Shipment[]
+  
+  @@map("parcel_dimensions")
+}
+
+model ShippingRate {
+  id                String   @id @default(cuid())
+  
+  // Reference
+  shipmentId        String?
+  
+  // Carrier info
+  carrier           String   // e.g., "colissimo"
+  carrierName       String   // e.g., "La Poste"
+  serviceLevelName  String   // e.g., "Colissimo Domicile"
+  serviceLevelToken String   // Shippo service level token
+  
+  // Pricing
+  amount            Decimal
+  currency          String   @default("EUR")
+  
+  // Delivery estimate
+  estimatedDays     Int?
+  durationTerms     String?  // e.g., "2-3 jours ouvrés"
+  
+  // Zone
+  zone              String?  // "FR", "EU", "WORLD"
+  
+  // Metadata
+  attributes        String?  // JSON for carrier-specific attributes
+  
+  createdAt         DateTime @default(now())
+  expiresAt         DateTime? // Rates expire after some time
+  
+  @@map("shipping_rates")
+}
+
+// Enums for Shipping
+enum ShipmentStatus {
+  PENDING           // Awaiting payment
+  PAID              // Payment received
+  LABEL_CREATED     // Label generated
+  IN_TRANSIT        // Shipped
+  OUT_FOR_DELIVERY  // Out for delivery
+  DELIVERED         // Delivered
+  FAILED            // Delivery failed
+  RETURNED          // Returned to sender
+  CANCELLED         // Cancelled
+}
