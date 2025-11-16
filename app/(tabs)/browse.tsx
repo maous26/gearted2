@@ -29,10 +29,9 @@ export default function BrowseScreen() {
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   
-  const { filters, setFilters } = useProductsStore();
+  const { filters, setFilters, isFavorite } = useProductsStore();
   const toggleFavorite = useToggleFavorite();
-  const { data: favoritesData } = useFavorites();
-  const favoriteIds = favoritesData?.productIds ?? [];
+  const { data: favoriteIds = [] } = useFavorites();
   
   const t = THEMES[theme];
 
@@ -154,7 +153,7 @@ export default function BrowseScreen() {
           }}
         >
           <Text style={{ fontSize: 18 }}>
-            {favoriteIds.includes(product.id) ? '❤️' : '🤍'}
+            {(favoriteIds.includes(product.id) || isFavorite(product.id)) ? '❤️' : '🤍'}
           </Text>
         </TouchableOpacity>
   </View>
@@ -337,7 +336,7 @@ export default function BrowseScreen() {
             horizontal 
             showsHorizontalScrollIndicator={false}
             style={{ marginBottom: 16 }}
-          >        
+          >
             {CATEGORIES.map((category) => (
               <TouchableOpacity
                 key={category.slug}

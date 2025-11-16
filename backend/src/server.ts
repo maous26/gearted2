@@ -1,10 +1,7 @@
-// Load environment variables FIRST before any other imports
-import dotenv from 'dotenv';
-dotenv.config();
-
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import dotenv from 'dotenv';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import slowDown from 'express-slow-down';
@@ -26,9 +23,11 @@ import messageRoutes from './routes/messages';
 import productRoutes from './routes/products';
 import reviewRoutes from './routes/reviews';
 import searchRoutes from './routes/search';
-import shipmentRoutes from './routes/shipments';
 import uploadRoutes from './routes/uploads';
 import userRoutes from './routes/users';
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
 const server = createServer(app);
@@ -130,12 +129,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/favorites', favoritesRoutes);
+app.use('/api/favorites', favoritesRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/compatibility', compatibilityRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/reviews', reviewRoutes);
-app.use('/api/shipments', shipmentRoutes);
 app.use('/api/uploads', uploadRoutes);
 
 // Serve static files (uploads)

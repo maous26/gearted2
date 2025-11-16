@@ -3,21 +3,21 @@ import * as Location from 'expo-location';
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StatusBar,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StatusBar,
+    Switch,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { THEMES, ThemeKey } from "../themes";
-import authService from "../services/auth";
 import { useUser } from "../components/UserProvider";
+import authService from "../services/auth";
+import { THEMES, ThemeKey } from "../themes";
 
 export default function RegisterScreen() {
   const [theme] = useState<ThemeKey>("ranger");

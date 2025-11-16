@@ -1,8 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-    Alert,
     ScrollView,
     StatusBar,
     Text,
@@ -11,9 +11,9 @@ import {
     View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { THEMES, ThemeKey } from "../themes";
-import authService from "../services/auth";
 import { useUser } from "../components/UserProvider";
+import authService from "../services/auth";
+import { THEMES, ThemeKey } from "../themes";
 
 export default function LoginScreen() {
   const [theme] = useState<ThemeKey>("ranger");
@@ -67,15 +67,25 @@ export default function LoginScreen() {
         password
       });
 
-      console.log('[Login] Success:', response.user.email);
+  // Connexion réussie
 
-      // Sauvegarder le profil utilisateur complet dans le contexte
+      // Charger le profil local existant pour fusionner avatar et teamName
+      let localProfile = null;
+      try {
+        const storedUser = await AsyncStorage.getItem('@gearted_user_profile');
+        if (storedUser) {
+          localProfile = JSON.parse(storedUser);
+        }
+      } catch (e) {
+        // Impossible de charger le profil local
+      }
+
       await updateProfile({
         id: response.user.id,
         email: response.user.email,
         username: response.user.username,
-        avatar: response.user.avatar || null,
-        teamName: "Sans équipe", // TODO: récupérer depuis le backend si disponible
+        avatar: localProfile?.avatar ?? response.user.avatar ?? null,
+  teamName: localProfile?.teamName ?? (response.user as any).teamName ?? "Sans équipe",
         firstName: response.user.firstName,
         lastName: response.user.lastName,
         location: response.user.location,

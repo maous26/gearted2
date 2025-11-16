@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CategoryPill } from "../components/CategoryPill";
-import { useUser } from "../components/UserProvider";
 import { CATEGORIES, TRUST } from "../data";
 import TokenManager from "../services/storage";
 import { THEMES, ThemeKey } from "../themes";

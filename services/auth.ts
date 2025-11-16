@@ -46,7 +46,17 @@ class AuthService {
       const response = await api.post<BackendResponse<AuthResponse>>('/api/auth/login', credentials);
       const authData = response.data;
       
-      // Sauvegarder les tokens
+      // Vérification des tokens avant sauvegarde
+      if (
+        !authData.tokens ||
+        typeof authData.tokens.accessToken !== 'string' ||
+        typeof authData.tokens.refreshToken !== 'string' ||
+        !authData.tokens.accessToken ||
+        !authData.tokens.refreshToken
+      ) {
+        console.error('[AuthService] Invalid tokens from backend:', authData.tokens);
+        throw new Error('Erreur technique : les tokens reçus sont invalides');
+      }
       await TokenManager.saveTokens(
         authData.tokens.accessToken,
         authData.tokens.refreshToken
@@ -108,7 +118,17 @@ class AuthService {
       const response = await api.post<BackendResponse<AuthResponse>>('/api/auth/register', data);
       const authData = response.data;
       
-      // Sauvegarder les tokens
+      // Vérification des tokens avant sauvegarde
+      if (
+        !authData.tokens ||
+        typeof authData.tokens.accessToken !== 'string' ||
+        typeof authData.tokens.refreshToken !== 'string' ||
+        !authData.tokens.accessToken ||
+        !authData.tokens.refreshToken
+      ) {
+        console.error('[AuthService] Invalid tokens from backend:', authData.tokens);
+        throw new Error('Erreur technique : les tokens reçus sont invalides');
+      }
       await TokenManager.saveTokens(
         authData.tokens.accessToken,
         authData.tokens.refreshToken

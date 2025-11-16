@@ -52,7 +52,19 @@ export async function removeAuthToken(): Promise<void> {
  */
 export async function storeUserData(user: StoredUser): Promise<void> {
   try {
-    await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
+    // Validation : vérifier que l'objet est bien sérialisable
+    let serialized: string;
+    try {
+      serialized = JSON.stringify(user);
+    } catch (jsonError) {
+      console.error('User data is not serializable:', user);
+      throw new Error('Les données utilisateur ne sont pas valides pour la sauvegarde');
+    }
+    if (typeof serialized !== 'string') {
+      console.error('Serialized user data is not a string:', serialized);
+      throw new Error('Erreur de format des données utilisateur');
+    }
+    await SecureStore.setItemAsync(USER_KEY, serialized);
   } catch (error) {
     console.error('Error storing user data:', error);
     throw error;

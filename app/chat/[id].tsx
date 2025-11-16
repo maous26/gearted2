@@ -1,16 +1,16 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Alert,
-    FlatList,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../components/ThemeProvider";
@@ -67,9 +67,15 @@ export default function ChatScreen() {
   const { theme } = useTheme();
   const t = THEMES[theme];
   const params = useLocalSearchParams();
+  
   const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
   const [inputText, setInputText] = useState("");
+  const [sending, setSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+
+  // Récupération des infos du vendeur depuis les params
+  const sellerName = (params.sellerName as string) || MOCK_OTHER_USER.name;
+  const sellerAvatar = (params.sellerAvatar as string) || MOCK_OTHER_USER.avatar;
 
   useEffect(() => {
     // Auto-scroll vers le bas lors du chargement
@@ -80,6 +86,7 @@ export default function ChatScreen() {
 
   const sendMessage = () => {
     if (inputText.trim() === "") return;
+    if (sending) return;
 
     // Filter message content for phone numbers and emails
     const filterResult = filterMessageContent(inputText);
@@ -98,6 +105,8 @@ export default function ChatScreen() {
       return;
     }
 
+    setSending(true);
+
     const newMessage: Message = {
       id: Date.now().toString(),
       text: inputText,
@@ -112,6 +121,7 @@ export default function ChatScreen() {
     // Auto-scroll après envoi
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
+      setSending(false);
     }, 100);
 
     // Simulation d'une réponse après 2 secondes
@@ -142,15 +152,19 @@ export default function ChatScreen() {
       alignItems: 'flex-end'
     }}>
       {!message.isMine && (
-        <Image
-          source={{ uri: MOCK_OTHER_USER.avatar }}
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            marginRight: 8
-          }}
-        />
+        <View style={{
+          width: 32,
+          height: 32,
+          borderRadius: 16,
+          marginRight: 8,
+          overflow: 'hidden',
+          backgroundColor: t.primaryBtn
+        }}>
+          <Image
+            source={{ uri: sellerAvatar }}
+            style={{ width: '100%', height: '100%' }}
+          />
+        </View>
       )}
       
       <View style={{
@@ -200,19 +214,23 @@ export default function ChatScreen() {
           <Text style={{ fontSize: 24, color: t.primaryBtn }}>←</Text>
         </TouchableOpacity>
 
-        <Image
-          source={{ uri: MOCK_OTHER_USER.avatar }}
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            marginRight: 12
-          }}
-        />
+        <View style={{
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          marginRight: 12,
+          overflow: 'hidden',
+          backgroundColor: t.primaryBtn
+        }}>
+          <Image
+            source={{ uri: sellerAvatar }}
+            style={{ width: '100%', height: '100%' }}
+          />
+        </View>
 
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
-            {MOCK_OTHER_USER.name}
+            {sellerName}
           </Text>
           <Text style={{ fontSize: 12, color: t.muted }}>
             ⭐ {MOCK_OTHER_USER.rating} · En ligne
@@ -289,21 +307,24 @@ export default function ChatScreen() {
             placeholderTextColor={t.muted}
             multiline
             maxLength={500}
+            editable={!sending}
           />
 
           <TouchableOpacity
             onPress={sendMessage}
             style={{
-              backgroundColor: inputText.trim() ? t.primaryBtn : t.border,
+              backgroundColor: inputText.trim() && !sending ? t.primaryBtn : t.border,
               width: 40,
               height: 40,
               borderRadius: 20,
               justifyContent: 'center',
               alignItems: 'center'
             }}
-            disabled={!inputText.trim()}
+            disabled={!inputText.trim() || sending}
           >
-            <Text style={{ fontSize: 20 }}>➤</Text>
+            <Text style={{ fontSize: 20 }}>
+              {sending ? '⏳' : '➤'}
+            </Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

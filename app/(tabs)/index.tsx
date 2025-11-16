@@ -3,21 +3,20 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Dimensions,
-  Pressable,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Dimensions,
+    Pressable,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CompatDrawer } from "../../components/CompatDrawer";
 import { CompatibilityTeaser } from "../../components/CompatibilityTeaser";
 import { useTheme } from "../../components/ThemeProvider";
 import { CATEGORIES } from "../../data";
-import { useCategoryStats, useFavorites, useProducts, useToggleFavorite } from "../../hooks/useProducts";
+import { useCategoryStats, useProducts } from "../../hooks/useProducts";
 import { THEMES } from "../../themes";
 
 const { width } = Dimensions.get('window');
@@ -35,9 +34,6 @@ export default function AuthenticatedHome() {
 
   const { data: productsData, isLoading: isLoadingProducts } = useProducts({ sortBy: 'recent' });
   const { data: categoryStats } = useCategoryStats();
-  const { data: favoritesData } = useFavorites();
-  const toggleFavorite = useToggleFavorite();
-  const favoriteIds = favoritesData?.productIds ?? [];
 
   // Use real products from the database for featured listings
   const featuredListings = React.useMemo(() => {
@@ -208,33 +204,9 @@ export default function AuthenticatedHome() {
                     </Text>
                   </View>
 
-                  {/* Favorite button */}
-                  <TouchableOpacity
-                    style={{
-                      position: 'absolute',
-                      bottom: 194,
-                      right: 12,
-                      backgroundColor: 'rgba(0,0,0,0.7)',
-                      width: 36,
-                      height: 36,
-                      borderRadius: 18,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      zIndex: 10,
-                    }}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      toggleFavorite.mutate(product.id);
-                    }}
-                  >
-                    <Text style={{ fontSize: 18 }}>
-                      {favoriteIds.includes(product.id) ? '❤️' : '🤍'}
-                    </Text>
-                  </TouchableOpacity>
-
                   <View style={{ backgroundColor: '#f5f5f5' }}>
                     <Image
-                      source={{ uri: (product.images?.[0] || 'https://via.placeholder.com/400x300/4B5D3A/FFFFFF?text=Photo') }}
+                      source={{ uri: (product.images?.[0] || product.image || 'https://via.placeholder.com/400x300/4B5D3A/FFFFFF?text=Photo') }}
                       style={{ width: '100%', height: 180 }}
                       contentFit="contain"
                       cachePolicy="memory-disk"
@@ -389,30 +361,6 @@ export default function AuthenticatedHome() {
                       router.push(`/product/${product.id}` as any);
                     }}
                   >
-                    {/* Favorite button */}
-                    <TouchableOpacity
-                      style={{
-                        position: 'absolute',
-                        top: 8,
-                        right: 8,
-                        backgroundColor: 'rgba(0,0,0,0.7)',
-                        width: 32,
-                        height: 32,
-                        borderRadius: 16,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 10,
-                      }}
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        toggleFavorite.mutate(product.id);
-                      }}
-                    >
-                      <Text style={{ fontSize: 16 }}>
-                        {favoriteIds.includes(product.id) ? '❤️' : '🤍'}
-                      </Text>
-                    </TouchableOpacity>
-
                     <View style={{ backgroundColor: '#f5f5f5' }}>
                       <Image
                         source={{ uri: product.images[0] }}

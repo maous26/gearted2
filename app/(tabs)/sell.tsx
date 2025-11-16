@@ -5,15 +5,15 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-  Alert,
-  Dimensions,
-  Image,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    Dimensions,
+    Image,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -147,8 +147,8 @@ function FormInputField({
         placeholderTextColor={t.muted}
         multiline={multiline}
         keyboardType={keyboardType}
-        blurOnSubmit={true}
-        returnKeyType="done"
+        blurOnSubmit={false}
+        returnKeyType={multiline ? "default" : "next"}
         autoCorrect={false}
         autoCapitalize="sentences"
       />
@@ -635,12 +635,11 @@ export default function SellScreen() {
 
       <KeyboardAwareScrollView
         enableOnAndroid
-        extraScrollHeight={120}
+        extraScrollHeight={80}
         keyboardOpeningTime={0}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
         contentContainerStyle={{ paddingBottom: 50, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
-        enableAutomaticScroll={true}
       >
         {/* Type Selection */}
         <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>

@@ -227,18 +227,16 @@ export const useDeleteProduct = () => {
 };
 
 // Hook pour les favoris
-export type FavoritesResponse = {
-  productIds: string[];
-  products: Product[];
-};
-
 export const useFavorites = () => {
-  return useQuery<FavoritesResponse>({
+  const setFavoritesInStore = useProductsStore(state => state.toggleFavorite); // not used directly
+  const store = useProductsStore.getState();
+  return useQuery({
     queryKey: ['favorites'],
     queryFn: async () => {
-      const response = await api.get<FavoritesResponse>('/api/favorites');
+      const response = await api.get<{ productIds: string[] }>('/api/favorites');
+      // Sync Zustand store (replace instead of toggle)
       useProductsStore.setState({ favorites: response.productIds });
-      return response;
+      return response.productIds;
     },
     staleTime: 30_000,
   });
@@ -250,46 +248,38 @@ export const useToggleFavorite = () => {
 
   return useMutation({
     mutationFn: async (productId: string) => {
-      const response = await api.post<FavoritesResponse>(`/api/favorites/${productId}/toggle`);
-      return response;
+  await api.post(`/api/favorites/${productId}/toggle`);
     },
     onMutate: async (productId) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['favorites'] });
 
       // Snapshot previous value
-      const previousFavorites = queryClient.getQueryData<FavoritesResponse>(['favorites']);
+      const previousFavorites = queryClient.getQueryData<string[]>(['favorites']);
 
-      // Simple optimistic update for the IDs only (backend will send full products)
-      const isCurrentlyFavorite = previousFavorites?.productIds.includes(productId) ?? false;
-      const nextProductIds = isCurrentlyFavorite
-        ? previousFavorites?.productIds.filter((id) => id !== productId) ?? []
-        : [...(previousFavorites?.productIds ?? []), productId];
-
-      queryClient.setQueryData<FavoritesResponse>(['favorites'], {
-        productIds: nextProductIds,
-        products: previousFavorites?.products ?? [],
+      // Optimistically update
+      queryClient.setQueryData<string[]>(['favorites'], (old = []) => {
+        return old.includes(productId)
+          ? old.filter((id) => id !== productId)
+          : [...old, productId];
       });
-
       // Mirror optimistic update into Zustand store
-      useProductsStore.setState({ favorites: nextProductIds });
+      useProductsStore.setState((state) => ({
+        favorites: state.favorites.includes(productId)
+          ? state.favorites.filter(id => id !== productId)
+          : [...state.favorites, productId]
+      }));
 
       return { previousFavorites };
-    },
-    onSuccess: (data) => {
-      // Update with real data from backend (includes full product details)
-      queryClient.setQueryData<FavoritesResponse>(['favorites'], data);
-      useProductsStore.setState({ favorites: data.productIds });
     },
     onError: (err, productId, context) => {
       // Rollback on error
       if (context?.previousFavorites) {
         queryClient.setQueryData(['favorites'], context.previousFavorites);
-        useProductsStore.setState({ favorites: context.previousFavorites.productIds });
+        useProductsStore.setState({ favorites: context.previousFavorites });
       }
     },
     onSettled: () => {
-      // Refetch to ensure we have the latest data
       queryClient.invalidateQueries({ queryKey: ['favorites'] });
     },
   });

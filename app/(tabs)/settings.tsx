@@ -2,6 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import React, { useState } from "react";
 import {
+    ActivityIndicator,
     Alert,
     Image,
     Platform,
@@ -11,14 +12,13 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View,
-    ActivityIndicator
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../components/ThemeProvider";
 import { useUser } from "../../components/UserProvider";
-import { THEMES, ThemeKey } from "../../themes";
 import userService from "../../services/user";
+import { THEMES, ThemeKey } from "../../themes";
 
 export default function Settings() {
   const { theme, setTheme } = useTheme();
@@ -48,16 +48,15 @@ export default function Settings() {
 
     if (!result.canceled && user) {
       const avatarUri = result.assets[0].uri;
-      console.log('[Settings] Avatar selected:', avatarUri);
+  // Avatar sélectionné
       
       try {
-        // L'avatar est stocké uniquement en local (pas envoyé au backend pour l'instant)
-        // TODO: Implémenter l'upload d'images au backend
+  // L'avatar est stocké uniquement en local (upload backend à venir)
         await updateProfile({ 
           ...user,
           avatar: avatarUri 
         });
-        console.log('[Settings] Avatar saved locally');
+  // Avatar sauvegardé localement
         Alert.alert("Succès", "Photo de profil mise à jour");
       } catch (error: any) {
         console.error('[Settings] Error saving avatar:', error);
@@ -74,7 +73,7 @@ export default function Settings() {
     
     setIsSaving(true);
     try {
-      console.log('[Settings] Saving profile to backend');
+  // Sauvegarde du profil vers le backend
       
       // Essayer d'envoyer au backend, mais continuer même si ça échoue
       let backendSuccess = false;
@@ -82,16 +81,16 @@ export default function Settings() {
         const updatedUser = await userService.updateProfile({
           username: editUsername.trim(),
         });
-        console.log('[Settings] Profile saved to backend');
+  // Profil sauvegardé sur le backend
         backendSuccess = true;
         
-        // Mettre à jour avec les données du backend
+        // Fusionner les propriétés locales (avatar, teamName) avec celles du backend
         await updateProfile({
           id: updatedUser.id,
           email: updatedUser.email,
           username: updatedUser.username,
-          avatar: user?.avatar ?? null,
-          teamName: editTeamName.trim() || "Sans équipe",
+          avatar: user?.avatar ?? updatedUser.avatar ?? null,
+          teamName: editTeamName.trim() || user?.teamName || "Sans équipe",
           firstName: updatedUser.firstName,
           lastName: updatedUser.lastName,
           location: updatedUser.location,

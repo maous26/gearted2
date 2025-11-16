@@ -43,13 +43,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
-        console.log('[UserProvider] Loaded user profile:', {
-          username: parsedUser.username,
-          avatar: parsedUser.avatar ? 'YES' : 'NO',
-          teamName: parsedUser.teamName
-        });
+        // Profil chargé depuis le stockage local
       } else {
-        console.log('[UserProvider] No stored profile found');
+  // Aucun profil trouvé dans le stockage
       }
     } catch (error) {
       console.error('[UserProvider] Error loading user profile:', error);
@@ -61,11 +57,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const saveUserProfile = async (userProfile: UserProfile) => {
     try {
       await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userProfile));
-      console.log('[UserProvider] Saved user profile:', {
-        username: userProfile.username,
-        avatar: userProfile.avatar ? 'YES' : 'NO',
-        teamName: userProfile.teamName
-      });
+      // Profil sauvegardé dans le stockage local
     } catch (error) {
       console.error('[UserProvider] Error saving user profile:', error);
     }
@@ -73,12 +65,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
     let updatedUser: UserProfile;
-    
+    // Toujours préserver toutes les propriétés existantes
     if (user) {
-      updatedUser = { ...user, ...updates };
+      updatedUser = {
+        id: updates.id ?? user.id,
+        username: updates.username ?? user.username,
+        teamName: updates.teamName ?? user.teamName,
+        avatar: updates.avatar !== undefined ? updates.avatar : user.avatar,
+        email: updates.email ?? user.email,
+        firstName: updates.firstName !== undefined ? updates.firstName : user.firstName,
+        lastName: updates.lastName !== undefined ? updates.lastName : user.lastName,
+        location: updates.location !== undefined ? updates.location : user.location,
+        phone: updates.phone !== undefined ? updates.phone : user.phone,
+        bio: updates.bio !== undefined ? updates.bio : user.bio
+      };
       setUser(updatedUser);
     } else {
-      // Crée un profil de base si inexistant afin de permettre la première saisie
       updatedUser = {
         id: updates.id || 'local-' + Date.now().toString(),
         username: updates.username || 'NouvelUtilisateur',
@@ -93,7 +95,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
       };
       setUser(updatedUser);
     }
-    
     // Persist to AsyncStorage
     await saveUserProfile(updatedUser);
   };
@@ -109,10 +110,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
-        console.log('[UserProvider] Logout: profile reloaded from storage and kept in state');
+  // Profil rechargé après déconnexion
       } else {
         setUser(null);
-        console.log('[UserProvider] Logout: no stored profile found');
+  // Aucun profil trouvé après déconnexion
       }
     } catch (error) {
       console.error('[UserProvider] Error reloading profile after logout:', error);

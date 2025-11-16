@@ -16,7 +16,8 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.gearted"
     },
     "android": {
       "adaptiveIcon": {
@@ -24,9 +25,9 @@
         "backgroundColor": "#ffffff"
       }
     },
-    "web": { 
-      "bundler": "metro", 
-      "output": "static" 
+    "web": {
+      "bundler": "metro",
+      "output": "static"
     },
     "plugins": [],
     "experiments": {
