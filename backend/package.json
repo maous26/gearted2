@@ -4,7 +4,7 @@
   "description": "Gearted Airsoft Marketplace Backend API",
   "main": "dist/server.js",
   "scripts": {
-    "build": "prisma generate && tsc",
+    "build": "bash scripts/build.sh",
     "start": "node dist/server.js",
     "dev": "concurrently \"tsc -w\" \"nodemon dist/server.js\"",
     "dev:ts": "ts-node src/server.ts",
