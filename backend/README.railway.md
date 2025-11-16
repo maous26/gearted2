@@ -9,9 +9,12 @@ Railway MUST be configured to use `backend` as the Root Directory, otherwise it 
 1. Go to your Railway project dashboard
 2. Click on your service
 3. Go to **Settings** tab
-4. Find **"Root Directory"** or **"Service Settings"**
-5. Set **Root Directory** to: `backend`
-6. Click **Save**
+4. Scroll to **"Source"** or **"Build"** section
+5. Find **"Root Directory"** field
+6. Enter: `backend`
+7. Click **"Deploy"** to save and redeploy
+
+**Important**: After changing Root Directory, Railway will automatically redeploy with the correct configuration.
 
 ## Environment Variables Required
 
