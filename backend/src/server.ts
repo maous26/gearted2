@@ -43,6 +43,17 @@ const io = new Server(server, {
 // Trust proxy for accurate IP addresses in production
 app.set('trust proxy', 1);
 
+// Health check endpoint (BEFORE all middlewares to allow Railway healthchecks)
+// Railway uses hostname 'healthcheck.railway.app' which must not be blocked by CORS
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'production'
+  });
+});
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -113,16 +124,6 @@ if (process.env.NODE_ENV === 'development') {
 } else {
   app.use(morgan('combined'));
 }
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV
-  });
-});
 
 // API routes
 app.use('/api/auth', authRoutes);
