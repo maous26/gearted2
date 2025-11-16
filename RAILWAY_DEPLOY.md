@@ -226,4 +226,28 @@ Votre backend GEARTED est maintenant en production sur Railway ! 🚀
 
 **Besoin d'aide ?** Consultez la documentation Railway : https://docs.railway.app/
 
+---
+
+## 🔍 Smoke test de persistance
+
+Pour vérifier automatiquement que les données utilisateurs sont bien enregistrées dans PostgreSQL et ré-exploitées par l'API :
+
+1. Exportez l'URL de l'API (prod ou locale) et la même `DATABASE_URL` que Railway :
+   ```bash
+   export SMOKE_TEST_API_URL=https://empowering-truth-production.up.railway.app
+   export DATABASE_URL=postgresql://... # identique à Railway
+   ```
+2. Depuis le dossier `backend/`, lancez :
+   ```bash
+   npm run smoke:test
+   ```
+3. Le script va :
+   - créer deux utilisateurs via `/api/auth/register`
+   - confirmer leur présence en base (Prisma)
+   - ouvrir une conversation + envoyer un message via l'API
+   - lire les messages pour vérifier la persistance
+   - nettoyer les enregistrements temporaires (désactivez le nettoyage avec `SMOKE_TEST_CLEANUP=false`)
+
+En cas d'échec, la commande affiche la requête fautive et laisse les données pour analyse.
+
 
