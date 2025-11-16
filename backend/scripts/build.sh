@@ -3,9 +3,13 @@ set -e
 
 echo "🔧 Building backend..."
 
-# Provide a dummy DATABASE_URL for Prisma generate during build
-# The real DATABASE_URL will be used at runtime
-export DATABASE_URL="${DATABASE_URL:-postgresql://dummy:dummy@localhost:5432/dummy}"
+# Check if DATABASE_URL is set, if not use dummy for build only
+if [ -z "$DATABASE_URL" ]; then
+  echo "⚠️  DATABASE_URL not set, using dummy for Prisma generate (build only)"
+  export DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy?schema=public"
+else
+  echo "✅ DATABASE_URL detected from Railway PostgreSQL"
+fi
 
 echo "📦 Generating Prisma Client..."
 npx prisma generate
