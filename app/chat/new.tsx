@@ -1,46 +1,70 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import {
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../components/ThemeProvider";
+import { useUser } from "../../components/UserProvider";
+import api from "../../services/api";
 import { THEMES } from "../../themes";
 
 export default function NewChatScreen() {
   const { theme } = useTheme();
   const t = THEMES[theme];
+  const { user } = useUser();
   const params = useLocalSearchParams();
   
   // Récupération des paramètres du produit et vendeur
-  const sellerId = params.sellerId as string;
-  const sellerName = params.sellerName as string || "Vendeur";
-  const sellerAvatar = params.sellerAvatar as string;
-  const productId = params.productId as string;
-  const productTitle = params.productTitle as string;
+  const sellerId = params.sellerId as string | undefined;
+  const sellerName = (params.sellerName as string) || "Vendeur";
+  const sellerAvatar = params.sellerAvatar as string | undefined;
+  const productId = params.productId as string | undefined;
+  const productTitle = params.productTitle as string | undefined;
   
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!message.trim()) {
       Alert.alert("Erreur", "Veuillez écrire un message");
       return;
     }
 
+    if (!user?.id) {
+      Alert.alert("Connexion requise", "Vous devez être connecté pour envoyer un message.");
+      return;
+    }
+
     setSending(true);
     
-    // Simulation d'envoi de message
-    setTimeout(() => {
-      setSending(false);
+    try {
+      // 1) Créer (ou ouvrir) une conversation côté backend
+      const conversation = await api.post<any>("/api/messages/conversations", {
+        participantIds: [user.id], // pour l'instant, on enregistre seulement l'utilisateur courant
+      });
+
+      const conversationId = conversation?.id;
+      if (!conversationId) {
+        throw new Error("Conversation non créée");
+      }
+
+      // 2) Envoyer le premier message
+      await api.post<any>(`/api/messages/conversations/${conversationId}/messages`, {
+        senderId: user.id,
+        content: message.trim(),
+      });
+
+      setMessage("");
+
       Alert.alert(
         "Message envoyé ✓",
         "Votre message a été envoyé au vendeur !",
@@ -48,20 +72,27 @@ export default function NewChatScreen() {
           {
             text: "Voir la conversation",
             onPress: () => {
-              // Redirection vers la conversation avec ce vendeur
               router.replace({
                 pathname: "/chat/[id]",
                 params: { 
-                  id: sellerId || "1",
-                  sellerName: sellerName,
-                  sellerAvatar: sellerAvatar
+                  id: conversationId,
+                  sellerName,
+                  sellerAvatar
                 }
               });
             }
           }
         ]
       );
-    }, 1000);
+    } catch (err) {
+      console.error("[chat] Failed to send first message", err);
+      Alert.alert(
+        "Erreur",
+        "Impossible d'envoyer le message pour le moment. Veuillez réessayer plus tard."
+      );
+    } finally {
+      setSending(false);
+    }
   };
 
   return (

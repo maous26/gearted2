@@ -14,6 +14,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../components/ThemeProvider";
+import { useUser } from "../../components/UserProvider";
+import api from "../../services/api";
 import { THEMES } from "../../themes";
 import { filterMessageContent, getBlockedContentWarning } from "../../utils/contentFilter";
 
@@ -25,66 +27,49 @@ interface Message {
   isMine: boolean;
 }
 
-// Mock data pour une conversation
-const MOCK_MESSAGES: Message[] = [
-  {
-    id: "1",
-    text: "Bonjour, est-ce que cet article est toujours disponible ?",
-    senderId: "me",
-    timestamp: new Date(Date.now() - 3600000),
-    isMine: true
-  },
-  {
-    id: "2",
-    text: "Oui, elle est toujours disponible ! Vous êtes intéressé ?",
-    senderId: "other",
-    timestamp: new Date(Date.now() - 3000000),
-    isMine: false
-  },
-  {
-    id: "3",
-    text: "Oui tout à fait ! Quel est le mode de livraison ?",
-    senderId: "me",
-    timestamp: new Date(Date.now() - 2400000),
-    isMine: true
-  },
-  {
-    id: "4",
-    text: "Je peux vous l'envoyer en Colissimo ou remise en main propre sur Paris",
-    senderId: "other",
-    timestamp: new Date(Date.now() - 1800000),
-    isMine: false
-  }
-];
-
-const MOCK_OTHER_USER = {
-  name: "AirsoftPro92",
-  avatar: "https://via.placeholder.com/40/4B5D3A/FFFFFF?text=AP",
-  rating: 4.8
-};
-
 export default function ChatScreen() {
   const { theme } = useTheme();
   const t = THEMES[theme];
   const params = useLocalSearchParams();
+  const { user } = useUser();
   
-  const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
-  // Récupération des infos du vendeur depuis les params
-  const sellerName = (params.sellerName as string) || MOCK_OTHER_USER.name;
-  const sellerAvatar = (params.sellerAvatar as string) || MOCK_OTHER_USER.avatar;
+  const conversationId = params.id as string;
+
+  // Récupération des infos du vendeur depuis les params (facultatif)
+  const sellerName = (params.sellerName as string) || "Vendeur";
+  const sellerAvatar = (params.sellerAvatar as string) || "https://via.placeholder.com/40/4B5D3A/FFFFFF?text=U";
 
   useEffect(() => {
-    // Auto-scroll vers le bas lors du chargement
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: false });
-    }, 100);
-  }, []);
+    if (!conversationId || !user?.id) return;
 
-  const sendMessage = () => {
+    const fetchMessages = async () => {
+      try {
+        const data = await api.get<any[]>(`/api/messages/conversations/${conversationId}/messages`);
+        const mapped: Message[] = (data || []).map((m) => ({
+          id: m.id,
+          text: m.content,
+          senderId: m.senderId,
+          timestamp: new Date(m.sentAt),
+          isMine: m.senderId === user.id,
+        }));
+        setMessages(mapped);
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: false });
+        }, 100);
+      } catch (error) {
+        console.error("[chat] Failed to load messages", error);
+      }
+    };
+
+    fetchMessages();
+  }, [conversationId, user?.id]);
+
+  const sendMessage = async () => {
     if (inputText.trim() === "") return;
     if (sending) return;
 
@@ -105,39 +90,39 @@ export default function ChatScreen() {
       return;
     }
 
+    if (!user?.id) {
+      Alert.alert("Connexion requise", "Vous devez être connecté pour envoyer un message.");
+      return;
+    }
+
     setSending(true);
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      text: inputText,
-      senderId: "me",
-      timestamp: new Date(),
-      isMine: true
-    };
+    try {
+      const response = await api.post<any>(`/api/messages/conversations/${conversationId}/messages`, {
+        senderId: user.id,
+        content: inputText.trim(),
+      });
 
-    setMessages(prev => [...prev, newMessage]);
-    setInputText("");
-
-    // Auto-scroll après envoi
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-      setSending(false);
-    }, 100);
-
-    // Simulation d'une réponse après 2 secondes
-    setTimeout(() => {
-      const responseMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: "Merci pour votre message ! Je vous réponds dans quelques instants.",
-        senderId: "other",
-        timestamp: new Date(),
-        isMine: false
+      const newMessage: Message = {
+        id: response.id || Date.now().toString(),
+        text: response.content || inputText.trim(),
+        senderId: response.senderId || user.id,
+        timestamp: new Date(response.sentAt || new Date()),
+        isMine: true,
       };
-      setMessages(prev => [...prev, responseMessage]);
+
+      setMessages((prev) => [...prev, newMessage]);
+      setInputText("");
+
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
-    }, 2000);
+    } catch (error) {
+      console.error("[chat] Failed to send message", error);
+      Alert.alert("Erreur", "Impossible d'envoyer le message. Veuillez réessayer plus tard.");
+    } finally {
+      setSending(false);
+    }
   };
 
   const formatTime = (date: Date) => {
@@ -232,9 +217,7 @@ export default function ChatScreen() {
           <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
             {sellerName}
           </Text>
-          <Text style={{ fontSize: 12, color: t.muted }}>
-            ⭐ {MOCK_OTHER_USER.rating} · En ligne
-          </Text>
+          <Text style={{ fontSize: 12, color: t.muted }}>En ligne</Text>
         </View>
 
         <TouchableOpacity style={{ padding: 8 }}>
