@@ -34,9 +34,7 @@ function logStep(title: string) {
 }
 
 function randomString(label: string) {
-  return `${label}${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .slice(0, 24);
+  return `${label}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 }
 
 async function registerUser(label: string): Promise<RegisteredUser> {
