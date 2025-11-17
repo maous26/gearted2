@@ -1,8 +1,10 @@
 import { Router } from 'express';
+import { PrismaClient, ProductCondition, ListingType } from '@prisma/client';
 
 const router = Router();
+const prisma = new PrismaClient();
 
-// Base mock product data
+// Base mock product data (fixtures pour remplir la grille si la base est vide)
 const BASE_PRODUCTS = [
   {
     id: "1",
@@ -122,74 +124,164 @@ const extraProducts = Array.from({ length: 40 }).map((_, i) => {
 
 let MOCK_PRODUCTS = [...BASE_PRODUCTS, ...extraProducts];
 
-// Track the next ID to assign (starts after the highest existing ID)
-let nextProductId = Math.max(...MOCK_PRODUCTS.map(p => parseInt(p.id) || 0)) + 1;
-
 // Track category views/searches for popularity
 const categorySearchCounts: Record<string, number> = {};
 
-router.get('/', (req, res) => {
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 20;
-  const search = req.query.search as string;
-  const category = req.query.category as string;
-  const sortBy = (req.query.sortBy as string) as
-    | 'recent'
-    | 'price_low'
-    | 'price_high'
-    | 'rating'
-    | undefined;
-  
-  let products = [...MOCK_PRODUCTS];
-  
-  // Filter by search
-  if (search) {
-    products = products.filter(p => 
-      p.title.toLowerCase().includes(search.toLowerCase()) ||
-      p.category.toLowerCase().includes(search.toLowerCase())
-    );
-  }
-  
-  // Filter by category and track category views
-  if (category) {
-    products = products.filter(p => p.category === category);
-    // Increment search count for this category
-    categorySearchCounts[category] = (categorySearchCounts[category] || 0) + 1;
-  }
-  
-  // Sorting
-  if (sortBy === 'recent') {
-    products.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  } else if (sortBy === 'price_low') {
-    products.sort((a, b) => a.price - b.price);
-  } else if (sortBy === 'price_high') {
-    products.sort((a, b) => b.price - a.price);
-  } else if (sortBy === 'rating') {
-    products.sort((a, b) => b.rating - a.rating);
-  }
+// Mapping entre labels UI et enums Prisma
+const CONDITION_LABEL_FROM_ENUM: Record<ProductCondition, string> = {
+  NEW: 'Neuf',
+  LIKE_NEW: 'Excellent',
+  GOOD: 'Très bon',
+  FAIR: 'Bon',
+  POOR: 'Correct',
+  FOR_PARTS: 'Pièces',
+};
 
-  // Pagination
-  const startIndex = (page - 1) * limit;
-  const endIndex = startIndex + limit;
-  const paginatedProducts = products.slice(startIndex, endIndex);
-  
-  res.json({
-    products: paginatedProducts,
-    total: products.length,
-    page,
-    limit,
-    hasMore: endIndex < products.length
-  });
+const CONDITION_ENUM_FROM_LABEL: Record<string, ProductCondition> = {
+  Neuf: ProductCondition.NEW,
+  Excellent: ProductCondition.LIKE_NEW,
+  'Très bon': ProductCondition.GOOD,
+  Bon: ProductCondition.FAIR,
+  Correct: ProductCondition.POOR,
+  Pièces: ProductCondition.FOR_PARTS,
+};
+
+function mapConditionLabelToEnum(label: string | undefined): ProductCondition {
+  if (!label) return ProductCondition.GOOD;
+  return CONDITION_ENUM_FROM_LABEL[label] ?? ProductCondition.GOOD;
+}
+
+function mapConditionEnumToLabel(condition: ProductCondition): string {
+  return CONDITION_LABEL_FROM_ENUM[condition] ?? 'Bon';
+}
+
+function mapDbProductToListingShape(p: any) {
+  const imageUrls = Array.isArray(p.images) ? p.images.map((img: any) => img.url) : [];
+  const firstImage =
+    imageUrls[0] ||
+    `https://via.placeholder.com/400x300/4B5D3A/FFFFFF?text=${encodeURIComponent(
+      p.title,
+    )}`;
+
+  return {
+    id: p.id,
+    title: p.title,
+    description: p.description,
+    price: Number(p.price ?? 0),
+    condition: mapConditionEnumToLabel(p.condition),
+    location: p.location || 'Paris, 75001',
+    seller: p.seller?.username || p.seller?.email || 'Vendeur',
+    sellerId: p.sellerId,
+    rating: 4.7, // TODO: brancher sur reviews quand dispo
+    images: imageUrls.length ? imageUrls : [firstImage],
+    category: p.category?.slug || 'autre',
+    featured: false,
+    createdAt: p.createdAt?.toISOString?.() ?? new Date().toISOString(),
+  };
+}
+
+router.get('/', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const search = req.query.search as string;
+    const category = req.query.category as string;
+    const sortBy = (req.query.sortBy as string) as
+      | 'recent'
+      | 'price_low'
+      | 'price_high'
+      | 'rating'
+      | undefined;
+
+    // 1) Récupérer les produits persistés en base
+    const dbProductsRaw = await prisma.product.findMany({
+      include: {
+        images: true,
+        category: true,
+        seller: true,
+      },
+    });
+    const dbProducts = dbProductsRaw.map(mapDbProductToListingShape);
+
+    // 2) Fusionner avec les mocks pour conserver le catalogue de démo
+    let products = [...dbProducts, ...MOCK_PRODUCTS];
+
+    // 3) Filtre texte
+    if (search) {
+      const q = search.toLowerCase();
+      products = products.filter(
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          (p.category || '').toLowerCase().includes(q),
+      );
+    }
+
+    // 4) Filtre catégorie + suivi de popularité
+    if (category) {
+      products = products.filter((p) => p.category === category);
+      categorySearchCounts[category] = (categorySearchCounts[category] || 0) + 1;
+    }
+
+    // 5) Tri
+    if (sortBy === 'recent') {
+      products.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+    } else if (sortBy === 'price_low') {
+      products.sort((a, b) => a.price - b.price);
+    } else if (sortBy === 'price_high') {
+      products.sort((a, b) => b.price - a.price);
+    } else if (sortBy === 'rating') {
+      products.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    }
+
+    // 6) Pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedProducts = products.slice(startIndex, endIndex);
+
+    res.json({
+      products: paginatedProducts,
+      total: products.length,
+      page,
+      limit,
+      hasMore: endIndex < products.length,
+    });
+  } catch (error) {
+    console.error('[products] Failed to list products', error);
+    res.status(500).json({ error: 'Failed to list products' });
+  }
 });
 
-// Get product by id
-router.get('/:id', (req, res) => {
+// Get product by id (DB d'abord, mocks en fallback)
+router.get('/:id', async (req, res) => {
   const { id } = req.params;
-  const product = MOCK_PRODUCTS.find((p) => p.id === id);
-  if (!product) {
-    return res.status(404).json({ error: 'Product not found' });
+
+  try {
+    const dbProduct = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        images: true,
+        category: true,
+        seller: true,
+      },
+    });
+
+    if (dbProduct) {
+      return res.json(mapDbProductToListingShape(dbProduct));
+    }
+
+    const mockProduct = MOCK_PRODUCTS.find((p) => p.id === id);
+    if (!mockProduct) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    return res.json(mockProduct);
+  } catch (error) {
+    console.error('[products] Failed to get product by id', error);
+    return res.status(500).json({ error: 'Failed to get product' });
   }
-  return res.json(product);
 });
 
 // Get category statistics (product count per category)
@@ -222,8 +314,8 @@ router.get('/stats/categories', (req, res) => {
   res.json({ categories: sortedCategories });
 });
 
-// Create product (temporary in‑memory implementation)
-router.post('/', (req, res) => {
+// Create product (persisté dans PostgreSQL + disponible pour le frontend)
+router.post('/', async (req, res) => {
   try {
     const {
       title,
@@ -237,44 +329,113 @@ router.post('/', (req, res) => {
       tradeFor,
       handDelivery,
       seller: bodySeller,
-      sellerId: bodySellerId
+      sellerId: bodySellerId,
     } = req.body;
 
     if (!title || !description || !condition || !category) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // TEMP auth: derive seller from header if present
-  const authUser = req.headers['x-user'] as string | undefined; // e.g., username
-  const seller = bodySeller || authUser || 'demoUser';
-  const sellerId = bodySellerId || (authUser ? `user-${authUser}` : 'demo-1');
+    if (!bodySellerId) {
+      return res.status(401).json({ error: 'sellerId is required' });
+    }
 
-    // Use sequential ID instead of random
-    const newId = (nextProductId++).toString();
-    const numericPrice = price ? Number(price) : 0;
-    const product = {
-      id: newId,
-      title,
-      description,
-      price: numericPrice,
-      condition,
-      category,
-      location: location || 'Paris, 75001',
-      seller,
-      sellerId,
-      rating: 5.0,
-      images: images.length ? images : [
-        `https://via.placeholder.com/400x300/4B5D3A/FFFFFF?text=${encodeURIComponent(title)}`
-      ],
-      featured: false,
-      createdAt: new Date().toISOString(),
-      listingType: listingType || 'SALE',
-      tradeFor: (listingType === 'TRADE' || listingType === 'BOTH') ? tradeFor : undefined,
-      handDelivery: Boolean(handDelivery)
-    };
-    MOCK_PRODUCTS.unshift(product);
-    return res.status(201).json(product);
+    // Résoudre / créer la catégorie
+    const categoryRecord = await prisma.category.upsert({
+      where: { slug: category },
+      update: {},
+      create: {
+        slug: category,
+        name: category,
+      },
+    });
+
+    // ListingType & condition
+    const resolvedCondition = mapConditionLabelToEnum(condition);
+    const allowedListingTypes: ListingType[] = [
+      ListingType.SALE,
+      ListingType.TRADE,
+      ListingType.BOTH,
+    ];
+    const resolvedListingType =
+      allowedListingTypes.find((t) => t === listingType) ?? ListingType.SALE;
+
+    const numericPrice =
+      typeof price === 'number'
+        ? price
+        : price
+        ? Number(price)
+        : 0;
+
+    // Slug produit simple et unique
+    const baseSlug = title
+      .toLowerCase()
+      .replace(/[^\w]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    const slug = `${baseSlug}-${Date.now().toString(36)}`;
+
+    const product = await prisma.product.create({
+      data: {
+        title,
+        description,
+        slug,
+        categoryId: categoryRecord.id,
+        sellerId: bodySellerId,
+        condition: resolvedCondition,
+        price: numericPrice,
+        currency: 'EUR',
+        listingType: resolvedListingType,
+        tradeFor:
+          resolvedListingType === ListingType.TRADE ||
+          resolvedListingType === ListingType.BOTH
+            ? tradeFor
+            : undefined,
+        status: 'ACTIVE',
+        isActive: true,
+        location: location || 'Paris, 75001',
+        shippingIncluded: false,
+        shippingCost: null,
+      },
+      include: {
+        images: true,
+        category: true,
+        seller: true,
+      },
+    });
+
+    if (images.length) {
+      await prisma.productImage.createMany({
+        data: images.map((url: string, index: number) => ({
+          productId: product.id,
+          url,
+          sortOrder: index,
+          isPrimary: index === 0,
+        })),
+      });
+    }
+
+    // Recharger avec images fraîchement créées
+    const productWithImages = await prisma.product.findUnique({
+      where: { id: product.id },
+      include: {
+        images: true,
+        category: true,
+        seller: true,
+      },
+    });
+
+    if (!productWithImages) {
+      return res.status(500).json({ error: 'Failed to hydrate product after creation' });
+    }
+
+    const mapped = mapDbProductToListingShape(productWithImages);
+
+    // Optionnel : rajouter dans le tableau mock pour les stats / fallback
+    MOCK_PRODUCTS.unshift(mapped as any);
+
+    return res.status(201).json(mapped);
   } catch (e) {
+    console.error('[products] Failed to create product', e);
     return res.status(500).json({ error: 'Failed to create product' });
   }
 });
