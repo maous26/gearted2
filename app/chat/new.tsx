@@ -29,17 +29,21 @@ export default function NewChatScreen() {
   const sellerAvatar = params.sellerAvatar as string | undefined;
   const productId = params.productId as string | undefined;
   const productTitle = params.productTitle as string | undefined;
-  const offerType = (params.offerType as string) || undefined; // 'trade' | 'buy' | undefined
+  const offerType = (params.offerType as string) || undefined; // 'trade' ou undefined
   
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
 
   // Préremplir le message selon le type d'offre
   React.useEffect(() => {
-    if (offerType === 'trade' && productTitle) {
-      setMessage(`Bonjour, je suis intéressé(e) pour échanger "${productTitle}". Pouvons-nous discuter ?`);
-    } else if (offerType === 'buy' && productTitle) {
-      setMessage(`Bonjour, je suis intéressé(e) par "${productTitle}". Est-il toujours disponible ?`);
+    if (productTitle) {
+      if (offerType === 'trade') {
+        setMessage(`Bonjour, je suis intéressé(e) pour échanger "${productTitle}". Que proposez-vous ?`);
+      } else if (offerType === 'both') {
+        setMessage(`Bonjour, je suis intéressé(e) par "${productTitle}". Pouvons-nous discuter ?`);
+      } else if (offerType === 'sale') {
+        setMessage(`Bonjour, je suis intéressé(e) par l'achat de "${productTitle}". Est-il toujours disponible ?`);
+      }
     }
   }, [offerType, productTitle]);
 

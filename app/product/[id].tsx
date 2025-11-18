@@ -103,25 +103,9 @@ export default function ProductDetailScreen() {
                   </View>
                 )}
               </View>
-              <Text style={{ fontSize: 32, fontWeight: 'bold', color: t.primaryBtn, marginBottom: 8 }}>
-                {product.listingType === 'TRADE' ? 'Échange' : `${Number(product.price).toFixed(2)} €`}
+              <Text style={{ fontSize: 32, fontWeight: 'bold', color: t.primaryBtn, marginBottom: 16 }}>
+                {product.listingType === 'TRADE' ? 'Échange uniquement' : `${Number(product.price).toFixed(2)} €`}
               </Text>
-
-              {/* Status chips (condition + remise en main propre) */}
-              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
-                <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: '#166534' }}>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: 'white' }}>
-                    {product.condition}
-                  </Text>
-                </View>
-                {product.handDelivery && (
-                  <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: '#374151' }}>
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: 'white' }}>
-                      Remise en main propre
-                    </Text>
-                  </View>
-                )}
-              </View>
               
               {/* Show tradeFor section if available */}
               {product.tradeFor && (
@@ -200,54 +184,8 @@ export default function ProductDetailScreen() {
         )}
       </ScrollView>
 
-      {/* Bottom Actions - structure inspirée de la maquette (Faire une offre / Contacter) */}
+      {/* Bottom Actions */}
       <View style={{ backgroundColor: t.navBg, borderTopWidth: 1, borderTopColor: t.border, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', gap: 12 }}>
-        {/* Faire une offre */}
-        <TouchableOpacity 
-          style={{ 
-            flex: 1, 
-            backgroundColor: '#14532d', 
-            borderRadius: 12, 
-            paddingVertical: 14, 
-            alignItems: 'center',
-          }} 
-          onPress={() => {
-            if (product?.listingType === 'BOTH') {
-              // L'utilisateur choisit achat ou échange dans le modal
-              setShowOfferTypeModal(true);
-            } else if (product?.listingType === 'TRADE') {
-              // Offre d'échange directe
-              router.push({
-                pathname: '/chat/new',
-                params: {
-                  sellerId: product?.sellerId || product?.id,
-                  sellerName: product?.seller,
-                  sellerAvatar: `https://via.placeholder.com/50/4B5D3A/FFFFFF?text=${product?.seller?.charAt(0) || 'U'}`,
-                  productId: product?.id,
-                  productTitle: product?.title,
-                  offerType: 'trade',
-                }
-              });
-            } else {
-              // Offre pour une vente (pour l’instant via chat aussi)
-              router.push({
-                pathname: '/chat/new',
-                params: {
-                  sellerId: product?.sellerId || product?.id,
-                  sellerName: product?.seller,
-                  sellerAvatar: `https://via.placeholder.com/50/4B5D3A/FFFFFF?text=${product?.seller?.charAt(0) || 'U'}`,
-                  productId: product?.id,
-                  productTitle: product?.title,
-                  offerType: 'buy',
-                }
-              });
-            }
-          }}
-        >
-          <Text style={{ fontSize: 16, fontWeight: '600', color: t.white }}>Faire une offre</Text>
-        </TouchableOpacity>
-
-        {/* Contacter */}
         <TouchableOpacity 
           style={{ 
             flex: 1, 
@@ -259,6 +197,8 @@ export default function ProductDetailScreen() {
             borderColor: t.border 
           }} 
           onPress={() => {
+            // Ouvre le chat avec message pré-rempli selon le type d'annonce
+            const offerType = product?.listingType === 'TRADE' ? 'trade' : product?.listingType === 'BOTH' ? 'both' : 'sale';
             router.push({
               pathname: '/chat/new',
               params: {
@@ -267,12 +207,33 @@ export default function ProductDetailScreen() {
                 sellerAvatar: `https://via.placeholder.com/50/4B5D3A/FFFFFF?text=${product?.seller?.charAt(0) || 'U'}`,
                 productId: product?.id,
                 productTitle: product?.title,
+                offerType
               }
             });
           }}
         >
-          <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>Contacter</Text>
+          <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>💬 Message</Text>
         </TouchableOpacity>
+        {product?.listingType !== 'TRADE' && (
+          <TouchableOpacity
+            style={{ flex: 2, backgroundColor: t.primaryBtn, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
+            onPress={() => {
+              if (product?.listingType === 'BOTH') {
+                // L'utilisateur choisira entre achat ou échange dans le modal
+                setShowOfferTypeModal(true);
+              } else {
+                // Vente classique (paiement géré en dehors pour l'instant)
+                setHasPurchased(true);
+              }
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: '600', color: t.white }}>
+              {product?.listingType === 'BOTH'
+                ? 'Acheter ou échanger'
+                : 'Acheter maintenant'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <OfferTypeModal
