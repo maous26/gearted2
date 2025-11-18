@@ -430,9 +430,8 @@ router.post('/', async (req, res) => {
 
     const mapped = mapDbProductToListingShape(productWithImages);
 
-    // Optionnel : rajouter dans le tableau mock pour les stats / fallback
-    MOCK_PRODUCTS.unshift(mapped as any);
-
+    // On ne touche pas à MOCK_PRODUCTS ici pour éviter les doublons :
+    // les produits persistés viennent déjà de la base dans GET /api/products.
     return res.status(201).json(mapped);
   } catch (e) {
     console.error('[products] Failed to create product', e);
