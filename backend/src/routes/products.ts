@@ -1,5 +1,7 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { PrismaClient, ProductCondition, ListingType } from '@prisma/client';
+import { authenticate, optionalAuth } from '../middleware/auth';
+import { sanitizeFields } from '../middleware/sanitize';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -337,8 +339,16 @@ router.get('/stats/categories', (req, res) => {
 });
 
 // Create product (persisté dans PostgreSQL + disponible pour le frontend)
-router.post('/', async (req, res) => {
+router.post(
+  '/',
+  authenticate,
+  sanitizeFields('title', 'description', 'location', 'tradeFor'),
+  async (req: Request, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
     const {
       title,
       description,
@@ -350,17 +360,14 @@ router.post('/', async (req, res) => {
       listingType,
       tradeFor,
       handDelivery,
-      seller: bodySeller,
-      sellerId: bodySellerId,
     } = req.body;
 
     if (!title || !description || !condition || !category) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    if (!bodySellerId) {
-      return res.status(401).json({ error: 'sellerId is required' });
-    }
+    // Use authenticated user's ID as sellerId
+    const sellerId = req.user.userId;
 
     // Résoudre / créer la catégorie
     const categoryRecord = await prisma.category.upsert({
@@ -402,7 +409,7 @@ router.post('/', async (req, res) => {
         description,
         slug,
         categoryId: categoryRecord.id,
-        sellerId: bodySellerId,
+        sellerId,
         condition: resolvedCondition,
         price: numericPrice,
         currency: 'EUR',

@@ -1,12 +1,21 @@
 import { PrismaClient } from '@prisma/client';
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
+import { authenticate } from '../middleware/auth';
+import { sanitizeFields } from '../middleware/sanitize';
 
 const router = Router();
 const prisma = new PrismaClient();
 
-// Get all conversations for a user
-router.get('/conversations/:userId', async (req, res) => {
-  const { userId } = req.params;
+// Apply authentication to all routes
+router.use(authenticate);
+
+// Get all conversations for the authenticated user
+router.get('/conversations', async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const userId = req.user.userId;
   try {
     const conversations = await prisma.conversation.findMany({
       where: {
@@ -29,11 +38,20 @@ router.get('/conversations/:userId', async (req, res) => {
 });
 
 // Create a new conversation
-router.post('/conversations', async (req, res) => {
+router.post('/conversations', async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const { participantIds } = req.body as { participantIds?: string[] }; // [userId1, userId2]
 
   if (!participantIds || !Array.isArray(participantIds) || participantIds.length === 0) {
     return res.status(400).json({ error: 'participantIds array is required' });
+  }
+
+  // Ensure authenticated user is in participants
+  if (!participantIds.includes(req.user.userId)) {
+    participantIds.push(req.user.userId);
   }
 
   try {
@@ -66,36 +84,81 @@ router.post('/conversations', async (req, res) => {
 });
 
 // Get all messages in a conversation
-router.get('/conversations/:conversationId/messages', async (req, res) => {
+router.get('/conversations/:conversationId/messages', async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const { conversationId } = req.params;
+
   try {
+    // Verify user is participant in this conversation
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        participants: {
+          some: { id: req.user.userId }
+        }
+      }
+    });
+
+    if (!conversation) {
+      return res.status(403).json({ error: 'Access denied to this conversation' });
+    }
+
     const messages = await prisma.message.findMany({
       where: { conversationId },
       orderBy: { sentAt: 'asc' },
       include: { sender: true }
     });
-    res.json(messages);
+    return res.json(messages);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch messages' });
+    return res.status(500).json({ error: 'Failed to fetch messages' });
   }
 });
 
 // Send a message in a conversation
-router.post('/conversations/:conversationId/messages', async (req, res) => {
+router.post(
+  '/conversations/:conversationId/messages',
+  sanitizeFields('content'),
+  async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const { conversationId } = req.params;
-  const { senderId, content } = req.body;
+  const { content } = req.body;
+
+  if (!content || !content.trim()) {
+    return res.status(400).json({ error: 'Message content is required' });
+  }
+
   try {
+    // Verify user is participant in this conversation
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        participants: {
+          some: { id: req.user.userId }
+        }
+      }
+    });
+
+    if (!conversation) {
+      return res.status(403).json({ error: 'Access denied to this conversation' });
+    }
+
     const message = await prisma.message.create({
       data: {
         conversationId,
-        senderId,
-        content
+        senderId: req.user.userId,
+        content: content.trim()
       },
       include: { sender: true }
     });
-    res.json(message);
+    return res.json(message);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to send message' });
+    return res.status(500).json({ error: 'Failed to send message' });
   }
 });
 

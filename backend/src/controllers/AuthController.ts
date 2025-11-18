@@ -262,40 +262,43 @@ export class AuthController {
         return;
       }
 
-      // TODO: Find user and verify refresh token
-      // const user = await prisma.user.findUnique({
-      //   where: { id: payload.userId }
-      // });
+      // Find user and verify refresh token
+      const user = await prisma.user.findUnique({
+        where: { id: payload.userId }
+      });
 
-      // if (!user || user.refreshToken !== refreshToken) {
-      //   res.status(401).json({
-      //     success: false,
-      //     error: {
-      //       message: 'Invalid refresh token'
-      //     }
-      //   });
-      //   return;
-      // }
+      if (!user || !user.isActive) {
+        res.status(401).json({
+          success: false,
+          error: {
+            message: 'User not found or inactive'
+          }
+        });
+        return;
+      }
 
-      // Mock user for now
-      const mockUser = {
-        id: payload.userId,
-        email: 'test@gearted.com',
-        role: 'USER'
-      };
+      if (user.refreshToken !== refreshToken) {
+        res.status(401).json({
+          success: false,
+          error: {
+            message: 'Invalid refresh token'
+          }
+        });
+        return;
+      }
 
       // Generate new tokens
       const tokens = AuthService.generateTokens({
-        userId: mockUser.id,
-        email: mockUser.email,
-        role: mockUser.role
+        userId: user.id,
+        email: user.email,
+        role: user.role
       });
 
-      // TODO: Update refresh token in database
-      // await prisma.user.update({
-      //   where: { id: user.id },
-      //   data: { refreshToken: tokens.refreshToken }
-      // });
+      // Update refresh token in database
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { refreshToken: tokens.refreshToken }
+      });
 
       res.json({
         success: true,
