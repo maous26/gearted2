@@ -20,16 +20,17 @@ router.get('/items', async (req, res): Promise<any> => {
 
     // Search in weapon models (armes)
     // Recherche par: nom, modèle, référence, marque/constructeur
+    // Note: SQLite doesn't support case-insensitive mode, but LIKE is case-insensitive by default
     const weapons = await prisma.weaponModel.findMany({
       where: {
         AND: [
           { isActive: true },
           {
             OR: [
-              { name: { contains: searchTerm, mode: 'insensitive' } },
-              { model: { contains: searchTerm, mode: 'insensitive' } },
-              { version: { contains: searchTerm, mode: 'insensitive' } },
-              { manufacturer: { name: { contains: searchTerm, mode: 'insensitive' } } },
+              { name: { contains: searchTerm } },
+              { model: { contains: searchTerm } },
+              { version: { contains: searchTerm } },
+              { manufacturer: { name: { contains: searchTerm } } },
             ],
           },
         ],
@@ -48,8 +49,8 @@ router.get('/items', async (req, res): Promise<any> => {
           { isActive: true },
           {
             OR: [
-              { name: { contains: searchTerm, mode: 'insensitive' } },
-              { manufacturer: { contains: searchTerm, mode: 'insensitive' } },
+              { name: { contains: searchTerm } },
+              { manufacturer: { contains: searchTerm } },
             ],
           },
         ],
