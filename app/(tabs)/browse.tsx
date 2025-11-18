@@ -169,29 +169,31 @@ export default function BrowseScreen() {
           }}>
             {product.title}
           </Text>
-          {/* Listing Type Badge */}
-          {product.listingType && product.listingType !== 'SALE' && (
+        </View>
+
+        {/* Listing Type Badge - Au-dessus du prix */}
+        {product.listingType && product.listingType !== 'SALE' && (
+          <View style={{ alignSelf: 'flex-start', marginBottom: 6 }}>
             <View style={{
               paddingHorizontal: 8,
-              paddingVertical: 3,
+              paddingVertical: 4,
               backgroundColor: product.listingType === 'TRADE' ? '#FF6B35' : '#4ECDC4',
-              borderRadius: 4,
-              marginLeft: 6
+              borderRadius: 12,
             }}>
-              <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#FFF' }}>
-                {product.listingType === 'TRADE' ? 'ÉCHANGE' : 'VENTE/ÉCHANGE'}
+              <Text style={{ fontSize: 10, fontWeight: '700', color: '#FFF', letterSpacing: 0.3 }}>
+                {product.listingType === 'TRADE' ? '🔄 ÉCHANGE' : '💰 VENTE/ÉCHANGE'}
               </Text>
             </View>
-          )}
-        </View>
-        
+          </View>
+        )}
+
         <Text style={{
           fontSize: 20,
           fontWeight: 'bold',
           color: t.primaryBtn,
           marginBottom: 4
         }}>
-          {product.listingType === 'TRADE' ? 'Échange' : `${product.price.toFixed(2)} €`}
+          {product.listingType === 'TRADE' ? '—' : `${product.price.toFixed(2)} €`}
         </Text>
 
         {/* Show tradeFor if available */}

@@ -245,27 +245,28 @@ export default function AuthenticatedHome() {
                       >
                         {product.title}
                       </Text>
-                      {product.listingType && product.listingType !== 'SALE' && (
+                    </View>
+                    {product.listingType && product.listingType !== 'SALE' && (
+                      <View style={{ alignSelf: 'flex-start', marginVertical: 6 }}>
                         <View style={{
-                          paddingHorizontal: 6,
-                          paddingVertical: 2,
+                          paddingHorizontal: 8,
+                          paddingVertical: 3,
                           backgroundColor: product.listingType === 'TRADE' ? '#FF6B35' : '#4ECDC4',
-                          borderRadius: 4,
-                          marginLeft: 6
+                          borderRadius: 10,
                         }}>
-                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF' }}>
-                            {product.listingType === 'TRADE' ? 'ÉCHANGE' : 'V/E'}
+                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF', letterSpacing: 0.3 }}>
+                            {product.listingType === 'TRADE' ? '🔄 ÉCHANGE' : '💰 V/E'}
                           </Text>
                         </View>
-                      )}
-                    </View>
+                      </View>
+                    )}
                     <Text style={{
                       fontSize: 18,
                       fontWeight: 'bold',
                       color: t.primaryBtn,
                       marginBottom: 4
                     }}>
-                      {product.listingType === 'TRADE' ? 'Échange' : `${Number(product.price).toFixed(2)} €`}
+                      {product.listingType === 'TRADE' ? '—' : `${Number(product.price).toFixed(2)} €`}
                     </Text>
                     <Text style={{ fontSize: 13, color: t.muted, marginBottom: 4 }}>
                       📍 {product.location || 'Localisation non spécifiée'}
@@ -413,27 +414,28 @@ export default function AuthenticatedHome() {
                         }} numberOfLines={2}>
                           {product.title}
                         </Text>
-                        {product.listingType && product.listingType !== 'SALE' && (
+                      </View>
+                      {product.listingType && product.listingType !== 'SALE' && (
+                        <View style={{ alignSelf: 'flex-start', marginVertical: 4 }}>
                           <View style={{
                             paddingHorizontal: 6,
                             paddingVertical: 2,
                             backgroundColor: product.listingType === 'TRADE' ? '#FF6B35' : '#4ECDC4',
-                            borderRadius: 4,
-                            marginLeft: 4
+                            borderRadius: 8,
                           }}>
-                            <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF' }}>
-                              {product.listingType === 'TRADE' ? 'ÉCHANGE' : 'V/E'}
+                            <Text style={{ fontSize: 8, fontWeight: 'bold', color: '#FFF', letterSpacing: 0.3 }}>
+                              {product.listingType === 'TRADE' ? '🔄 ÉCHANGE' : '💰 V/E'}
                             </Text>
                           </View>
-                        )}
-                      </View>
+                        </View>
+                      )}
                       <Text style={{
                         fontSize: 16,
                         fontWeight: 'bold',
                         color: t.primaryBtn,
                         marginBottom: 4
                       }}>
-                        {product.listingType === 'TRADE' ? 'Échange' : `${product.price.toFixed(2)} €`}
+                        {product.listingType === 'TRADE' ? '—' : `${product.price.toFixed(2)} €`}
                       </Text>
                       <Text style={{ fontSize: 12, color: t.muted }}>
                         {product.location}

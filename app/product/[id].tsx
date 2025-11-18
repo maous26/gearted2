@@ -197,16 +197,18 @@ export default function ProductDetailScreen() {
                 )}
               </View>
 
-              {/* Prix */}
-              <Text style={{
-                fontSize: 34,
-                fontWeight: '800',
-                color: t.primaryBtn,
-                marginBottom: 24,
-                letterSpacing: -1
-              }}>
-                {product.listingType === 'TRADE' ? 'Échange uniquement' : `${Number(product.price).toFixed(2)} €`}
-              </Text>
+              {/* Prix - Affiché uniquement si ce n'est pas un échange pur */}
+              {product.listingType !== 'TRADE' && (
+                <Text style={{
+                  fontSize: 34,
+                  fontWeight: '800',
+                  color: t.primaryBtn,
+                  marginBottom: 24,
+                  letterSpacing: -1
+                }}>
+                  {`${Number(product.price).toFixed(2)} €`}
+                </Text>
+              )}
 
               {/* Section Recherche en échange */}
               {product.tradeFor && (
