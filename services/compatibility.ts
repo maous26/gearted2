@@ -48,6 +48,8 @@ export interface VerifiedCompatibility {
   requiresModification?: boolean;
   notes?: string;
   warning?: string;
+  message?: string;
+  recommendation?: string;
 }
 
 export const compatibilityApi = {

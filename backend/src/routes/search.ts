@@ -78,10 +78,30 @@ router.get('/compatibility/:item1Id/:item2Id', async (req, res): Promise<any> =>
   try {
     const { item1Id, item2Id } = req.params;
 
+    // Validate input IDs
+    if (!item1Id || !item2Id) {
+      return res.status(400).json({
+        error: 'Both item IDs are required'
+      });
+    }
+
+    // Don't allow checking compatibility of same item
+    if (item1Id === item2Id) {
+      return res.status(400).json({
+        error: 'Cannot check compatibility of an item with itself'
+      });
+    }
+
     // Get both items
     const [weapon1, weapon2, part1, part2] = await Promise.all([
-      prisma.weaponModel.findUnique({ where: { id: item1Id }, include: { manufacturer: true } }),
-      prisma.weaponModel.findUnique({ where: { id: item2Id }, include: { manufacturer: true } }),
+      prisma.weaponModel.findUnique({
+        where: { id: item1Id },
+        include: { manufacturer: true }
+      }),
+      prisma.weaponModel.findUnique({
+        where: { id: item2Id },
+        include: { manufacturer: true }
+      }),
       prisma.part.findUnique({ where: { id: item1Id } }),
       prisma.part.findUnique({ where: { id: item2Id } }),
     ]);
@@ -90,10 +110,24 @@ router.get('/compatibility/:item1Id/:item2Id', async (req, res): Promise<any> =>
     const item2 = weapon2 || part2;
 
     if (!item1 || !item2) {
-      return res.status(404).json({ error: 'One or both items not found' });
+      return res.status(404).json({
+        error: 'Un ou les deux équipements sont introuvables dans notre base de données'
+      });
     }
 
-    // Check if we have a weapon and a part
+    // Only allow checking weapon + part compatibility (not weapon + weapon or part + part)
+    const hasWeaponAndPart = (weapon1 && part2) || (weapon2 && part1);
+
+    if (!hasWeaponAndPart) {
+      return res.json({
+        compatible: false,
+        verified: false,
+        warning: '⚠️ VÉRIFICATION IMPOSSIBLE',
+        message: 'Le Gearcheck System ne peut vérifier que la compatibilité entre une arme et une pièce. Sélectionnez une arme et une pièce pour continuer.',
+      });
+    }
+
+    // Check if we have verified compatibility data
     let compatibilityInfo = null;
 
     if (weapon1 && part2) {
@@ -118,31 +152,47 @@ router.get('/compatibility/:item1Id/:item2Id', async (req, res): Promise<any> =>
       });
     }
 
+    // CRITICAL: No verified data = NOT compatible
     if (!compatibilityInfo) {
       return res.json({
         compatible: false,
         verified: false,
-        message: 'Aucune donnée de compatibilité vérifiée disponible pour cette combinaison.',
-        recommendation: 'Nous vous recommandons de vérifier auprès du fabricant ou de la communauté avant l\'achat.'
+        warning: '⚠️ AUCUNE DONNÉE CERTIFIÉE',
+        message: 'Aucune donnée de compatibilité certifiée n\'est disponible pour cette combinaison dans notre base de données.',
+        recommendation: '🚫 N\'ACHETEZ PAS sans vérifier auprès du fabricant ou d\'un expert. Le Gearcheck System ne peut garantir la compatibilité sans données certifiées.'
       });
     }
 
+    // Strict compatibility threshold: only 98%+ is truly compatible
+    const isFullyCompatible = compatibilityInfo.compatibilityScore >= 98;
+    const requiresMinorModifications = compatibilityInfo.compatibilityScore >= 90 && compatibilityInfo.compatibilityScore < 98;
+    const isNotCompatible = compatibilityInfo.compatibilityScore < 90;
+
     return res.json({
-      compatible: compatibilityInfo.compatibilityScore >= 95, // Only show as compatible if 95%+
+      compatible: isFullyCompatible,
       verified: true,
       score: compatibilityInfo.compatibilityScore,
       requiresModification: compatibilityInfo.requiresModification,
       notes: compatibilityInfo.notes,
-      message: compatibilityInfo.compatibilityScore >= 95 
-        ? '✓ Compatibilité vérifiée' 
-        : compatibilityInfo.compatibilityScore >= 85
-        ? '⚠️ Compatible avec modifications mineures'
-        : '✗ Non compatible - modifications majeures requises',
+      warning: isNotCompatible
+        ? '🚫 NON COMPATIBLE'
+        : requiresMinorModifications
+        ? '⚠️ MODIFICATIONS REQUISES'
+        : null,
+      message: isFullyCompatible
+        ? '✅ COMPATIBILITÉ CERTIFIÉE - Ces équipements fonctionnent ensemble sans modification.'
+        : requiresMinorModifications
+        ? '⚠️ COMPATIBLE AVEC MODIFICATIONS - Des ajustements mineurs sont nécessaires. Consultez un expert avant l\'achat.'
+        : '🚫 NON COMPATIBLE - Ces équipements ne fonctionnent pas ensemble. N\'achetez pas cette combinaison.',
     });
 
   } catch (error) {
     console.error('Error checking compatibility:', error);
-    return res.status(500).json({ error: 'Failed to check compatibility' });
+    return res.status(500).json({
+      error: 'Erreur lors de la vérification de compatibilité',
+      compatible: false,
+      verified: false,
+    });
   }
 });
 

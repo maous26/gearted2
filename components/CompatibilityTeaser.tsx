@@ -54,21 +54,23 @@ export function CompatibilityTeaser({
     }}>
       <Text style={{
         color: t.heading,
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: 'bold',
         marginBottom: 8,
-        textAlign: 'center'
+        textAlign: 'center',
+        letterSpacing: 0.5
       }}>
-        🔧 Quick Compatibility Check
+        🔧 Gearcheck System
       </Text>
-      
+
       <Text style={{
         color: t.muted,
         fontSize: 12,
         textAlign: 'center',
-        marginBottom: 16
+        marginBottom: 16,
+        lineHeight: 18
       }}>
-        Check if two airsoft items are compatible
+        Vérifiez la compatibilité entre vos équipements airsoft avant d'acheter. Données certifiées des 20 plus grands constructeurs pour éviter les erreurs d'achat.
       </Text>
 
       <View style={{ marginBottom: 12 }}>
@@ -162,61 +164,93 @@ export function CompatibilityTeaser({
       {result && !checking && (
         <View style={{
           marginTop: 16,
-          padding: 12,
+          padding: 14,
           backgroundColor: result.compatible ? '#E7F6ED' : '#FFE5E5',
           borderRadius: 8,
-          borderWidth: 1,
+          borderWidth: 2,
           borderColor: result.compatible ? '#4CAF50' : '#F44336',
         }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-            <Text style={{ fontSize: 18, marginRight: 8 }}>
-              {result.compatible ? '✅' : '❌'}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+            <Text style={{ fontSize: 20, marginRight: 8 }}>
+              {result.compatible ? '✅' : '🚫'}
             </Text>
             <Text style={{
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: 'bold',
               color: result.compatible ? '#2E7D32' : '#C62828',
             }}>
-              {result.compatible ? 'Compatible' : 'Not Compatible'}
+              {result.warning || (result.compatible ? 'COMPATIBLE' : 'NON COMPATIBLE')}
             </Text>
           </View>
 
+          {/* Always show the main message */}
+          {(result as any).message && (
+            <Text style={{
+              fontSize: 12,
+              color: result.compatible ? '#2E7D32' : '#C62828',
+              marginTop: 4,
+              lineHeight: 18,
+              fontWeight: '500'
+            }}>
+              {(result as any).message}
+            </Text>
+          )}
+
+          {/* Critical warning when no verified data */}
           {result.verified === false && (
             <View style={{
-              marginTop: 8,
-              padding: 8,
-              backgroundColor: '#FFF9E6',
+              marginTop: 10,
+              padding: 10,
+              backgroundColor: '#FFEBEE',
               borderRadius: 6,
-              borderWidth: 1,
-              borderColor: '#FFB300',
+              borderWidth: 2,
+              borderColor: '#D32F2F',
             }}>
-              <Text style={{ fontSize: 12, color: '#F57C00', fontWeight: '600' }}>
-                ⚠️ No verified compatibility data available
+              <Text style={{ fontSize: 13, color: '#C62828', fontWeight: '700' }}>
+                🚫 ATTENTION - DONNÉES NON CERTIFIÉES
               </Text>
-              <Text style={{ fontSize: 10, color: '#E65100', marginTop: 4 }}>
-                We cannot confirm compatibility between these items. Only purchase if you have verified compatibility yourself.
+              <Text style={{ fontSize: 11, color: '#B71C1C', marginTop: 6, lineHeight: 16 }}>
+                {(result as any).recommendation ||
+                  'Aucune donnée de compatibilité certifiée. N\'achetez PAS sans vérifier auprès du fabricant ou d\'un expert airsoft.'}
               </Text>
             </View>
           )}
 
+          {/* Show compatibility score and notes for verified data */}
           {result.compatible && result.verified && (
             <>
               {result.score && (
-                <Text style={{ fontSize: 12, color: '#2E7D32', marginTop: 4 }}>
-                  Compatibility Score: {result.score}%
+                <Text style={{ fontSize: 13, color: '#2E7D32', marginTop: 6, fontWeight: '600' }}>
+                  Score de compatibilité: {result.score}%
                 </Text>
               )}
               {result.requiresModification && (
-                <Text style={{ fontSize: 11, color: '#F57C00', marginTop: 4 }}>
-                  ⚠️ May require modification for proper fit
-                </Text>
+                <View style={{
+                  marginTop: 8,
+                  padding: 8,
+                  backgroundColor: '#FFF9E6',
+                  borderRadius: 6,
+                  borderWidth: 1,
+                  borderColor: '#FFB300',
+                }}>
+                  <Text style={{ fontSize: 11, color: '#F57C00', fontWeight: '600' }}>
+                    ⚠️ Modifications mineures requises pour un ajustement parfait
+                  </Text>
+                </View>
               )}
               {result.notes && (
-                <Text style={{ fontSize: 11, color: '#555', marginTop: 6 }}>
-                  Note: {result.notes}
+                <Text style={{ fontSize: 11, color: '#555', marginTop: 8, lineHeight: 16 }}>
+                  📝 Note technique: {result.notes}
                 </Text>
               )}
             </>
+          )}
+
+          {/* Show notes even for non-compatible items if verified */}
+          {!result.compatible && result.verified && result.notes && (
+            <Text style={{ fontSize: 11, color: '#666', marginTop: 8, lineHeight: 16 }}>
+              📝 {result.notes}
+            </Text>
           )}
         </View>
       )}

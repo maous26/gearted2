@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 router.use(authenticate);
 
 // Get all conversations for the authenticated user
-router.get('/conversations', async (req: Request, res: Response) => {
+router.get('/conversations', async (req: Request, res: Response): Promise<any> => {
   if (!req.user) {
     return res.status(401).json({ error: 'Authentication required' });
   }
@@ -31,9 +31,9 @@ router.get('/conversations', async (req: Request, res: Response) => {
         participants: true
       }
     });
-    res.json(conversations);
+    return res.json(conversations);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch conversations' });
+    return res.status(500).json({ error: 'Failed to fetch conversations' });
   }
 });
 
