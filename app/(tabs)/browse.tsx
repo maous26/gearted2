@@ -98,28 +98,13 @@ export default function BrowseScreen() {
     >
       {/* Product Image */}
       <View style={{ position: 'relative', backgroundColor: '#f5f5f5' }}>
-        <Image 
+        <Image
           source={{ uri: product.images[0] }}
           style={{ width: '100%', height: 200 }}
           contentFit="contain"
           cachePolicy="memory-disk"
           transition={200}
         />
-        {product.featured && (
-          <View style={{
-            position: 'absolute',
-            right: 8,
-            top: 8,
-            backgroundColor: '#FFD166',
-            paddingHorizontal: 8,
-            paddingVertical: 4,
-            borderRadius: 6
-          }}>
-            <Text style={{ fontSize: 10, fontWeight: '600', color: '#333' }}>
-              ⭐ Featured
-            </Text>
-          </View>
-        )}
         <View style={{
           position: 'absolute',
           top: 8,
