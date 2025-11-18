@@ -1,2 +1,2 @@
-web: npm run db:migrate:deploy && npm start
+web: npm run db:migrate:deploy && npx ts-node scripts/seed-railway.ts && npm start
 
