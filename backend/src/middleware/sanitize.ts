@@ -1,16 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
-import DOMPurify from 'isomorphic-dompurify';
 
 /**
  * Sanitize string values to prevent XSS attacks
  */
 function sanitizeValue(value: any): any {
   if (typeof value === 'string') {
-    // Sanitize HTML content
-    return DOMPurify.sanitize(value, {
-      ALLOWED_TAGS: [], // Remove all HTML tags
-      ALLOWED_ATTR: []  // Remove all attributes
-    }).trim();
+    // Remove HTML tags and dangerous characters
+    return value
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/[<>'"]/g, '') // Remove dangerous characters
+      .trim();
   }
 
   if (Array.isArray(value)) {
