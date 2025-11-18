@@ -17,7 +17,8 @@ const BASE_PRODUCTS = [
     images: ["https://via.placeholder.com/200x150/4B5D3A/FFFFFF?text=AK-74"],
     category: "repliques",
     featured: true,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    listingType: 'SALE',
   },
   {
     id: "2", 
@@ -30,7 +31,8 @@ const BASE_PRODUCTS = [
     images: ["https://via.placeholder.com/200x150/8B4513/FFFFFF?text=Red+Dot"],
     category: "optiques",
     featured: true,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    listingType: 'SALE',
   },
   {
     id: "3",
@@ -43,7 +45,9 @@ const BASE_PRODUCTS = [
     images: ["https://via.placeholder.com/200x150/2C3E50/FFFFFF?text=M4A1"],
     category: "repliques",
     featured: false,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    listingType: 'TRADE',
+    tradeFor: "Casque FAST ou upgrade interne AEG",
   },
   {
     id: "4",
@@ -56,7 +60,8 @@ const BASE_PRODUCTS = [
     images: ["https://via.placeholder.com/200x150/556B2F/FFFFFF?text=Gilet"],
     category: "equipements",
     featured: false,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    listingType: 'SALE',
   },
   {
     id: "5",
@@ -69,7 +74,9 @@ const BASE_PRODUCTS = [
     images: ["https://via.placeholder.com/200x150/4682B4/FFFFFF?text=Scope"],
     category: "optiques",
     featured: false,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    listingType: 'BOTH',
+    tradeFor: "Red dot compact ou mount déporté",
   }
 ];
 
@@ -105,6 +112,15 @@ const extraProducts = Array.from({ length: 40 }).map((_, i) => {
   const title = `${titlePool[i % titlePool.length]} #${id}`;
   const hex = ['4B5D3A', '8B4513', '2C3E50', '556B2F', '4682B4', '2F4F4F'][i % 6];
 
+  // Déterminer le type d'annonce mock
+  const listingType = i % 3 === 0 ? 'TRADE' : i % 3 === 1 ? 'BOTH' : 'SALE';
+  const tradeFor =
+    listingType === 'SALE'
+      ? undefined
+      : listingType === 'TRADE'
+      ? 'Ouvert aux échanges contre autre réplique ou équipement'
+      : 'À vendre ou à échanger selon proposition';
+
   return {
     id,
     title,
@@ -119,6 +135,8 @@ const extraProducts = Array.from({ length: 40 }).map((_, i) => {
     featured: i % 9 === 0,
     createdAt: new Date(Date.now() - i * 86400000).toISOString(),
     description: `${title} en ${condition}. Parfait pour compléter ton setup.`,
+    listingType,
+    tradeFor,
   };
 });
 
