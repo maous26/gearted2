@@ -30,19 +30,38 @@ router.get('/conversations/:userId', async (req, res) => {
 
 // Create a new conversation
 router.post('/conversations', async (req, res) => {
-  const { participantIds } = req.body; // [userId1, userId2]
+  const { participantIds } = req.body as { participantIds?: string[] }; // [userId1, userId2]
+
+  if (!participantIds || !Array.isArray(participantIds) || participantIds.length === 0) {
+    return res.status(400).json({ error: 'participantIds array is required' });
+  }
+
   try {
+    // Ne connecter que les utilisateurs réellement présents en base
+    const users = await prisma.user.findMany({
+      where: {
+        id: { in: participantIds },
+      },
+      select: { id: true },
+    });
+
+    if (users.length < 1) {
+      return res.status(400).json({ error: 'No valid participants found' });
+    }
+
     const conversation = await prisma.conversation.create({
       data: {
         participants: {
-          connect: participantIds.map((id: string) => ({ id }))
-        }
+          connect: users.map((u) => ({ id: u.id })),
+        },
       },
-      include: { participants: true }
+      include: { participants: true },
     });
-    res.json(conversation);
+
+    return res.json(conversation);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create conversation' });
+    console.error('[messages] Failed to create conversation', error);
+    return res.status(500).json({ error: 'Failed to create conversation' });
   }
 });
 
