@@ -91,9 +91,15 @@ export function ItemSearch({ onSelectItem, placeholder = 'Search for an item...'
         />
       )}
 
-      {showResults && results.length === 0 && !loading && (
+      {showResults && results.length === 0 && !loading && query.length >= 2 && (
         <View style={styles.noResults}>
-          <Text style={styles.noResultsText}>No items found</Text>
+          <Text style={styles.noResultsText}>Aucun équipement trouvé</Text>
+          <Text style={styles.noResultsHint}>
+            Essayez de chercher par: {'\n'}
+            • Marque (ex: "Tokyo Marui", "Krytac"){'\n'}
+            • Modèle (ex: "M4A1", "AK47"){'\n'}
+            • Type de pièce (ex: "Magazine", "Barrel")
+          </Text>
         </View>
       )}
     </View>
@@ -155,5 +161,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     textAlign: 'center',
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  noResultsHint: {
+    fontSize: 11,
+    color: '#666',
+    lineHeight: 18,
+    textAlign: 'left',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
   },
 });

@@ -10,44 +10,62 @@ router.get('/items', async (req, res): Promise<any> => {
     const { query } = req.query;
 
     if (!query || typeof query !== 'string' || query.length < 2) {
-      return res.status(400).json({ 
-        error: 'Query must be at least 2 characters' 
+      return res.status(400).json({
+        error: 'Query must be at least 2 characters'
       });
     }
 
-    // Search in weapon models
+    // Normalize query for case-insensitive search
+    const searchTerm = query.trim();
+
+    // Search in weapon models (armes)
+    // Recherche par: nom, modèle, référence, marque/constructeur
     const weapons = await prisma.weaponModel.findMany({
       where: {
-        OR: [
-          { name: { contains: query } },
-          { model: { contains: query } },
+        AND: [
+          { isActive: true },
+          {
+            OR: [
+              { name: { contains: searchTerm, mode: 'insensitive' } },
+              { model: { contains: searchTerm, mode: 'insensitive' } },
+              { version: { contains: searchTerm, mode: 'insensitive' } },
+              { manufacturer: { name: { contains: searchTerm, mode: 'insensitive' } } },
+            ],
+          },
         ],
-        isActive: true,
       },
       include: {
         manufacturer: true,
       },
-      take: 10,
+      take: 15,
     });
 
-    // Search in parts
+    // Search in parts (pièces)
+    // Recherche par: nom, référence, fabricant
     const parts = await prisma.part.findMany({
       where: {
-        name: { contains: query },
-        isActive: true,
+        AND: [
+          { isActive: true },
+          {
+            OR: [
+              { name: { contains: searchTerm, mode: 'insensitive' } },
+              { manufacturer: { contains: searchTerm, mode: 'insensitive' } },
+            ],
+          },
+        ],
       },
-      take: 10,
+      take: 15,
     });
 
-    // Format results
+    // Format results with clear labels
     const results = [
       ...weapons.map(w => ({
         id: w.id,
         name: w.name,
-        type: 'WEAPON',
+        type: 'weapon',
         subType: w.weaponType,
         manufacturer: w.manufacturer.name,
-        reference: w.model,
+        reference: w.model + (w.version ? ` ${w.version}` : ''),
         specs: {
           gearboxType: w.gearboxType,
           hopUpType: w.hopUpType,
@@ -57,13 +75,15 @@ router.get('/items', async (req, res): Promise<any> => {
       ...parts.map(p => ({
         id: p.id,
         name: p.name,
-        type: 'PART',
+        type: 'part',
         subType: p.partType,
         manufacturer: p.manufacturer,
         reference: p.name,
         price: p.price,
       }))
     ];
+
+    console.log(`[Search] Query: "${searchTerm}" - Found ${weapons.length} weapons, ${parts.length} parts`);
 
     return res.json(results);
 
