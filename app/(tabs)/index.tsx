@@ -38,10 +38,29 @@ export default function AuthenticatedHome() {
   // Use real products from the database for featured listings
   const featuredListings = React.useMemo(() => {
     if (!productsData?.products) return [];
-    // Filter featured products or take the first 3 recent products
+    // Filtrer les produits mis en avant, sinon prendre les 3 plus récents
     const featured = productsData.products.filter((p: any) => p.featured).slice(0, 3);
     if (featured.length > 0) return featured;
     return productsData.products.slice(0, 3);
+  }, [productsData]);
+
+  // Prioriser les vraies annonces (DB) dans "Dernières annonces"
+  const recentListings = React.useMemo(() => {
+    const all = productsData?.products ?? [];
+    if (!all.length) return [];
+
+    // Heuristique simple : les IDs Prisma (cuid) sont beaucoup plus longs que les IDs mock ("1", "10", ...)
+    const real = all.filter((p: any) => typeof p.id === 'string' && p.id.length > 10);
+    const realRecent = real.slice(0, 5);
+
+    // Compléter avec des mocks si moins de 5 vraies annonces
+    if (realRecent.length >= 5) return realRecent;
+
+    const realIds = new Set(realRecent.map((p: any) => p.id));
+    const mocks = all.filter((p: any) => !realIds.has(p.id));
+    const mockRecent = mocks.slice(0, 5 - realRecent.length);
+
+    return [...realRecent, ...mockRecent];
   }, [productsData]);
 
   const popularCategories = React.useMemo(() => {
@@ -359,9 +378,9 @@ export default function AuthenticatedHome() {
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={{ flexDirection: 'row' }}>
-                {(productsData?.products || []).slice(0, 5).map((product, index) => (
+                {recentListings.map((product, index) => (
                   <Pressable
-                    key={product.id}
+                    key={`${product.id}-${index}`}
                     style={{
                       width: 180,
                       backgroundColor: t.cardBg,
@@ -385,14 +404,29 @@ export default function AuthenticatedHome() {
                       />
                     </View>
                     <View style={{ padding: 12 }}>
-                      <Text style={{
-                        fontSize: 14,
-                        fontWeight: '600',
-                        color: t.heading,
-                        marginBottom: 4
-                      }} numberOfLines={2}>
-                        {product.title}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                        <Text style={{
+                          fontSize: 14,
+                          fontWeight: '600',
+                          color: t.heading,
+                          flex: 1
+                        }} numberOfLines={2}>
+                          {product.title}
+                        </Text>
+                        {product.listingType && product.listingType !== 'SALE' && (
+                          <View style={{
+                            paddingHorizontal: 6,
+                            paddingVertical: 2,
+                            backgroundColor: product.listingType === 'TRADE' ? '#FF6B35' : '#4ECDC4',
+                            borderRadius: 4,
+                            marginLeft: 4
+                          }}>
+                            <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF' }}>
+                              {product.listingType === 'TRADE' ? 'ÉCHANGE' : 'V/E'}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={{
                         fontSize: 16,
                         fontWeight: 'bold',
