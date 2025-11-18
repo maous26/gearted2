@@ -215,14 +215,33 @@ export default function ProductDetailScreen() {
           style={{ flex: 2, backgroundColor: t.primaryBtn, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }} 
           onPress={() => {
             if (product?.listingType === 'BOTH') {
+              // L'utilisateur choisira entre achat ou échange dans le modal
               setShowOfferTypeModal(true);
+            } else if (product?.listingType === 'TRADE') {
+              // Pour une annonce d'échange uniquement, on ouvre directement le chat
+              router.push({
+                pathname: '/chat/new',
+                params: {
+                  sellerId: product?.sellerId || product?.id,
+                  sellerName: product?.seller,
+                  sellerAvatar: `https://via.placeholder.com/50/4B5D3A/FFFFFF?text=${product?.seller?.charAt(0) || 'U'}`,
+                  productId: product?.id,
+                  productTitle: product?.title,
+                  offerType: 'trade',
+                }
+              });
             } else {
+              // Vente classique (paiement géré en dehors pour l'instant)
               setHasPurchased(true);
             }
           }}
         >
           <Text style={{ fontSize: 16, fontWeight: '600', color: t.white }}>
-            {product?.listingType === 'TRADE' ? 'Proposer un échange' : product?.listingType === 'BOTH' ? 'Acheter ou échanger' : 'Acheter maintenant'}
+            {product?.listingType === 'TRADE'
+              ? '🔄 Proposer un échange'
+              : product?.listingType === 'BOTH'
+              ? 'Acheter ou échanger'
+              : 'Acheter maintenant'}
           </Text>
         </TouchableOpacity>
       </View>

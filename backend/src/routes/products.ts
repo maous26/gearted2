@@ -177,6 +177,10 @@ function mapDbProductToListingShape(p: any) {
     category: p.category?.slug || 'autre',
     featured: false,
     createdAt: p.createdAt?.toISOString?.() ?? new Date().toISOString(),
+    // Champs spécifiques vente / échange
+    listingType: p.listingType,                // 'SALE' | 'TRADE' | 'BOTH'
+    tradeFor: p.tradeFor || null,              // Ce que le vendeur cherche en échange
+    handDelivery: p.handDelivery ?? false,     // Remise en main propre dispo
   };
 }
 

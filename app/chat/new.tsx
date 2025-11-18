@@ -1,15 +1,15 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import {
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../components/ThemeProvider";
@@ -29,9 +29,17 @@ export default function NewChatScreen() {
   const sellerAvatar = params.sellerAvatar as string | undefined;
   const productId = params.productId as string | undefined;
   const productTitle = params.productTitle as string | undefined;
+  const offerType = (params.offerType as string) || undefined; // 'trade' ou undefined
   
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+
+  // Préremplir le message si c'est une proposition d'échange
+  React.useEffect(() => {
+    if (offerType === 'trade' && productTitle) {
+      setMessage(`Bonjour, je suis intéressé(e) pour échanger "${productTitle}". Pouvons-nous discuter ?`);
+    }
+  }, [offerType, productTitle]);
 
   const handleSend = async () => {
     if (!message.trim()) {
@@ -44,12 +52,17 @@ export default function NewChatScreen() {
       return;
     }
 
+    if (!sellerId) {
+      Alert.alert("Erreur", "Impossible d'identifier le vendeur.");
+      return;
+    }
+
     setSending(true);
     
     try {
-      // 1) Créer (ou ouvrir) une conversation côté backend
+      // 1) Créer (ou ouvrir) une conversation côté backend avec les 2 participants
       const conversation = await api.post<any>("/api/messages/conversations", {
-        participantIds: [user.id], // pour l'instant, on enregistre seulement l'utilisateur courant
+        participantIds: [user.id, sellerId], // Acheteur ET vendeur
       });
 
       const conversationId = conversation?.id;

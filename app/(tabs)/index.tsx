@@ -206,7 +206,7 @@ export default function AuthenticatedHome() {
 
                   <View style={{ backgroundColor: '#f5f5f5' }}>
                     <Image
-                      source={{ uri: (product.images?.[0] || product.image || 'https://via.placeholder.com/400x300/4B5D3A/FFFFFF?text=Photo') }}
+                      source={{ uri: (product.images?.[0] || 'https://via.placeholder.com/400x300/4B5D3A/FFFFFF?text=Photo') }}
                       style={{ width: '100%', height: 180 }}
                       contentFit="contain"
                       cachePolicy="memory-disk"
@@ -214,24 +214,39 @@ export default function AuthenticatedHome() {
                     />
                   </View>
                   <View style={{ padding: 14 }}>
-                    <Text
-                      style={{
-                        fontSize: 15,
-                        fontWeight: '700',
-                        color: t.heading,
-                        marginBottom: 6
-                      }}
-                      numberOfLines={2}
-                    >
-                      {product.title}
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                      <Text
+                        style={{
+                          fontSize: 15,
+                          fontWeight: '700',
+                          color: t.heading,
+                          flex: 1
+                        }}
+                        numberOfLines={2}
+                      >
+                        {product.title}
+                      </Text>
+                      {product.listingType && product.listingType !== 'SALE' && (
+                        <View style={{
+                          paddingHorizontal: 6,
+                          paddingVertical: 2,
+                          backgroundColor: product.listingType === 'TRADE' ? '#FF6B35' : '#4ECDC4',
+                          borderRadius: 4,
+                          marginLeft: 6
+                        }}>
+                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF' }}>
+                            {product.listingType === 'TRADE' ? 'ÉCHANGE' : 'V/E'}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                     <Text style={{
                       fontSize: 18,
                       fontWeight: 'bold',
                       color: t.primaryBtn,
                       marginBottom: 4
                     }}>
-                      {Number(product.price).toFixed(2)} €
+                      {product.listingType === 'TRADE' ? 'Échange' : `${Number(product.price).toFixed(2)} €`}
                     </Text>
                     <Text style={{ fontSize: 13, color: t.muted, marginBottom: 4 }}>
                       📍 {product.location || 'Localisation non spécifiée'}
