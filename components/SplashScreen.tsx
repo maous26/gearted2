@@ -6,79 +6,226 @@ const { width, height } = Dimensions.get('window');
 
 export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
   const [isVisible, setIsVisible] = useState(true);
-  const [glitchAnim] = useState(new Animated.Value(0));
-  const [scanLineAnim] = useState(new Animated.Value(0));
-  const [staticAnim] = useState(new Animated.Value(0));
-  const [fadeAnim] = useState(new Animated.Value(0));
+
+  // Multiple animated values for different blob shapes
+  const [blob1Scale] = useState(new Animated.Value(1));
+  const [blob1X] = useState(new Animated.Value(0));
+  const [blob1Y] = useState(new Animated.Value(0));
+
+  const [blob2Scale] = useState(new Animated.Value(1));
+  const [blob2X] = useState(new Animated.Value(0));
+  const [blob2Y] = useState(new Animated.Value(0));
+
+  const [blob3Scale] = useState(new Animated.Value(1));
+  const [blob3X] = useState(new Animated.Value(0));
+  const [blob3Y] = useState(new Animated.Value(0));
+
+  const [logoOpacity] = useState(new Animated.Value(0));
+  const [logoScale] = useState(new Animated.Value(0.8));
 
   useEffect(() => {
-    // Animation de lignes de scan qui défilent
-    const scanLineAnimation = Animated.loop(
-      Animated.timing(scanLineAnim, {
-        toValue: 1,
-        duration: 2000,
-        useNativeDriver: true,
-      })
-    );
-    scanLineAnimation.start();
-
-    // Animation de glitch (distorsion horizontale)
-    const glitchAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glitchAnim, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(glitchAnim, {
-          toValue: 0,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.delay(800),
-      ])
-    );
-    glitchAnimation.start();
-
-    // Animation de static/neige TV
-    const staticAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(staticAnim, {
-          toValue: 1,
-          duration: 50,
-          useNativeDriver: true,
-        }),
-        Animated.timing(staticAnim, {
-          toValue: 0,
-          duration: 50,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    staticAnimation.start();
-
-    // Fade in du logo
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 800,
-      useNativeDriver: true,
-    }).start();
-
-    // Fin de l'animation après 3 secondes
-    const timer = setTimeout(() => {
-      scanLineAnimation.stop();
-      glitchAnimation.stop();
-      staticAnimation.stop();
-
-      // Fade out final avec effet TV qui s'éteint
+    // Blob 1 animation (orange/green)
+    const blob1Animation = Animated.loop(
       Animated.parallel([
-        Animated.timing(fadeAnim, {
+        Animated.sequence([
+          Animated.timing(blob1Scale, {
+            toValue: 1.3,
+            duration: 3000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blob1Scale, {
+            toValue: 1,
+            duration: 3000,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(blob1X, {
+            toValue: 50,
+            duration: 4000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blob1X, {
+            toValue: -30,
+            duration: 4000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blob1X, {
+            toValue: 0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(blob1Y, {
+            toValue: -40,
+            duration: 3500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blob1Y, {
+            toValue: 40,
+            duration: 3500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blob1Y, {
+            toValue: 0,
+            duration: 3000,
+            useNativeDriver: true,
+          }),
+        ]),
+      ])
+    );
+
+    // Blob 2 animation (olive/military green)
+    const blob2Animation = Animated.loop(
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(blob2Scale, {
+            toValue: 1.4,
+            duration: 3500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blob2Scale, {
+            toValue: 0.9,
+            duration: 3500,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(blob2X, {
+            toValue: -60,
+            duration: 4500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blob2X, {
+            toValue: 40,
+            duration: 4500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blob2X, {
+            toValue: 0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(blob2Y, {
+            toValue: 50,
+            duration: 4000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blob2Y, {
+            toValue: -50,
+            duration: 4000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blob2Y, {
+            toValue: 0,
+            duration: 3000,
+            useNativeDriver: true,
+          }),
+        ]),
+      ])
+    );
+
+    // Blob 3 animation (dark military)
+    const blob3Animation = Animated.loop(
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(blob3Scale, {
+            toValue: 1.2,
+            duration: 4000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blob3Scale, {
+            toValue: 1.1,
+            duration: 4000,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(blob3X, {
+            toValue: 30,
+            duration: 5000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blob3X, {
+            toValue: -50,
+            duration: 5000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blob3X, {
+            toValue: 0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(blob3Y, {
+            toValue: -30,
+            duration: 4500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blob3Y, {
+            toValue: 30,
+            duration: 4500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blob3Y, {
+            toValue: 0,
+            duration: 3000,
+            useNativeDriver: true,
+          }),
+        ]),
+      ])
+    );
+
+    // Logo fade in
+    Animated.parallel([
+      Animated.timing(logoOpacity, {
+        toValue: 1,
+        duration: 1000,
+        delay: 300,
+        useNativeDriver: true,
+      }),
+      Animated.spring(logoScale, {
+        toValue: 1,
+        delay: 300,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Start blob animations
+    blob1Animation.start();
+    blob2Animation.start();
+    blob3Animation.start();
+
+    // End animation
+    const timer = setTimeout(() => {
+      blob1Animation.stop();
+      blob2Animation.stop();
+      blob3Animation.stop();
+
+      Animated.parallel([
+        Animated.timing(logoOpacity, {
           toValue: 0,
           duration: 400,
           useNativeDriver: true,
         }),
-        Animated.timing(scanLineAnim, {
-          toValue: 0.5,
+        Animated.timing(blob1Scale, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(blob2Scale, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(blob3Scale, {
+          toValue: 0,
           duration: 400,
           useNativeDriver: true,
         }),
@@ -90,76 +237,72 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
 
     return () => {
       clearTimeout(timer);
-      scanLineAnimation.stop();
-      glitchAnimation.stop();
-      staticAnimation.stop();
+      blob1Animation.stop();
+      blob2Animation.stop();
+      blob3Animation.stop();
     };
-  }, [onFinish, glitchAnim, scanLineAnim, staticAnim, fadeAnim]);
+  }, [onFinish, blob1Scale, blob1X, blob1Y, blob2Scale, blob2X, blob2Y, blob3Scale, blob3X, blob3Y, logoOpacity, logoScale]);
 
   if (!isVisible) return null;
 
-  // Animation des lignes de scan qui descendent
-  const scanLineTranslate = scanLineAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-height, height],
-  });
-
-  // Glitch horizontal (décalage)
-  const glitchTranslate = glitchAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 10],
-  });
-
-  // Opacité du static/neige
-  const staticOpacity = staticAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.05, 0.15],
-  });
-
   return (
     <View style={styles.container}>
-      {/* Background avec effet vieux téléviseur */}
-      <View style={styles.tvBackground}>
-        {/* Effet de neige/static */}
+      <View style={styles.background}>
+        {/* Blob 1 - Orange/Green gradient */}
         <Animated.View
           style={[
-            styles.staticOverlay,
+            styles.blob,
+            styles.blob1,
             {
-              opacity: staticOpacity,
+              transform: [
+                { translateX: blob1X },
+                { translateY: blob1Y },
+                { scale: blob1Scale },
+              ],
             },
           ]}
         />
 
-        {/* Lignes de scan horizontales */}
-        <View style={styles.scanLinesContainer}>
-          {Array.from({ length: 20 }).map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.scanLine,
-                { top: (height / 20) * i },
-              ]}
-            />
-          ))}
-        </View>
-
-        {/* Ligne de scan principale qui descend */}
+        {/* Blob 2 - Olive/Military green */}
         <Animated.View
           style={[
-            styles.movingScanLine,
+            styles.blob,
+            styles.blob2,
             {
-              transform: [{ translateY: scanLineTranslate }],
+              transform: [
+                { translateX: blob2X },
+                { translateY: blob2Y },
+                { scale: blob2Scale },
+              ],
             },
           ]}
         />
 
-        {/* Logo avec effet de glitch */}
+        {/* Blob 3 - Dark military */}
+        <Animated.View
+          style={[
+            styles.blob,
+            styles.blob3,
+            {
+              transform: [
+                { translateX: blob3X },
+                { translateY: blob3Y },
+                { scale: blob3Scale },
+              ],
+            },
+          ]}
+        />
+
+        {/* Blur overlay effect */}
+        <View style={styles.blurOverlay} />
+
+        {/* Logo */}
         <Animated.View
           style={[
             styles.logoContainer,
             {
-              opacity: fadeAnim,
-              transform: [{ translateX: glitchTranslate }],
+              opacity: logoOpacity,
+              transform: [{ scale: logoScale }],
             },
           ]}
         >
@@ -168,29 +311,7 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
             style={styles.logo}
             contentFit="contain"
           />
-
-          {/* Effet de chromatic aberration (RGB split) pendant le glitch */}
-          <Animated.View
-            style={[
-              styles.glitchLayer,
-              {
-                opacity: glitchAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 0.6],
-                }),
-              },
-            ]}
-          >
-            <Image
-              source={require("../assets/GEARTEDicon9.png")}
-              style={[styles.logo, { tintColor: '#00FF00' }]}
-              contentFit="contain"
-            />
-          </Animated.View>
         </Animated.View>
-
-        {/* Vignette d'écran TV */}
-        <View style={styles.vignette} />
       </View>
     </View>
   );
@@ -205,76 +326,58 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 9999,
   },
-  tvBackground: {
+  background: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0a0a0a',
-    position: 'relative',
+    backgroundColor: '#1a1a1a',
+    overflow: 'hidden',
   },
-  staticOverlay: {
+  blob: {
+    position: 'absolute',
+    borderRadius: 9999,
+  },
+  blob1: {
+    width: width * 0.8,
+    height: width * 0.8,
+    backgroundColor: '#4B5D3A',
+    opacity: 0.4,
+    top: '20%',
+    left: '10%',
+  },
+  blob2: {
+    width: width * 0.7,
+    height: width * 0.7,
+    backgroundColor: '#6B7C5A',
+    opacity: 0.35,
+    top: '50%',
+    right: '5%',
+  },
+  blob3: {
+    width: width * 0.9,
+    height: width * 0.9,
+    backgroundColor: '#8B9A7A',
+    opacity: 0.3,
+    bottom: '15%',
+    left: '15%',
+  },
+  blurOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#fff',
-  },
-  scanLinesContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  scanLine: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-  },
-  movingScanLine: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    shadowColor: '#fff',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
+    backgroundColor: 'rgba(26, 26, 26, 0.3)',
   },
   logoContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
+    zIndex: 10,
   },
   logo: {
-    width: width * 0.6,
-    height: width * 0.6,
-    maxWidth: 300,
-    maxHeight: 300,
-  },
-  glitchLayer: {
-    position: 'absolute',
-    top: 2,
-    left: -3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  vignette: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'transparent',
-    borderWidth: 40,
-    borderColor: 'rgba(0, 0, 0, 0.4)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 50,
+    width: width * 0.5,
+    height: width * 0.5,
+    maxWidth: 250,
+    maxHeight: 250,
   },
 });
