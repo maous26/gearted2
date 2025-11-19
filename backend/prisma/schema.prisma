@@ -15,23 +15,30 @@ model User {
   id        String  @id @default(cuid())
   email     String  @unique
   username  String  @unique
-  password  String
+  password  String? // Optional pour OAuth users
   firstName String?
   lastName  String?
   avatar    String?
   phone     String?
-  
+
+  // OAuth fields
+  provider     String?   // "local", "discord", etc.
+  providerId   String?   // Discord user ID
+  providerData Json?     // Données brutes du provider
+
   // Account status
   isEmailVerified Boolean  @default(false)
   isActive        Boolean  @default(true)
   role            UserRole @default(USER)
-  
+
   // Profile information
   bio      String?
   location String?
-  
+
   // Security
   refreshToken String?
+
+  @@unique([provider, providerId]) // Éviter les doublons OAuth
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

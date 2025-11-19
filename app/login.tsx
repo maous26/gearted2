@@ -13,7 +13,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUser } from "../components/UserProvider";
 import authService from "../services/auth";
+import discordAuthService from "../services/discord-auth";
 import { THEMES, ThemeKey } from "../themes";
+import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const [theme] = useState<ThemeKey>("ranger");
@@ -131,6 +133,33 @@ export default function LoginScreen() {
 
   const handleRegister = () => {
     router.push("/register" as any);
+  };
+
+  const handleDiscordLogin = async () => {
+    setIsLoading(true);
+    setGeneralError("");
+
+    try {
+      const result = await discordAuthService.loginWithDiscord();
+
+      if (result.success && result.user) {
+        // Mise à jour du profil
+        updateProfile(result.user);
+
+        // Sauvegarder dans AsyncStorage
+        await AsyncStorage.setItem('@gearted_user_profile', JSON.stringify(result.user));
+
+        // Redirection vers l'accueil
+        router.replace('/(tabs)' as any);
+      } else {
+        setGeneralError(result.error || "Erreur lors de la connexion avec Discord");
+      }
+    } catch (error: any) {
+      setGeneralError("Impossible de se connecter avec Discord");
+      console.error('Discord login error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -277,6 +306,49 @@ export default function LoginScreen() {
               fontWeight: '600'
             }}>
               {isLoading ? "Connexion..." : "Se connecter"}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Séparateur OU */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginVertical: 24
+          }}>
+            <View style={{ flex: 1, height: 1, backgroundColor: t.border }} />
+            <Text style={{
+              marginHorizontal: 16,
+              color: t.muted,
+              fontSize: 14,
+              fontWeight: '500'
+            }}>
+              OU
+            </Text>
+            <View style={{ flex: 1, height: 1, backgroundColor: t.border }} />
+          </View>
+
+          {/* Bouton Discord */}
+          <TouchableOpacity
+            style={{
+              backgroundColor: '#5865F2',
+              paddingVertical: 16,
+              borderRadius: 12,
+              alignItems: 'center',
+              marginBottom: 16,
+              opacity: isLoading ? 0.7 : 1,
+              flexDirection: 'row',
+              justifyContent: 'center'
+            }}
+            onPress={handleDiscordLogin}
+            disabled={isLoading}
+          >
+            <Ionicons name="logo-discord" size={24} color="#FFFFFF" style={{ marginRight: 12 }} />
+            <Text style={{
+              color: '#FFFFFF',
+              fontSize: 16,
+              fontWeight: '600'
+            }}>
+              Se connecter avec Discord
             </Text>
           </TouchableOpacity>
 

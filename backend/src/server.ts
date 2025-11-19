@@ -16,6 +16,7 @@ import { notFound } from './middleware/notFound';
 
 // Import routes
 import authRoutes from './routes/auth';
+import discordAuthRoutes from './routes/discord-auth';
 import categoryRoutes from './routes/categories';
 import compatibilityRoutes from './routes/compatibility';
 import favoritesRoutes from './routes/favorites';
@@ -127,6 +128,7 @@ if (process.env.NODE_ENV === 'development') {
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', discordAuthRoutes); // Discord OAuth routes
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/favorites', favoritesRoutes);
