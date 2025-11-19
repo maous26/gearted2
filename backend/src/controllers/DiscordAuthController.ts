@@ -61,14 +61,19 @@ export class DiscordAuthController {
    */
   static async callback(req: Request, res: Response) {
     try {
+      console.log('🔍 [DISCORD CALLBACK] Step 1: Received callback');
       const { code, state } = req.query;
 
       if (!code) {
+        console.error('❌ [DISCORD CALLBACK] No code provided');
         return res.status(400).json({
           success: false,
           message: 'Code d\'autorisation manquant'
         });
       }
+
+      console.log('✅ [DISCORD CALLBACK] Code received:', (code as string).substring(0, 20) + '...');
+      console.log('🔍 [DISCORD CALLBACK] Step 2: Exchanging code for token...');
 
       // 1. Échanger le code contre un access token
       const tokenResponse = await axios.post<DiscordTokenResponse>(
@@ -83,11 +88,15 @@ export class DiscordAuthController {
         {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
-          }
+          },
+          timeout: 10000 // 10 second timeout
         }
       );
 
+      console.log('✅ [DISCORD CALLBACK] Token received from Discord API');
       const { access_token } = tokenResponse.data;
+
+      console.log('🔍 [DISCORD CALLBACK] Step 3: Fetching user info...');
 
       // 2. Récupérer les infos utilisateur Discord
       const userResponse = await axios.get<DiscordUser>(
@@ -95,11 +104,15 @@ export class DiscordAuthController {
         {
           headers: {
             Authorization: `Bearer ${access_token}`
-          }
+          },
+          timeout: 10000 // 10 second timeout
         }
       );
 
       const discordUser = userResponse.data;
+      console.log('✅ [DISCORD CALLBACK] User info received:', discordUser.username);
+
+      console.log('🔍 [DISCORD CALLBACK] Step 4: Finding/creating user in DB...');
 
       // 3. Chercher ou créer l'utilisateur dans la DB
       let user = await prisma.user.findFirst({
@@ -112,6 +125,7 @@ export class DiscordAuthController {
       });
 
       if (user) {
+        console.log('✅ [DISCORD CALLBACK] Existing user found, updating...');
         // Mettre à jour les données Discord si l'utilisateur existe
         user = await prisma.user.update({
           where: { id: user.id },
@@ -127,6 +141,7 @@ export class DiscordAuthController {
           }
         });
       } else {
+        console.log('✅ [DISCORD CALLBACK] Creating new user...');
         // Créer un nouvel utilisateur
         const username = `${discordUser.username}${Math.floor(Math.random() * 1000)}`;
 
@@ -148,6 +163,10 @@ export class DiscordAuthController {
         });
       }
 
+      console.log('✅ [DISCORD CALLBACK] User processed:', user.username);
+
+      console.log('🔍 [DISCORD CALLBACK] Step 5: Generating JWT tokens...');
+
       // 4. Générer les tokens JWT
       const accessToken = jwt.sign(
         { userId: user.id, email: user.email, role: user.role },
@@ -161,11 +180,15 @@ export class DiscordAuthController {
         { expiresIn: '7d' }
       );
 
+      console.log('🔍 [DISCORD CALLBACK] Step 6: Saving refresh token...');
+
       // 5. Sauvegarder le refresh token
       await prisma.user.update({
         where: { id: user.id },
         data: { refreshToken }
       });
+
+      console.log('✅ [DISCORD CALLBACK] Authentication complete! Returning response...');
 
       // 6. Retourner les tokens
       return res.json({
@@ -184,12 +207,25 @@ export class DiscordAuthController {
       });
 
     } catch (error: any) {
-      console.error('❌ Discord OAuth Error:', error.response?.data || error.message);
-      return res.status(500).json({
-        success: false,
-        message: 'Erreur lors de l\'authentification Discord',
-        error: error.response?.data || error.message
+      console.error('❌ [DISCORD CALLBACK] Error occurred:', {
+        message: error.message,
+        response: error.response?.data,
+        code: error.code,
+        stack: error.stack?.split('\n').slice(0, 5)
       });
+
+      // Ensure response is sent even on error
+      if (!res.headersSent) {
+        return res.status(500).json({
+          success: false,
+          message: 'Erreur lors de l\'authentification Discord',
+          error: error.response?.data || error.message,
+          details: process.env.NODE_ENV === 'development' ? {
+            code: error.code,
+            axios: error.isAxiosError ? true : false
+          } : undefined
+        });
+      }
     }
   }
 

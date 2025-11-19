@@ -1,13 +1,13 @@
 import { compatibilityApi, SearchItem } from '@/services/compatibility';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface ItemSearchProps {
@@ -73,12 +73,10 @@ export function ItemSearch({ onSelectItem, placeholder = 'Search for an item...'
       )}
 
       {showResults && results.length > 0 && (
-        <FlatList
-          data={results}
-          keyExtractor={(item) => item.id}
-          style={styles.resultsList}
-          renderItem={({ item }) => (
+        <ScrollView style={styles.resultsList}>
+          {results.map((item) => (
             <TouchableOpacity
+              key={item.id}
               style={styles.resultItem}
               onPress={() => handleSelectItem(item)}
             >
@@ -87,8 +85,8 @@ export function ItemSearch({ onSelectItem, placeholder = 'Search for an item...'
                 {item.manufacturer} • {item.reference} • {item.type === 'weapon' ? 'Weapon' : 'Part'}
               </Text>
             </TouchableOpacity>
-          )}
-        />
+          ))}
+        </ScrollView>
       )}
 
       {showResults && results.length === 0 && !loading && query.length >= 2 && (

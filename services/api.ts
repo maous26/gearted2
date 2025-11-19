@@ -2,7 +2,12 @@ import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, InternalAxiosRequ
 import TokenManager from './storage';
 
 // Configuration de l'API
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.22:3000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://empowering-truth-production.up.railway.app';
+const API_ENV = process.env.EXPO_PUBLIC_ENV || 'development';
+
+// Logs de debug pour vérifier que Expo charge bien le .env
+console.log('🔗 [API SERVICE] Using API URL:', API_URL);
+console.log('🌍 [API SERVICE] Environment:', API_ENV);
 
 class ApiService {
   private api: AxiosInstance;

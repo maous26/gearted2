@@ -61,13 +61,19 @@ export default function MessagesScreen() {
   useEffect(() => {
     if (!user?.id) return;
     setLoading(true);
-    api.get<Conversation[]>(`/api/messages/conversations/${user.id}`)
+    api
+      .get<Conversation[]>('/api/messages/conversations')
       .then((data) => {
         setConversations(Array.isArray(data) ? data : []);
-        setError("");
+        setError('');
       })
-      .catch(() => {
-        setError("Impossible de charger les conversations. Veuillez réessayer plus tard.");
+      .catch((err) => {
+        console.warn('[MessagesScreen] Failed to load conversations:', err);
+        if ((err as any)?.response?.status === 401) {
+          setError("Vous devez être connecté pour voir vos messages.");
+        } else {
+          setError("Impossible de charger les conversations. Veuillez réessayer plus tard.");
+        }
         setConversations([]);
       })
       .finally(() => setLoading(false));
