@@ -1,5 +1,5 @@
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import * as Location from 'expo-location';
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -8,15 +8,16 @@ import {
     Platform,
     ScrollView,
     StatusBar,
-    Switch,
     Text,
     TextInput,
     TouchableOpacity,
     View
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUser } from "../components/UserProvider";
 import authService from "../services/auth";
+import discordAuthService from "../services/discord-auth";
 import { THEMES, ThemeKey } from "../themes";
 
 export default function RegisterScreen() {
@@ -28,60 +29,52 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [city, setCity] = useState("");
-  const [postalCode, setPostalCode] = useState("");
-  const [locationConsent, setLocationConsent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isRequestingLocation, setIsRequestingLocation] = useState(false);
-  
+
   // États pour les erreurs
   const [emailError, setEmailError] = useState("");
   const [usernameError, setUsernameError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [generalError, setGeneralError] = useState("");
-  
+
   const t = THEMES[theme];
-
-  const handleRequestLocation = async () => {
-    setIsRequestingLocation(true);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert(
-          "Permission refusée",
-          "L'accès à la localisation est nécessaire pour remplir automatiquement votre ville. Vous pouvez la saisir manuellement."
-        );
-        setIsRequestingLocation(false);
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({});
-      const [address] = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude
-      });
-
-      if (address.city) {
-        setCity(address.city);
-      }
-      if (address.postalCode) {
-        setPostalCode(address.postalCode);
-      }
-      
-      setLocationConsent(true);
-      Alert.alert("Succès", "Votre localisation a été détectée !");
-    } catch (error) {
-      Alert.alert("Erreur", "Impossible de récupérer votre position");
-    } finally {
-      setIsRequestingLocation(false);
-    }
-  };
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  };
+
+  const handleDiscordRegister = async () => {
+    // Effacer les erreurs
+    setGeneralError("");
+    setEmailError("");
+    setUsernameError("");
+    setPasswordError("");
+    setConfirmPasswordError("");
+    setIsLoading(true);
+
+    try {
+      const result = await discordAuthService.loginWithDiscord();
+
+      if (result.success && result.user) {
+        // Mise à jour du profil
+        updateProfile(result.user);
+
+        // Sauvegarder dans AsyncStorage
+        await AsyncStorage.setItem('@gearted_user_profile', JSON.stringify(result.user));
+
+        // Redirection vers l'accueil
+        router.replace('/(tabs)' as any);
+      } else {
+        setGeneralError(result.error || "Erreur lors de la connexion avec Discord");
+      }
+    } catch (error: any) {
+      setGeneralError("Impossible de se connecter avec Discord");
+      console.error('Discord register error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleRegister = async () => {
@@ -132,17 +125,12 @@ export default function RegisterScreen() {
       hasError = true;
     }
 
-    if (!city || !postalCode) {
-      setGeneralError("Veuillez indiquer votre ville et code postal");
-      hasError = true;
-    }
-
     if (hasError) {
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
       // Créer le compte avec toutes les informations
       const response = await authService.register({
@@ -151,7 +139,7 @@ export default function RegisterScreen() {
         password,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        location: `${city.trim()}, ${postalCode.trim()}`
+        location: undefined
       });
 
       console.log('[Register] Account created:', response.user.email);
@@ -412,126 +400,6 @@ export default function RegisterScreen() {
           </View>
 
           {/* Localisation Section */}
-          <View style={{
-            backgroundColor: t.cardBg,
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 20,
-            borderWidth: 1,
-            borderColor: t.border
-          }}>
-            <Text style={{
-              fontSize: 16,
-              fontWeight: '600',
-              color: t.heading,
-              marginBottom: 8
-            }}>
-              📍 Localisation
-            </Text>
-            <Text style={{
-              fontSize: 13,
-              color: t.muted,
-              marginBottom: 12,
-              lineHeight: 18
-            }}>
-              Votre ville nous aide à afficher les annonces près de chez vous et facilite la remise en main propre.
-            </Text>
-
-            <View style={{ flexDirection: 'row', marginBottom: 12 }}>
-              <View style={{ flex: 2, marginRight: 12 }}>
-                <TextInput
-                  style={{
-                    backgroundColor: t.rootBg,
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                    fontSize: 15,
-                    color: t.heading,
-                    borderWidth: 1,
-                    borderColor: t.border
-                  }}
-                  placeholder="Ville"
-                  value={city}
-                  onChangeText={setCity}
-                  placeholderTextColor={t.muted}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <TextInput
-                  style={{
-                    backgroundColor: t.rootBg,
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                    fontSize: 15,
-                    color: t.heading,
-                    borderWidth: 1,
-                    borderColor: t.border
-                  }}
-                  placeholder="Code postal"
-                  value={postalCode}
-                  onChangeText={setPostalCode}
-                  placeholderTextColor={t.muted}
-                  keyboardType="numeric"
-                  maxLength={5}
-                />
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={{
-                backgroundColor: locationConsent ? t.sectionLight : t.primaryBtn,
-                paddingVertical: 12,
-                borderRadius: 8,
-                alignItems: 'center',
-                flexDirection: 'row',
-                justifyContent: 'center',
-                opacity: isRequestingLocation ? 0.7 : 1
-              }}
-              onPress={handleRequestLocation}
-              disabled={isRequestingLocation || locationConsent}
-            >
-              <Text style={{ fontSize: 18, marginRight: 8 }}>
-                {locationConsent ? '✅' : '📍'}
-              </Text>
-              <Text style={{
-                color: locationConsent ? t.heading : t.white,
-                fontSize: 14,
-                fontWeight: '600'
-              }}>
-                {isRequestingLocation 
-                  ? "Localisation..." 
-                  : locationConsent 
-                  ? "Position détectée" 
-                  : "Détecter ma position"}
-              </Text>
-            </TouchableOpacity>
-
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginTop: 12,
-              paddingTop: 12,
-              borderTopWidth: 1,
-              borderTopColor: t.border
-            }}>
-              <Switch
-                value={locationConsent}
-                onValueChange={setLocationConsent}
-                trackColor={{ false: t.border, true: t.primaryBtn }}
-                thumbColor={locationConsent ? t.white : t.muted}
-              />
-              <Text style={{
-                fontSize: 12,
-                color: t.muted,
-                marginLeft: 10,
-                flex: 1,
-                lineHeight: 16
-              }}>
-                J'autorise Gearted à utiliser ma localisation pour améliorer mon expérience
-              </Text>
-            </View>
-          </View>
 
           <View style={{ marginBottom: 20 }}>
             <Text style={{
@@ -625,6 +493,49 @@ export default function RegisterScreen() {
               fontWeight: '600'
             }}>
               {isLoading ? "Inscription..." : "S'inscrire"}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Séparateur OU */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginBottom: 16
+          }}>
+            <View style={{ flex: 1, height: 1, backgroundColor: t.border }} />
+            <Text style={{
+              marginHorizontal: 16,
+              color: t.muted,
+              fontSize: 14,
+              fontWeight: '500'
+            }}>
+              OU
+            </Text>
+            <View style={{ flex: 1, height: 1, backgroundColor: t.border }} />
+          </View>
+
+          {/* Bouton Discord */}
+          <TouchableOpacity
+            style={{
+              backgroundColor: '#5865F2',
+              paddingVertical: 16,
+              borderRadius: 12,
+              alignItems: 'center',
+              marginBottom: 24,
+              flexDirection: 'row',
+              justifyContent: 'center',
+              opacity: isLoading ? 0.7 : 1
+            }}
+            onPress={handleDiscordRegister}
+            disabled={isLoading}
+          >
+            <Ionicons name="logo-discord" size={24} color="#FFFFFF" style={{ marginRight: 8 }} />
+            <Text style={{
+              color: '#FFFFFF',
+              fontSize: 16,
+              fontWeight: '600'
+            }}>
+              S'inscrire avec Discord
             </Text>
           </TouchableOpacity>
 
