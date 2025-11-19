@@ -189,6 +189,15 @@ export class AuthController {
       }
 
       // Verify password
+      if (!user.password) {
+        res.status(401).json({
+          success: false,
+          error: {
+            message: 'Ce compte utilise une connexion sociale (Discord). Utilisez le bouton de connexion approprié.'
+          }
+        });
+        return;
+      }
       const isPasswordValid = await AuthService.comparePassword(password, user.password);
       if (!isPasswordValid) {
         res.status(401).json({

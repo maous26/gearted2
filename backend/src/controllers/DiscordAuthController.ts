@@ -168,7 +168,7 @@ export class DiscordAuthController {
       });
 
       // 6. Retourner les tokens
-      res.json({
+      return res.json({
         success: true,
         message: 'Authentification Discord réussie',
         user: {
@@ -185,7 +185,7 @@ export class DiscordAuthController {
 
     } catch (error: any) {
       console.error('❌ Discord OAuth Error:', error.response?.data || error.message);
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: 'Erreur lors de l\'authentification Discord',
         error: error.response?.data || error.message
