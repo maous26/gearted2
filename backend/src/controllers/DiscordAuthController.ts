@@ -49,7 +49,7 @@ export class DiscordAuthController {
 
     const authUrl = `https://discord.com/api/oauth2/authorize?${params.toString()}`;
 
-    res.json({
+    return res.json({
       success: true,
       authUrl,
       state
