@@ -169,21 +169,20 @@ export class DiscordAuthController {
         data: { refreshToken }
       });
 
-      // 6. Retourner les tokens
-      return res.json({
-        success: true,
-        message: 'Authentification Discord réussie',
-        user: {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          firstName: user.firstName,
-          avatar: user.avatar,
-          provider: 'discord'
-        },
-        accessToken,
-        refreshToken
-      });
+      // 6. Rediriger vers l'app avec les tokens
+      // Format: exp://... ou custom scheme
+      const redirectUrl = `exp://--/auth/discord/callback?` +
+        `success=true&` +
+        `accessToken=${encodeURIComponent(accessToken)}&` +
+        `refreshToken=${encodeURIComponent(refreshToken)}&` +
+        `userId=${encodeURIComponent(user.id)}&` +
+        `email=${encodeURIComponent(user.email)}&` +
+        `username=${encodeURIComponent(user.username)}&` +
+        `firstName=${encodeURIComponent(user.firstName || '')}&` +
+        `avatar=${encodeURIComponent(user.avatar || '')}&` +
+        `provider=discord`;
+
+      return res.redirect(redirectUrl);
 
     } catch (error: any) {
       console.error('[Discord OAuth] Error:', error.message);

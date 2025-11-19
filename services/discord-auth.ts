@@ -63,37 +63,42 @@ class DiscordAuthService {
         };
       }
 
-      // 3. Extraire le code de l'URL
-      const code = this.extractCodeFromUrl(result.url);
+      // 3. Extraire les données de l'URL de callback
+      const urlObj = new URL(result.url);
+      const params = urlObj.searchParams;
 
-      if (!code) {
+      const success = params.get('success');
+      const accessToken = params.get('accessToken');
+      const refreshToken = params.get('refreshToken');
+      const userId = params.get('userId');
+      const email = params.get('email');
+      const username = params.get('username');
+      const firstName = params.get('firstName');
+      const avatar = params.get('avatar');
+
+      if (!success || !accessToken || !refreshToken) {
         return {
           success: false,
           error: 'Erreur lors de la connexion. Veuillez réessayer.'
         };
       }
 
-      // 4. Échanger le code contre des tokens
-      const callbackResponse = await api.get<DiscordCallbackResponse>(
-        `/api/auth/discord/callback?code=${code}`
-      );
+      // 4. Sauvegarder les tokens
+      await TokenManager.saveTokens(accessToken, refreshToken);
 
-      if (!callbackResponse.success) {
-        return {
-          success: false,
-          error: 'Identifiants Discord incorrects. Veuillez réessayer.'
-        };
-      }
-
-      // 5. Sauvegarder les tokens
-      await TokenManager.saveTokens(
-        callbackResponse.accessToken,
-        callbackResponse.refreshToken
-      );
+      // 5. Construire l'objet utilisateur
+      const user = {
+        id: userId || '',
+        email: email || '',
+        username: username || '',
+        firstName: firstName || '',
+        avatar: avatar || null,
+        provider: 'discord'
+      };
 
       return {
         success: true,
-        user: callbackResponse.user
+        user
       };
 
     } catch (error: any) {
