@@ -136,8 +136,11 @@ export default function LoginScreen() {
   };
 
   const handleDiscordLogin = async () => {
-    setIsLoading(true);
+    // Effacer les erreurs AVANT de commencer
     setGeneralError("");
+    setEmailError("");
+    setPasswordError("");
+    setIsLoading(true);
 
     try {
       const result = await discordAuthService.loginWithDiscord();
