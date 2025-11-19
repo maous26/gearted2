@@ -122,9 +122,9 @@ export default function LoginScreen() {
       if (errorMessage.toLowerCase().includes('email') || errorMessage.toLowerCase().includes('mail')) {
         setEmailError(errorMessage);
       } else if (errorMessage.toLowerCase().includes('mot de passe') || errorMessage.toLowerCase().includes('password')) {
-        setPasswordError(errorMessage);
-      } else if (errorMessage.toLowerCase().includes('identifiants') || errorMessage.toLowerCase().includes('credentials')) {
-        setGeneralError("Email ou mot de passe incorrect");
+        setPasswordError("Le mot de passe est incorrect. Veuillez réessayer.");
+      } else if (errorMessage.toLowerCase().includes('identifiants') || errorMessage.toLowerCase().includes('credentials') || errorMessage.toLowerCase().includes('invalide')) {
+        setPasswordError("Le mot de passe est incorrect. Veuillez réessayer.");
       } else {
         setGeneralError(errorMessage);
       }
