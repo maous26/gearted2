@@ -73,15 +73,21 @@ class ApiService {
               const response = await this.api.post('/api/auth/refresh-token', { refreshToken });
 
               // Extraire proprement les tokens du payload
+              // Le backend peut retourner plusieurs structures:
+              // 1. {accessToken, refreshToken}
+              // 2. {tokens: {accessToken, refreshToken}}
+              // 3. {data: {tokens: {accessToken, refreshToken}}}
               const payload = (response as any).data ?? response;
-              const accessToken = payload?.accessToken ?? payload?.tokens?.accessToken ?? null;
-              const newRefreshToken = payload?.refreshToken ?? payload?.tokens?.refreshToken ?? null;
+              const tokensObj = payload?.data?.tokens ?? payload?.tokens ?? payload;
+              const accessToken = tokensObj?.accessToken ?? null;
+              const newRefreshToken = tokensObj?.refreshToken ?? null;
 
               // Valider les tokens avant de tenter de les sauvegarder
               if (typeof accessToken !== 'string' || typeof newRefreshToken !== 'string' || !accessToken || !newRefreshToken) {
                 console.error('[API] Invalid tokens received from refresh endpoint:', {
                   accessToken,
                   newRefreshToken,
+                  tokensObj,
                   payload
                 });
                 // Nettoyer les tokens existants et forcer la sortie

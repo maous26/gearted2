@@ -254,15 +254,21 @@ export default function LoginScreen() {
             ) : null}
           </View>
 
-          <View style={{ marginBottom: 32 }}>
-            <Text style={{
-              fontSize: 16,
-              fontWeight: '600',
-              color: t.heading,
-              marginBottom: 8
-            }}>
-              Mot de passe
-            </Text>
+          <View style={{ marginBottom: 24 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <Text style={{
+                fontSize: 16,
+                fontWeight: '600',
+                color: t.heading
+              }}>
+                Mot de passe
+              </Text>
+              <TouchableOpacity onPress={() => router.push("/forgot-password" as any)}>
+                <Text style={{ fontSize: 14, color: t.primaryBtn, fontWeight: '500' }}>
+                  Mot de passe oublié ?
+                </Text>
+              </TouchableOpacity>
+            </View>
             <TextInput
               style={{
                 backgroundColor: t.cardBg,

@@ -14,6 +14,7 @@ export interface UserProfile {
   location?: string;
   phone?: string;
   bio?: string;
+  provider?: string;
 }
 
 interface UserContextValue {
@@ -77,7 +78,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         lastName: updates.lastName !== undefined ? updates.lastName : user.lastName,
         location: updates.location !== undefined ? updates.location : user.location,
         phone: updates.phone !== undefined ? updates.phone : user.phone,
-        bio: updates.bio !== undefined ? updates.bio : user.bio
+        bio: updates.bio !== undefined ? updates.bio : user.bio,
+        provider: updates.provider !== undefined ? updates.provider : user.provider
       };
       setUser(updatedUser);
     } else {
@@ -91,7 +93,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         lastName: updates.lastName,
         location: updates.location,
         phone: updates.phone,
-        bio: updates.bio
+        bio: updates.bio,
+        provider: updates.provider
       };
       setUser(updatedUser);
     }

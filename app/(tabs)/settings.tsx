@@ -28,8 +28,9 @@ export default function Settings() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editUsername, setEditUsername] = useState(user?.username || "");
   const [editTeamName, setEditTeamName] = useState(user?.teamName || "");
+  const [editLocation, setEditLocation] = useState(user?.location || "");
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const t = THEMES[theme];
 
   const selectAvatar = async () => {
@@ -80,6 +81,7 @@ export default function Settings() {
       try {
         const updatedUser = await userService.updateProfile({
           username: editUsername.trim(),
+          location: editLocation.trim() || undefined,
         });
   // Profil sauvegardé sur le backend
         backendSuccess = true;
@@ -268,6 +270,7 @@ export default function Settings() {
                 } else {
                   setEditUsername(user?.username || "");
                   setEditTeamName(user?.teamName || "");
+                  setEditLocation(user?.location || "");
                   setIsEditingProfile(true);
                 }
               }}
@@ -350,7 +353,7 @@ export default function Settings() {
           </View>
 
           {/* Team Name */}
-          <View>
+          <View style={{ marginBottom: 16 }}>
             <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>
               Équipe
             </Text>
@@ -379,12 +382,43 @@ export default function Settings() {
             )}
           </View>
 
+          {/* Location */}
+          <View>
+            <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>
+              📍 Localisation
+            </Text>
+            {isEditingProfile ? (
+              <TextInput
+                style={{
+                  backgroundColor: t.rootBg,
+                  borderRadius: 8,
+                  padding: 12,
+                  fontSize: 16,
+                  color: t.heading,
+                  borderWidth: 1,
+                  borderColor: t.border
+                }}
+                value={editLocation}
+                onChangeText={setEditLocation}
+                placeholder="Ville, Code postal"
+                placeholderTextColor={t.muted}
+                maxLength={50}
+                autoFocus={false}
+              />
+            ) : (
+              <Text style={{ fontSize: 16, color: t.heading }}>
+                {user?.location || "Non défini"}
+              </Text>
+            )}
+          </View>
+
           {isEditingProfile && (
             <TouchableOpacity
               onPress={() => {
                 setIsEditingProfile(false);
                 setEditUsername(user?.username || "");
                 setEditTeamName(user?.teamName || "");
+                setEditLocation(user?.location || "");
               }}
               style={{ marginTop: 12, alignItems: 'center' }}
             >
@@ -424,48 +458,34 @@ export default function Settings() {
 
         {/* Account Section */}
         <View style={{ marginTop: 32 }}>
-          <Text style={{ 
-            fontSize: 18, 
-            fontWeight: '700', 
+          <Text style={{
+            fontSize: 18,
+            fontWeight: '700',
             color: t.heading,
-            marginBottom: 16 
+            marginBottom: 16
           }}>
             Compte
           </Text>
-          
-          <TouchableOpacity style={{
-            paddingVertical: 16,
-            paddingHorizontal: 16,
-            backgroundColor: t.cardBg,
-            borderRadius: 12,
-            marginBottom: 8,
-            borderWidth: 1,
-            borderColor: t.border
-          }}>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
-              Profil utilisateur
-            </Text>
-            <Text style={{ fontSize: 14, color: t.muted, marginTop: 2 }}>
-              Modifier vos informations personnelles
-            </Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity style={{
-            paddingVertical: 16,
-            paddingHorizontal: 16,
-            backgroundColor: t.cardBg,
-            borderRadius: 12,
-            marginBottom: 8,
-            borderWidth: 1,
-            borderColor: t.border
-          }}>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
-              Sécurité
-            </Text>
-            <Text style={{ fontSize: 14, color: t.muted, marginTop: 2 }}>
-              Modifier votre mot de passe et paramètres de sécurité
-            </Text>
-          </TouchableOpacity>
+          {/* Sécurité - Seulement pour les comptes non-Discord */}
+          {user?.provider !== 'discord' && (
+            <TouchableOpacity style={{
+              paddingVertical: 16,
+              paddingHorizontal: 16,
+              backgroundColor: t.cardBg,
+              borderRadius: 12,
+              marginBottom: 8,
+              borderWidth: 1,
+              borderColor: t.border
+            }}>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
+                Sécurité
+              </Text>
+              <Text style={{ fontSize: 14, color: t.muted, marginTop: 2 }}>
+                Modifier votre mot de passe et paramètres de sécurité
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Logout */}
