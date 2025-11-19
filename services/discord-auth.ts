@@ -92,6 +92,7 @@ class DiscordAuthService {
         id: userId || '',
         email: email || '',
         username: username || '',
+        teamName: 'Sans équipe',
         firstName: firstName || '',
         lastName: null,
         avatar: avatar || null,
