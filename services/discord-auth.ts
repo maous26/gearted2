@@ -85,16 +85,30 @@ class DiscordAuthService {
 
       // 4. Sauvegarder les tokens
       await TokenManager.saveTokens(accessToken, refreshToken);
+      console.log('[Discord Auth] Tokens saved successfully');
 
-      // 5. Construire l'objet utilisateur
+      // 5. Construire l'objet utilisateur complet
       const user = {
         id: userId || '',
         email: email || '',
         username: username || '',
         firstName: firstName || '',
+        lastName: null,
         avatar: avatar || null,
-        provider: 'discord'
+        location: null,
+        phone: null,
+        bio: null,
+        provider: 'discord',
+        role: 'user',
+        isActive: true,
+        isEmailVerified: true
       };
+
+      console.log('[Discord Auth] User object created:', {
+        id: user.id,
+        username: user.username,
+        hasAllFields: true
+      });
 
       return {
         success: true,
