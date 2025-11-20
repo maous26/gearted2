@@ -480,6 +480,33 @@ export default function Settings() {
             )}
           </View>
 
+          {/* Modifier le mot de passe - Seulement pour les comptes non-Discord */}
+          {user?.provider !== 'discord' && (
+            <TouchableOpacity
+              onPress={() => router.push("/change-password" as any)}
+              style={{
+                marginTop: 16,
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                backgroundColor: t.rootBg,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: t.border,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="lock-closed" size={18} color={t.primaryBtn} style={{ marginRight: 8 }} />
+                <Text style={{ fontSize: 15, fontWeight: '500', color: t.heading }}>
+                  Modifier le mot de passe
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={t.muted} />
+            </TouchableOpacity>
+          )}
+
           {isEditingProfile && (
             <TouchableOpacity
               onPress={() => {
