@@ -12,6 +12,7 @@ import {
     View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AdBanner } from "../../components/AdBanner";
 import { CompatDrawer } from "../../components/CompatDrawer";
 import { CompatibilityTeaser } from "../../components/CompatibilityTeaser";
 import { useTheme } from "../../components/ThemeProvider";
@@ -293,11 +294,14 @@ export default function AuthenticatedHome() {
           </ScrollView>
         </View>
 
+        {/* Ad Banner 1 */}
+        <AdBanner size="banner" />
+
         {/* Compatibility */}
-        <View style={{ 
-          backgroundColor: t.sectionLight + '66', 
-          paddingHorizontal: 16, 
-          paddingVertical: 24 
+        <View style={{
+          backgroundColor: t.sectionLight + '66',
+          paddingHorizontal: 16,
+          paddingVertical: 24
         }}>
           <CompatibilityTeaser 
             theme={theme}
@@ -349,6 +353,9 @@ export default function AuthenticatedHome() {
             ))}
           </View>
         </View>
+
+        {/* Ad Banner 2 */}
+        <AdBanner size="mediumRectangle" />
 
         {/* Recent Listings */}
         <View style={{ paddingHorizontal: 16, paddingBottom: 32 }}>
@@ -447,6 +454,9 @@ export default function AuthenticatedHome() {
             </ScrollView>
           )}
         </View>
+
+        {/* Ad Banner 3 */}
+        <AdBanner size="banner" />
 
         {/* Quick Actions */}
         <View style={{ paddingHorizontal: 16, paddingBottom: 32 }}>
