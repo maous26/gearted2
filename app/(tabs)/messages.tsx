@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../components/ThemeProvider";
+import { UserBadge } from "../../components/UserBadge";
 import { THEMES } from "../../themes";
 
 import { useUser } from '../../components/UserProvider';
@@ -20,6 +21,8 @@ type User = {
   id: string;
   username: string;
   avatar?: string;
+  role?: string;
+  badge?: string;
 };
 
 type Message = {
@@ -119,9 +122,12 @@ export default function MessagesScreen() {
           {/* Contenu */}
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-              <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
-                {other?.username || 'Utilisateur'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
+                  {other?.username || 'Utilisateur'}
+                </Text>
+                <UserBadge role={other?.role} badge={other?.badge} size="small" />
+              </View>
               <Text style={{ fontSize: 12, color: t.muted }}>
                 {lastMsg ? formatTimestamp(lastMsg.sentAt) : ''}
               </Text>

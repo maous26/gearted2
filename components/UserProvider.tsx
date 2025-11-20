@@ -16,6 +16,8 @@ export interface UserProfile {
   phone?: string;
   bio?: string;
   provider?: string;
+  role?: string;
+  badge?: string;
 }
 
 interface UserContextValue {
@@ -80,7 +82,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
         location: updates.location !== undefined ? updates.location : user.location,
         phone: updates.phone !== undefined ? updates.phone : user.phone,
         bio: updates.bio !== undefined ? updates.bio : user.bio,
-        provider: updates.provider !== undefined ? updates.provider : user.provider
+        provider: updates.provider !== undefined ? updates.provider : user.provider,
+        role: updates.role !== undefined ? updates.role : user.role,
+        badge: updates.badge !== undefined ? updates.badge : user.badge
       };
       setUser(updatedUser);
     } else {
@@ -95,7 +99,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
         location: updates.location,
         phone: updates.phone,
         bio: updates.bio,
-        provider: updates.provider
+        provider: updates.provider,
+        role: updates.role,
+        badge: updates.badge
       };
       setUser(updatedUser);
     }

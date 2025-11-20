@@ -101,6 +101,7 @@ class DiscordAuthService {
         bio: null,
         provider: 'discord',
         role: 'user',
+        badge: 'verified', // Badge vérifié pour les utilisateurs Discord
         isActive: true,
         isEmailVerified: true
       };

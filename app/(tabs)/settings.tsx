@@ -19,6 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from "../../components/ThemeProvider";
 import { useUser } from "../../components/UserProvider";
+import { UserBadge } from "../../components/UserBadge";
 import userService from "../../services/user";
 import { THEMES, ThemeKey } from "../../themes";
 
@@ -394,9 +395,12 @@ export default function Settings() {
                 autoFocus={false}
               />
             ) : (
-              <Text style={{ fontSize: 16, color: t.heading, fontWeight: '600' }}>
-                {user?.username || "Non défini"}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ fontSize: 16, color: t.heading, fontWeight: '600' }}>
+                  {user?.username || "Non défini"}
+                </Text>
+                <UserBadge role={user?.role} badge={user?.badge} size="medium" />
+              </View>
             )}
           </View>
 
