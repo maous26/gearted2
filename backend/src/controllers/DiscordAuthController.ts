@@ -132,8 +132,17 @@ export class DiscordAuthController {
       let userBadge = 'verified'; // Badge par défaut pour Discord
       let userRoles: string[] = [];
 
+      console.log('[Discord Auth] Environment check:', {
+        hasGuildId: !!DISCORD_GUILD_ID,
+        guildId: DISCORD_GUILD_ID,
+        hasBotToken: !!process.env.DISCORD_BOT_TOKEN,
+        username: discordUser.username
+      });
+
       if (DISCORD_GUILD_ID) {
         try {
+          console.log('[Discord Auth] Fetching guild member info for user:', discordUser.username);
+
           // Récupérer les informations du membre sur le serveur
           const memberResponse = await axios.get<DiscordGuildMember>(
             `https://discord.com/api/users/@me/guilds/${DISCORD_GUILD_ID}/member`,
@@ -146,8 +155,10 @@ export class DiscordAuthController {
           );
 
           const roleIds = memberResponse.data.roles;
+          console.log('[Discord Auth] User role IDs:', roleIds);
 
           // Récupérer les détails des rôles du serveur
+          console.log('[Discord Auth] Fetching guild roles with bot token');
           const rolesResponse = await axios.get<DiscordRole[]>(
             `https://discord.com/api/guilds/${DISCORD_GUILD_ID}/roles`,
             {
@@ -158,9 +169,14 @@ export class DiscordAuthController {
             }
           );
 
+          console.log('[Discord Auth] Guild has', rolesResponse.data.length, 'roles');
+
           // Filtrer les rôles de l'utilisateur
           const memberRoles = rolesResponse.data.filter(role => roleIds.includes(role.id));
           userRoles = memberRoles.map(r => r.name);
+
+          console.log('[Discord Auth] User role names:', userRoles);
+          console.log('[Discord Auth] Checking against mapping:', ROLE_TO_BADGE_MAP);
 
           // Trouver le badge le plus important (priorité: founder > admin > moderator > premium > verified)
           const rolePriority = ['founder', 'admin', 'moderator', 'premium', 'vip', 'developer', 'supporter'];
@@ -170,16 +186,22 @@ export class DiscordAuthController {
             );
             if (matchingRole) {
               userBadge = ROLE_TO_BADGE_MAP[matchingRole.toLowerCase()];
+              console.log(`[Discord Auth] Found matching role "${matchingRole}" -> badge "${userBadge}"`);
               break;
             }
           }
 
-          console.log(`[Discord] User ${discordUser.username} has roles:`, userRoles);
-          console.log(`[Discord] Assigned badge:`, userBadge);
+          console.log(`[Discord Auth] Final assigned badge for ${discordUser.username}:`, userBadge);
         } catch (roleError: any) {
-          console.warn('[Discord] Could not fetch guild roles:', roleError.message);
+          console.error('[Discord Auth] Error fetching guild roles:', {
+            message: roleError.message,
+            response: roleError.response?.data,
+            status: roleError.response?.status
+          });
           // Continue avec le badge par défaut
         }
+      } else {
+        console.log('[Discord Auth] DISCORD_GUILD_ID not configured, using default badge');
       }
 
       // 3. Chercher ou créer l'utilisateur dans la DB
@@ -261,6 +283,14 @@ export class DiscordAuthController {
         `avatar=${encodeURIComponent(user.avatar || '')}&` +
         `badge=${encodeURIComponent(userBadge)}&` +
         `provider=discord`;
+
+      console.log('[Discord Auth] Redirecting to app with:', {
+        userId: user.id,
+        username: user.username,
+        badge: userBadge,
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken
+      });
 
       return res.redirect(redirectUrl);
 

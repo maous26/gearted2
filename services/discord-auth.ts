@@ -67,6 +67,17 @@ class DiscordAuthService {
       const urlObj = new URL(result.url);
       const params = urlObj.searchParams;
 
+      console.log('[Discord Auth] Callback URL received:', result.url);
+      console.log('[Discord Auth] URL parameters:', {
+        success: params.get('success'),
+        hasAccessToken: !!params.get('accessToken'),
+        hasRefreshToken: !!params.get('refreshToken'),
+        userId: params.get('userId'),
+        username: params.get('username'),
+        badge: params.get('badge'),
+        provider: params.get('provider')
+      });
+
       const success = params.get('success');
       const accessToken = params.get('accessToken');
       const refreshToken = params.get('refreshToken');
@@ -110,7 +121,11 @@ class DiscordAuthService {
       console.log('[Discord Auth] User object created:', {
         id: user.id,
         username: user.username,
-        hasAllFields: true
+        email: user.email,
+        provider: user.provider,
+        badge: user.badge,
+        teamName: user.teamName,
+        hasAllRequiredFields: !!(user.id && user.username && user.email && user.teamName)
       });
 
       return {
