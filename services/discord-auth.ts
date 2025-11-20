@@ -75,6 +75,7 @@ class DiscordAuthService {
       const username = params.get('username');
       const firstName = params.get('firstName');
       const avatar = params.get('avatar');
+      const badge = params.get('badge');
 
       if (!success || !accessToken || !refreshToken) {
         return {
@@ -101,7 +102,7 @@ class DiscordAuthService {
         bio: null,
         provider: 'discord',
         role: 'user',
-        badge: 'verified', // Badge vérifié pour les utilisateurs Discord
+        badge: badge || 'verified', // Badge du serveur Discord ou vérifié par défaut
         isActive: true,
         isEmailVerified: true
       };

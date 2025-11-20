@@ -8,6 +8,7 @@ const prisma = new PrismaClient();
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID!;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET!;
 const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI!;
+const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID || ''; // ID du serveur Discord Gearted
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret';
 
@@ -29,6 +30,30 @@ interface DiscordTokenResponse {
   scope: string;
 }
 
+interface DiscordGuildMember {
+  roles: string[];
+  nick?: string;
+  user: DiscordUser;
+}
+
+interface DiscordRole {
+  id: string;
+  name: string;
+}
+
+// Mapping des rôles Discord vers les badges de l'app
+const ROLE_TO_BADGE_MAP: Record<string, string> = {
+  'gearted builder': 'founder',
+  'admin': 'admin',
+  'moderator': 'moderator',
+  'modérateur': 'moderator',
+  'premium': 'premium',
+  'vip': 'vip',
+  'developer': 'developer',
+  'développeur': 'developer',
+  'supporter': 'supporter',
+};
+
 export class DiscordAuthController {
   /**
    * Génère l'URL de redirection vers Discord OAuth
@@ -43,7 +68,7 @@ export class DiscordAuthController {
       client_id: DISCORD_CLIENT_ID,
       redirect_uri: DISCORD_REDIRECT_URI,
       response_type: 'code',
-      scope: 'identify email',
+      scope: 'identify email guilds guilds.members.read',
       state
     });
 
@@ -102,6 +127,60 @@ export class DiscordAuthController {
       );
 
       const discordUser = userResponse.data;
+
+      // 2.5. Récupérer les rôles du serveur Discord si GUILD_ID est configuré
+      let userBadge = 'verified'; // Badge par défaut pour Discord
+      let userRoles: string[] = [];
+
+      if (DISCORD_GUILD_ID) {
+        try {
+          // Récupérer les informations du membre sur le serveur
+          const memberResponse = await axios.get<DiscordGuildMember>(
+            `https://discord.com/api/users/@me/guilds/${DISCORD_GUILD_ID}/member`,
+            {
+              headers: {
+                Authorization: `Bearer ${access_token}`
+              },
+              timeout: 10000
+            }
+          );
+
+          const roleIds = memberResponse.data.roles;
+
+          // Récupérer les détails des rôles du serveur
+          const rolesResponse = await axios.get<DiscordRole[]>(
+            `https://discord.com/api/guilds/${DISCORD_GUILD_ID}/roles`,
+            {
+              headers: {
+                Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`
+              },
+              timeout: 10000
+            }
+          );
+
+          // Filtrer les rôles de l'utilisateur
+          const memberRoles = rolesResponse.data.filter(role => roleIds.includes(role.id));
+          userRoles = memberRoles.map(r => r.name);
+
+          // Trouver le badge le plus important (priorité: founder > admin > moderator > premium > verified)
+          const rolePriority = ['founder', 'admin', 'moderator', 'premium', 'vip', 'developer', 'supporter'];
+          for (const priority of rolePriority) {
+            const matchingRole = userRoles.find(roleName =>
+              ROLE_TO_BADGE_MAP[roleName.toLowerCase()] === priority
+            );
+            if (matchingRole) {
+              userBadge = ROLE_TO_BADGE_MAP[matchingRole.toLowerCase()];
+              break;
+            }
+          }
+
+          console.log(`[Discord] User ${discordUser.username} has roles:`, userRoles);
+          console.log(`[Discord] Assigned badge:`, userBadge);
+        } catch (roleError: any) {
+          console.warn('[Discord] Could not fetch guild roles:', roleError.message);
+          // Continue avec le badge par défaut
+        }
+      }
 
       // 3. Chercher ou créer l'utilisateur dans la DB
       let user = await prisma.user.findFirst({
@@ -180,6 +259,7 @@ export class DiscordAuthController {
         `username=${encodeURIComponent(user.username)}&` +
         `firstName=${encodeURIComponent(user.firstName || '')}&` +
         `avatar=${encodeURIComponent(user.avatar || '')}&` +
+        `badge=${encodeURIComponent(userBadge)}&` +
         `provider=discord`;
 
       return res.redirect(redirectUrl);
