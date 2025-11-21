@@ -131,6 +131,7 @@ export class DiscordAuthController {
       // 2.5. Récupérer les rôles du serveur Discord si GUILD_ID est configuré
       let userBadge = 'verified'; // Badge par défaut pour Discord
       let userRoles: string[] = [];
+      let userBadges: string[] = ['verified']; // Tableau de tous les badges de l'utilisateur
 
       console.log('[Discord Auth] Environment check:', {
         hasGuildId: !!DISCORD_GUILD_ID,
@@ -178,20 +179,28 @@ export class DiscordAuthController {
           console.log('[Discord Auth] User role names:', userRoles);
           console.log('[Discord Auth] Checking against mapping:', ROLE_TO_BADGE_MAP);
 
-          // Trouver le badge le plus important (priorité: founder > admin > moderator > premium > verified)
+          // Mapper tous les rôles Discord vers des badges
+          const mappedBadges = userRoles
+            .map(roleName => ROLE_TO_BADGE_MAP[roleName.toLowerCase()])
+            .filter(Boolean); // Retirer les undefined
+
+          if (mappedBadges.length > 0) {
+            userBadges = [...new Set([...mappedBadges, 'verified'])]; // Ajouter verified + dédupliquer
+          }
+
+          console.log('[Discord Auth] All mapped badges:', userBadges);
+
+          // Trouver le badge le plus important pour la compatibilité (priorité: founder > admin > moderator > premium > verified)
           const rolePriority = ['founder', 'admin', 'moderator', 'premium', 'vip', 'developer', 'supporter'];
           for (const priority of rolePriority) {
-            const matchingRole = userRoles.find(roleName =>
-              ROLE_TO_BADGE_MAP[roleName.toLowerCase()] === priority
-            );
-            if (matchingRole) {
-              userBadge = ROLE_TO_BADGE_MAP[matchingRole.toLowerCase()];
-              console.log(`[Discord Auth] Found matching role "${matchingRole}" -> badge "${userBadge}"`);
+            if (userBadges.includes(priority)) {
+              userBadge = priority;
+              console.log(`[Discord Auth] Primary badge set to: "${userBadge}"`);
               break;
             }
           }
 
-          console.log(`[Discord Auth] Final assigned badge for ${discordUser.username}:`, userBadge);
+          console.log(`[Discord Auth] Final badges for ${discordUser.username}:`, userBadges);
         } catch (roleError: any) {
           console.error('[Discord Auth] Error fetching guild roles:', {
             message: roleError.message,
@@ -226,7 +235,8 @@ export class DiscordAuthController {
               ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
               : user.avatar,
             firstName: discordUser.global_name || discordUser.username,
-            isEmailVerified: discordUser.verified || false
+            isEmailVerified: discordUser.verified || false,
+            badges: userBadges // Mettre à jour les badges depuis Discord
           }
         });
       } else {
@@ -246,7 +256,8 @@ export class DiscordAuthController {
               : null,
             firstName: discordUser.global_name || discordUser.username,
             isEmailVerified: discordUser.verified || false,
-            isActive: true
+            isActive: true,
+            badges: userBadges // Stocker les badges lors de la création
           }
         });
       }
@@ -282,12 +293,14 @@ export class DiscordAuthController {
         `firstName=${encodeURIComponent(user.firstName || '')}&` +
         `avatar=${encodeURIComponent(user.avatar || '')}&` +
         `badge=${encodeURIComponent(userBadge)}&` +
+        `badges=${encodeURIComponent(JSON.stringify(userBadges))}&` +
         `provider=discord`;
 
       console.log('[Discord Auth] Redirecting to app with:', {
         userId: user.id,
         username: user.username,
         badge: userBadge,
+        badges: userBadges,
         hasAccessToken: !!accessToken,
         hasRefreshToken: !!refreshToken
       });

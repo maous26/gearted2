@@ -75,6 +75,7 @@ class DiscordAuthService {
         userId: params.get('userId'),
         username: params.get('username'),
         badge: params.get('badge'),
+        badges: params.get('badges'),
         provider: params.get('provider')
       });
 
@@ -87,6 +88,17 @@ class DiscordAuthService {
       const firstName = params.get('firstName');
       const avatar = params.get('avatar');
       const badge = params.get('badge');
+      const badgesStr = params.get('badges');
+
+      // Parser le tableau de badges JSON
+      let badges: string[] = ['verified'];
+      if (badgesStr) {
+        try {
+          badges = JSON.parse(badgesStr);
+        } catch (e) {
+          console.warn('[Discord Auth] Failed to parse badges:', e);
+        }
+      }
 
       if (!success || !accessToken || !refreshToken) {
         return {
@@ -113,7 +125,8 @@ class DiscordAuthService {
         bio: null,
         provider: 'discord',
         role: 'user',
-        badge: badge || 'verified', // Badge du serveur Discord ou vérifié par défaut
+        badge: badge || 'verified', // Badge principal du serveur Discord
+        badges: badges, // Tous les badges Discord de l'utilisateur
         isActive: true,
         isEmailVerified: true
       };
@@ -124,6 +137,7 @@ class DiscordAuthService {
         email: user.email,
         provider: user.provider,
         badge: user.badge,
+        badges: user.badges,
         teamName: user.teamName,
         hasAllRequiredFields: !!(user.id && user.username && user.email && user.teamName)
       });

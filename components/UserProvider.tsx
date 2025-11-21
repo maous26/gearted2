@@ -18,6 +18,7 @@ export interface UserProfile {
   provider?: string;
   role?: string;
   badge?: string;
+  badges?: string[]; // Tous les badges Discord de l'utilisateur
 }
 
 interface UserContextValue {
@@ -84,7 +85,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         bio: updates.bio !== undefined ? updates.bio : user.bio,
         provider: updates.provider !== undefined ? updates.provider : user.provider,
         role: updates.role !== undefined ? updates.role : user.role,
-        badge: updates.badge !== undefined ? updates.badge : user.badge
+        badge: updates.badge !== undefined ? updates.badge : user.badge,
+        badges: updates.badges !== undefined ? updates.badges : user.badges
       };
       setUser(updatedUser);
     } else {
@@ -101,7 +103,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         bio: updates.bio,
         provider: updates.provider,
         role: updates.role,
-        badge: updates.badge
+        badge: updates.badge,
+        badges: updates.badges
       };
       setUser(updatedUser);
     }
