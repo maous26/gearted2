@@ -16,8 +16,6 @@ export interface Product {
   featured: boolean;
   createdAt: string;
   handDelivery?: boolean; // Remise en main propre disponible
-  listingType?: 'SALE' | 'TRADE' | 'BOTH'; // Type d'annonce
-  tradeFor?: string; // Description de ce que le vendeur cherche en échange
 }
 
 const PRODUCTS_STORAGE_KEY = '@gearted_products';

@@ -3,7 +3,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Dimensions, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import OfferTypeModal from "../../components/OfferTypeModal";
 import RatingModal from "../../components/RatingModal";
 import { useTheme } from "../../components/ThemeProvider";
 import { useProduct } from "../../hooks/useProducts";
@@ -19,7 +18,6 @@ export default function ProductDetailScreen() {
   const { data: product, isLoading, isError } = useProduct(productId);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [showOfferTypeModal, setShowOfferTypeModal] = useState(false);
   const [hasPurchased, setHasPurchased] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -165,72 +163,29 @@ export default function ProductDetailScreen() {
 
             {/* Contenu principal */}
             <View style={{ padding: 20 }}>
-              {/* Titre et badge type */}
+              {/* Titre */}
               <View style={{ marginBottom: 12 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 }}>
-                  <Text style={{
-                    fontSize: 26,
-                    fontWeight: '700',
-                    color: t.heading,
-                    flex: 1,
-                    lineHeight: 32,
-                    letterSpacing: -0.5
-                  }}>
-                    {product.title}
-                  </Text>
-                </View>
-
-                {/* Badge type d'annonce */}
-                {product.listingType && product.listingType !== 'SALE' && (
-                  <View style={{ alignSelf: 'flex-start' }}>
-                    <View style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      backgroundColor: product.listingType === 'TRADE' ? '#FF6B35' : '#4ECDC4',
-                      borderRadius: 20,
-                    }}>
-                      <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFF', letterSpacing: 0.5 }}>
-                        {product.listingType === 'TRADE' ? '🔄 ÉCHANGE UNIQUEMENT' : '💰 VENTE OU ÉCHANGE'}
-                      </Text>
-                    </View>
-                  </View>
-                )}
+                <Text style={{
+                  fontSize: 26,
+                  fontWeight: '700',
+                  color: t.heading,
+                  lineHeight: 32,
+                  letterSpacing: -0.5
+                }}>
+                  {product.title}
+                </Text>
               </View>
 
-              {/* Prix - Affiché uniquement si ce n'est pas un échange pur */}
-              {product.listingType !== 'TRADE' && (
-                <Text style={{
-                  fontSize: 34,
-                  fontWeight: '800',
-                  color: t.primaryBtn,
-                  marginBottom: 24,
-                  letterSpacing: -1
-                }}>
-                  {`${Number(product.price).toFixed(2)} €`}
-                </Text>
-              )}
-
-              {/* Section Recherche en échange */}
-              {product.tradeFor && (
-                <View style={{
-                  backgroundColor: '#FFF9E6',
-                  borderRadius: 16,
-                  padding: 16,
-                  marginBottom: 20,
-                  borderWidth: 1,
-                  borderColor: '#FFD54F'
-                }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                    <Text style={{ fontSize: 18, marginRight: 6 }}>🔄</Text>
-                    <Text style={{ fontSize: 13, color: '#F57C00', fontWeight: '700', letterSpacing: 0.5 }}>
-                      RECHERCHE EN ÉCHANGE
-                    </Text>
-                  </View>
-                  <Text style={{ fontSize: 15, color: '#424242', lineHeight: 22 }}>
-                    {product.tradeFor}
-                  </Text>
-                </View>
-              )}
+              {/* Prix */}
+              <Text style={{
+                fontSize: 34,
+                fontWeight: '800',
+                color: t.primaryBtn,
+                marginBottom: 24,
+                letterSpacing: -1
+              }}>
+                {`${Number(product.price).toFixed(2)} €`}
+              </Text>
 
               {/* Infos localisation et date */}
               <View style={{
@@ -401,7 +356,6 @@ export default function ProductDetailScreen() {
                 borderColor: t.border
               }}
               onPress={() => {
-                const offerType = product?.listingType === 'TRADE' ? 'trade' : product?.listingType === 'BOTH' ? 'both' : 'sale';
                 router.push({
                   pathname: '/chat/new',
                   params: {
@@ -409,8 +363,7 @@ export default function ProductDetailScreen() {
                     sellerName: product?.seller,
                     sellerAvatar: `https://via.placeholder.com/50/4B5D3A/FFFFFF?text=${product?.seller?.charAt(0) || 'U'}`,
                     productId: product?.id,
-                    productTitle: product?.title,
-                    offerType
+                    productTitle: product?.title
                   }
                 });
               }}
@@ -420,69 +373,30 @@ export default function ProductDetailScreen() {
               </Text>
             </TouchableOpacity>
 
-            {product?.listingType !== 'TRADE' && (
-              <TouchableOpacity
-                style={{
-                  flex: 2,
-                  backgroundColor: t.primaryBtn,
-                  borderRadius: 14,
-                  paddingVertical: 16,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  shadowColor: t.primaryBtn,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8
-                }}
-                onPress={() => {
-                  if (product?.listingType === 'BOTH') {
-                    setShowOfferTypeModal(true);
-                  } else {
-                    setHasPurchased(true);
-                  }
-                }}
-              >
-                <Text style={{ fontSize: 15, fontWeight: '700', color: t.white }}>
-                  {product?.listingType === 'BOTH' ? '💰 Acheter ou échanger' : '💰 Acheter maintenant'}
-                </Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={{
+                flex: 2,
+                backgroundColor: t.primaryBtn,
+                borderRadius: 14,
+                paddingVertical: 16,
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: t.primaryBtn,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8
+              }}
+              onPress={() => {
+                setHasPurchased(true);
+              }}
+            >
+              <Text style={{ fontSize: 15, fontWeight: '700', color: t.white }}>
+                💰 Acheter maintenant
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
-
-      <OfferTypeModal
-        visible={showOfferTypeModal}
-        onClose={() => setShowOfferTypeModal(false)}
-        productTitle={product?.title || ''}
-        price={product?.price || 0}
-        tradeFor={product?.tradeFor}
-        onBuy={() => {
-          setHasPurchased(true);
-          router.push({
-            pathname: '/chat/new',
-            params: {
-              sellerId: product?.sellerId || product?.id,
-              sellerName: product?.seller,
-              sellerAvatar: `https://via.placeholder.com/50/4B5D3A/FFFFFF?text=${product?.seller?.charAt(0) || 'U'}`,
-              productId: product?.id,
-              productTitle: product?.title
-            }
-          });
-        }}
-        onTrade={() => {
-          router.push({
-            pathname: '/chat/new',
-            params: {
-              sellerId: product?.sellerId || product?.id,
-              sellerName: product?.seller,
-              sellerAvatar: `https://via.placeholder.com/50/4B5D3A/FFFFFF?text=${product?.seller?.charAt(0) || 'U'}`,
-              productId: product?.id,
-              productTitle: product?.title
-            }
-          });
-        }}
-      />
 
       <RatingModal
         visible={showRatingModal}
