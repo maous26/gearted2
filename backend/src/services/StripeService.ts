@@ -8,8 +8,10 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2024-11-20.acacia',
 });
 
-// Commission de la plateforme Gearted (en pourcentage)
-const PLATFORM_FEE_PERCENT = 10; // 10% de commission
+// Commission de la plateforme Gearted
+// 5% vendeur + 5% acheteur = 10% total pour Gearted
+const SELLER_FEE_PERCENT = 5; // 5% prélevé au vendeur
+const BUYER_FEE_PERCENT = 5;  // 5% ajouté à l'acheteur
 
 export class StripeService {
   /**
@@ -113,12 +115,13 @@ export class StripeService {
 
   /**
    * Créer un Payment Intent avec destination charge (split payment)
+   * Commission: 5% vendeur + 5% acheteur = 10% total pour Gearted
    */
   static async createPaymentIntent(
     productId: string,
     buyerId: string,
     sellerId: string,
-    amount: number, // Montant en euros
+    productPrice: number, // Prix du produit affiché (vendeur reçoit ce montant - 5%)
     currency: string = 'eur'
   ) {
     try {
@@ -135,25 +138,35 @@ export class StripeService {
         throw new Error('Le compte Stripe du vendeur n\'est pas encore activé');
       }
 
-      // Convertir en centimes
-      const amountInCents = Math.round(amount * 100);
+      // Calculer les montants
+      // Prix produit: 100€
+      // Commission vendeur (5%): 5€ → Vendeur reçoit 95€
+      // Commission acheteur (5%): 5€ → Acheteur paie 105€
+      // Total commission Gearted: 10€
 
-      // Calculer la commission de la plateforme
-      const platformFeeInCents = Math.round(amountInCents * (PLATFORM_FEE_PERCENT / 100));
-      const sellerAmountInCents = amountInCents - platformFeeInCents;
+      const productPriceInCents = Math.round(productPrice * 100);
+      const sellerFeeInCents = Math.round(productPriceInCents * (SELLER_FEE_PERCENT / 100));
+      const buyerFeeInCents = Math.round(productPriceInCents * (BUYER_FEE_PERCENT / 100));
+
+      const sellerAmountInCents = productPriceInCents - sellerFeeInCents; // Ce que le vendeur reçoit
+      const totalChargeInCents = productPriceInCents + buyerFeeInCents;   // Ce que l'acheteur paie
+      const platformFeeInCents = sellerFeeInCents + buyerFeeInCents;      // Commission totale Gearted
 
       // Créer le Payment Intent avec destination charge
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: amountInCents,
+        amount: totalChargeInCents,  // Montant total facturé à l'acheteur
         currency,
-        application_fee_amount: platformFeeInCents,
+        application_fee_amount: platformFeeInCents,  // Commission totale pour Gearted
         transfer_data: {
-          destination: sellerStripeAccount.stripeAccountId,
+          destination: sellerStripeAccount.stripeAccountId,  // Vendeur reçoit (prix - 5%)
         },
         metadata: {
           productId,
           buyerId,
           sellerId,
+          productPrice: productPrice.toFixed(2),
+          sellerFee: (sellerFeeInCents / 100).toFixed(2),
+          buyerFee: (buyerFeeInCents / 100).toFixed(2),
           platformFee: (platformFeeInCents / 100).toFixed(2),
           sellerAmount: (sellerAmountInCents / 100).toFixed(2),
         }
@@ -164,7 +177,7 @@ export class StripeService {
         data: {
           productId,
           buyerId,
-          amount,
+          amount: totalChargeInCents / 100,  // Montant total payé par l'acheteur
           currency: currency.toUpperCase(),
           platformFee: platformFeeInCents / 100,
           sellerAmount: sellerAmountInCents / 100,
@@ -176,9 +189,12 @@ export class StripeService {
       return {
         clientSecret: paymentIntent.client_secret,
         paymentIntentId: paymentIntent.id,
-        amount: amount,
-        platformFee: platformFeeInCents / 100,
-        sellerAmount: sellerAmountInCents / 100,
+        productPrice: productPrice,
+        buyerFee: buyerFeeInCents / 100,
+        totalCharge: totalChargeInCents / 100,  // Ce que l'acheteur paie
+        sellerFee: sellerFeeInCents / 100,
+        sellerAmount: sellerAmountInCents / 100,  // Ce que le vendeur reçoit
+        platformFee: platformFeeInCents / 100,    // Commission totale Gearted
       };
     } catch (error: any) {
       console.error('[Stripe] Failed to create payment intent:', error);

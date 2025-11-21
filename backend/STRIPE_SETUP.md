@@ -6,7 +6,10 @@ Gearted utilise **Stripe Connect** pour permettre aux vendeurs de recevoir des p
 
 ### Architecture
 - **Type de compte**: Express (onboarding simplifié géré par Stripe)
-- **Commission plateforme**: 10% par défaut (configurable dans `StripeService.ts`)
+- **Commission plateforme**:
+  - 5% prélevé au vendeur
+  - 5% ajouté à l'acheteur
+  - = 10% total pour Gearted
 - **Flux de paiement**: Destination charges (l'argent va directement au vendeur, la commission est prélevée automatiquement)
 
 ---
@@ -92,29 +95,49 @@ Cela créera les tables:
 
 ### B. Achat d'un produit
 
+**Exemple : Produit affiché à 100€**
+
 1. **Acheteur clique sur "Acheter maintenant"**
 2. **Frontend appelle** `POST /api/stripe/create-payment-intent`
    ```json
    {
      "productId": "clxxx...",
-     "amount": 289.99,
+     "amount": 100.00,
      "currency": "eur"
    }
    ```
-3. **Backend répond avec**:
+3. **Backend calcule automatiquement** :
+   - Prix produit : 100€
+   - Commission vendeur (5%) : 5€
+   - Commission acheteur (5%) : 5€
+   - **Vendeur reçoit** : 95€
+   - **Acheteur paie** : 105€
+   - **Gearted reçoit** : 10€ (5€ + 5€)
+
+4. **Backend répond avec**:
    ```json
    {
      "clientSecret": "pi_xxx_secret_xxx",
-     "amount": 289.99,
-     "platformFee": 28.99,
-     "sellerAmount": 261.00
+     "productPrice": 100.00,
+     "buyerFee": 5.00,
+     "totalCharge": 105.00,
+     "sellerFee": 5.00,
+     "sellerAmount": 95.00,
+     "platformFee": 10.00
    }
    ```
-4. **Frontend utilise Stripe Payment Sheet** pour collecter le paiement
-5. **Stripe traite le paiement**:
-   - 261€ vont sur le compte du vendeur
-   - 28,99€ restent sur le compte Gearted (commission)
-6. **Webhook notifie le backend** → Produit marqué comme SOLD
+5. **Frontend affiche** :
+   - "Prix : 100€"
+   - "Frais de service : 5€"
+   - "**Total à payer : 105€**"
+
+6. **Frontend utilise Stripe Payment Sheet** pour collecter le paiement de 105€
+
+7. **Stripe traite le paiement**:
+   - 95€ vont sur le compte du vendeur
+   - 10€ restent sur le compte Gearted (commission)
+
+8. **Webhook notifie le backend** → Produit marqué comme SOLD
 
 ---
 
@@ -185,9 +208,12 @@ Response:
   "success": true,
   "clientSecret": "pi_xxx_secret_xxx",
   "paymentIntentId": "pi_xxx",
-  "amount": 289.99,
-  "platformFee": 28.99,
-  "sellerAmount": 261.00
+  "productPrice": 100.00,
+  "buyerFee": 5.00,
+  "totalCharge": 105.00,
+  "sellerFee": 5.00,
+  "sellerAmount": 95.00,
+  "platformFee": 10.00
 }
 ```
 
@@ -315,7 +341,7 @@ CVC: N'importe quel 3 chiffres
    - Utilise le webhook secret live
 
 4. **Ajuster la commission** (optionnel):
-   - Modifie `PLATFORM_FEE_PERCENT` dans `StripeService.ts`
+   - Modifie `SELLER_FEE_PERCENT` et `BUYER_FEE_PERCENT` dans `StripeService.ts`
 
 ---
 
