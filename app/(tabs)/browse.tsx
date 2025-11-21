@@ -328,7 +328,8 @@ export default function BrowseScreen() {
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: 16
+            marginBottom: 16,
+            zIndex: 1000
           }}>
             <Text style={{
               fontSize: 16,
@@ -337,9 +338,9 @@ export default function BrowseScreen() {
             }}>
               {totalCount} résultat{totalCount > 1 ? 's' : ''}
             </Text>
-            
-            <View style={{ position: 'relative', zIndex: 100 }}>
-              <TouchableOpacity 
+
+            <View style={{ position: 'relative', zIndex: 1000 }}>
+              <TouchableOpacity
                 style={{
                   backgroundColor: t.cardBg,
                   paddingHorizontal: 12,
@@ -354,9 +355,9 @@ export default function BrowseScreen() {
               >
                 <Text style={{ color: t.heading, fontSize: 12 }}>
                   📊 Trier: {
-                    filters.sortBy === 'recent' ? '🕒 Plus récent' : 
-                    filters.sortBy === 'price_low' ? '💰 Prix ↑' : 
-                    filters.sortBy === 'price_high' ? '💎 Prix ↓' : 
+                    filters.sortBy === 'recent' ? '🕒 Plus récent' :
+                    filters.sortBy === 'price_low' ? '💰 Prix ↑' :
+                    filters.sortBy === 'price_high' ? '💎 Prix ↓' :
                     '⭐ Note'
                   }
                 </Text>
@@ -374,8 +375,8 @@ export default function BrowseScreen() {
                   shadowOpacity: 0.2,
                   shadowOffset: { width: 0, height: 2 },
                   shadowRadius: 8,
-                  elevation: 5,
-                  zIndex: 1000
+                  elevation: 10,
+                  zIndex: 2000
                 }}>
                   {([
                     { key: 'recent', label: '🕒 Plus récent' },
@@ -383,14 +384,14 @@ export default function BrowseScreen() {
                     { key: 'price_high', label: '💎 Prix décroissant' },
                     { key: 'rating', label: '⭐ Meilleure note' }
                   ] as const).map(opt => (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       key={opt.key}
                       onPress={() => handleSortSelect(opt.key)}
-                      style={{ 
-                        paddingHorizontal: 12, 
-                        paddingVertical: 10, 
-                        minWidth: 160, 
-                        backgroundColor: filters.sortBy === opt.key ? t.sectionLight : t.cardBg 
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        minWidth: 160,
+                        backgroundColor: filters.sortBy === opt.key ? t.sectionLight : t.cardBg
                       }}
                     >
                       <Text style={{ color: t.heading, fontSize: 14 }}>
