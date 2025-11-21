@@ -11,6 +11,8 @@ export interface Product {
   location: string;
   seller: string;
   sellerId: string;
+  sellerRole?: string; // Discord role
+  sellerBadges?: string[]; // Discord badges
   rating: number;
   images: string[];
   featured: boolean;

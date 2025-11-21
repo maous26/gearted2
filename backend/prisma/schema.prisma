@@ -34,6 +34,7 @@ model User {
   // Profile information
   bio      String?
   location String?
+  badges   String[] @default([]) // Discord badges/roles
 
   // Security
   refreshToken String?

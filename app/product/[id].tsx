@@ -5,6 +5,7 @@ import { Dimensions, ScrollView, StatusBar, Text, TouchableOpacity, View } from 
 import { SafeAreaView } from "react-native-safe-area-context";
 import RatingModal from "../../components/RatingModal";
 import { useTheme } from "../../components/ThemeProvider";
+import { UserBadge } from "../../components/UserBadge";
 import { useProduct } from "../../hooks/useProducts";
 import { THEMES } from "../../themes";
 
@@ -237,9 +238,18 @@ export default function ProductDetailScreen() {
                     cachePolicy="memory-disk"
                   />
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading, marginBottom: 2 }}>
-                      {product.seller || 'Vendeur'}
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                      <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
+                        {product.seller || 'Vendeur'}
+                      </Text>
+                      {(product.sellerRole || (product.sellerBadges && product.sellerBadges.length > 0)) && (
+                        <UserBadge
+                          role={product.sellerRole}
+                          badge={product.sellerBadges?.[0]}
+                          size="small"
+                        />
+                      )}
+                    </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <Text style={{ fontSize: 14, color: '#FFB300', marginRight: 4 }}>⭐</Text>
                       <Text style={{ fontSize: 14, color: t.heading, fontWeight: '600' }}>

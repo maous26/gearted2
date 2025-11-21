@@ -174,6 +174,8 @@ function mapDbProductToListingShape(p: any) {
     location: p.location || 'Paris, 75001',
     seller: p.seller?.username || p.seller?.email || 'Vendeur',
     sellerId: p.sellerId,
+    sellerRole: p.seller?.role || undefined,
+    sellerBadges: p.seller?.badges || [],
     rating: 4.7, // TODO: brancher sur reviews quand dispo
     images: imageUrls.length ? imageUrls : [firstImage],
     category: p.category?.slug || 'autre',
