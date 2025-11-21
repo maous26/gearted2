@@ -184,13 +184,6 @@ export default function BrowseScreen() {
             <Text style={{ fontSize: 12, color: t.muted }}>
               {product.rating} • {product.seller}
             </Text>
-            {(product.sellerRole || (product.sellerBadges && product.sellerBadges.length > 0)) && (
-              <UserBadge
-                role={product.sellerRole}
-                badge={product.sellerBadges?.[0]}
-                size="small"
-              />
-            )}
           </View>
         </View>
 

@@ -255,23 +255,12 @@ export default function AuthenticatedHome() {
                     }}>
                       {`${Number(product.price).toFixed(2)} €`}
                     </Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                      <Text style={{ fontSize: 13, color: t.muted }}>
-                        📍 {product.location || 'Localisation non spécifiée'}
-                      </Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 12, color: t.muted }}>
-                        {product.seller}
-                      </Text>
-                      {(product.sellerRole || (product.sellerBadges && product.sellerBadges.length > 0)) && (
-                        <UserBadge
-                          role={product.sellerRole}
-                          badge={product.sellerBadges?.[0]}
-                          size="small"
-                        />
-                      )}
-                    </View>
+                    <Text style={{ fontSize: 13, color: t.muted, marginBottom: 4 }}>
+                      📍 {product.location || 'Localisation non spécifiée'}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: t.muted }}>
+                      👤 {product.seller}
+                    </Text>
                   </View>
                 </Pressable>
               ))}
