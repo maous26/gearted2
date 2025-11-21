@@ -26,6 +26,7 @@ import reviewRoutes from './routes/reviews';
 import searchRoutes from './routes/search';
 import uploadRoutes from './routes/uploads';
 import userRoutes from './routes/users';
+import stripeRoutes from './routes/stripe';
 
 // Load environment variables
 dotenv.config();
@@ -139,6 +140,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/uploads', uploadRoutes);
+app.use('/api/stripe', stripeRoutes);
 
 // Serve static files (uploads)
 app.use('/uploads', express.static('uploads'));
