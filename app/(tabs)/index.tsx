@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { CompatDrawer } from "../../components/CompatDrawer";
 import { CompatibilityTeaser } from "../../components/CompatibilityTeaser";
 import { useTheme } from "../../components/ThemeProvider";
+import { UserBadge } from "../../components/UserBadge";
 import { CATEGORIES } from "../../data";
 import { useCategoryStats, useProducts } from "../../hooks/useProducts";
 import { THEMES } from "../../themes";
@@ -246,45 +247,30 @@ export default function AuthenticatedHome() {
                         {product.title}
                       </Text>
                     </View>
-                    {product.listingType && product.listingType !== 'SALE' && (
-                      <View style={{ alignSelf: 'flex-start', marginVertical: 6 }}>
-                        <View style={{
-                          paddingHorizontal: 8,
-                          paddingVertical: 3,
-                          backgroundColor: product.listingType === 'TRADE' ? '#FF6B35' : '#4ECDC4',
-                          borderRadius: 10,
-                        }}>
-                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF', letterSpacing: 0.3 }}>
-                            {product.listingType === 'TRADE' ? '🔄 ÉCHANGE' : '💰 V/E'}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
                     <Text style={{
                       fontSize: 18,
                       fontWeight: 'bold',
                       color: t.primaryBtn,
                       marginBottom: 4
                     }}>
-                      {product.listingType === 'TRADE' ? '—' : `${Number(product.price).toFixed(2)} €`}
+                      {`${Number(product.price).toFixed(2)} €`}
                     </Text>
-                    <Text style={{ fontSize: 13, color: t.muted, marginBottom: 4 }}>
-                      📍 {product.location || 'Localisation non spécifiée'}
-                    </Text>
-                    <View style={{
-                      backgroundColor: t.sectionLight + '40',
-                      paddingHorizontal: 8,
-                      paddingVertical: 4,
-                      borderRadius: 6,
-                      alignSelf: 'flex-start'
-                    }}>
-                      <Text style={{ fontSize: 11, color: t.muted, fontWeight: '500' }}>
-                        {product.condition === 'NEW' ? 'Neuf' : 
-                         product.condition === 'LIKE_NEW' ? 'Comme neuf' :
-                         product.condition === 'GOOD' ? 'Bon état' : 
-                         product.condition === 'FAIR' ? 'Correct' :
-                         product.condition === 'POOR' ? 'Usé' : 'Utilisé'}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Text style={{ fontSize: 13, color: t.muted }}>
+                        📍 {product.location || 'Localisation non spécifiée'}
                       </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 12, color: t.muted }}>
+                        {product.seller}
+                      </Text>
+                      {(product.sellerRole || (product.sellerBadges && product.sellerBadges.length > 0)) && (
+                        <UserBadge
+                          role={product.sellerRole}
+                          badge={product.sellerBadges?.[0]}
+                          size="small"
+                        />
+                      )}
                     </View>
                   </View>
                 </Pressable>
