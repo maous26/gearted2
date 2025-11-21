@@ -17,20 +17,13 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.gearted",
-      "config": {
-        "googleMobileAdsAppId": "ca-app-pub-8221572393786359~9031378486"
-      }
+      "bundleIdentifier": "com.anonymous.gearted"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      },
-      "config": {
-        "googleMobileAdsAppId": "ca-app-pub-8221572393786359~9031378486"
-      },
-      "package": "com.anonymous.gearted"
+      }
     },
     "web": {
       "bundler": "metro",
