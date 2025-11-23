@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 // Initialiser Stripe avec ta clé secrète
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2025-10-29.clover',
 });
 
 // Commission de la plateforme Gearted
@@ -218,7 +218,9 @@ export class StripeService {
         where: { paymentIntentId },
         data: {
           status,
-          transferId: paymentIntent.transfer_data?.destination,
+          transferId: typeof paymentIntent.transfer_data?.destination === 'string'
+            ? paymentIntent.transfer_data.destination
+            : paymentIntent.transfer_data?.destination?.id || null,
         }
       });
 

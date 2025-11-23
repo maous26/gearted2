@@ -3,7 +3,7 @@ import { StripeService } from '../services/StripeService';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2025-10-29.clover',
 });
 
 // Feature flag: Activé pour les tests
@@ -25,10 +25,7 @@ export class StripeController {
 
       const result = await StripeService.createConnectedAccount(userId, email, country);
 
-      return res.json({
-        success: true,
-        ...result
-      });
+      return res.json(result);
     } catch (error: any) {
       console.error('[Stripe] Create account error:', error);
       return res.status(500).json({
