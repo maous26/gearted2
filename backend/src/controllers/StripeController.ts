@@ -6,8 +6,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2024-11-20.acacia',
 });
 
-// Feature flag: Désactivé pour l'instant, sera activé via panneau admin
-const STRIPE_CONNECT_ENABLED = false;
+// Feature flag: Activé pour les tests
+const STRIPE_CONNECT_ENABLED = true;
 
 export class StripeController {
   /**
