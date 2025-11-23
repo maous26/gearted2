@@ -1,12 +1,14 @@
+import { useStripe } from "@stripe/stripe-react-native";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Dimensions, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Dimensions, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import RatingModal from "../../components/RatingModal";
 import { useTheme } from "../../components/ThemeProvider";
 import { UserBadge } from "../../components/UserBadge";
 import { useProduct } from "../../hooks/useProducts";
+import stripeService from "../../services/stripe";
 import { THEMES } from "../../themes";
 
 const { width } = Dimensions.get('window');
@@ -21,11 +23,87 @@ export default function ProductDetailScreen() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [hasPurchased, setHasPurchased] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
   const images = useMemo(() => {
     const arr = product?.images || [];
     return arr.filter((u: string) => typeof u === 'string' && !u.startsWith('file://'));
   }, [product]);
+
+  /**
+   * Gérer l'achat du produit avec Stripe Payment Sheet
+   */
+  const handleBuyNow = async () => {
+    if (!product) return;
+
+    setIsProcessingPayment(true);
+
+    try {
+      // 1. Créer le Payment Intent sur le backend
+      const paymentData = await stripeService.createPaymentIntent(
+        product.id,
+        product.price,
+        'eur'
+      );
+
+      // 2. Initialiser le Payment Sheet
+      const { error: initError } = await initPaymentSheet({
+        paymentIntentClientSecret: paymentData.clientSecret,
+        merchantDisplayName: 'Gearted',
+        returnURL: 'gearted://payment-success',
+        appearance: {
+          colors: {
+            primary: t.primaryBtn,
+            background: t.cardBg,
+            componentBackground: t.cardBg,
+            componentBorder: t.border,
+            componentDivider: t.border,
+            primaryText: t.heading,
+            secondaryText: t.muted,
+          },
+        },
+      });
+
+      if (initError) {
+        Alert.alert('Erreur', initError.message);
+        return;
+      }
+
+      // 3. Présenter le Payment Sheet à l'utilisateur
+      const { error: presentError } = await presentPaymentSheet();
+
+      if (presentError) {
+        // L'utilisateur a annulé ou une erreur s'est produite
+        if (presentError.code !== 'Canceled') {
+          Alert.alert('Erreur de paiement', presentError.message);
+        }
+        return;
+      }
+
+      // 4. Paiement réussi !
+      Alert.alert(
+        'Achat confirmé !',
+        `Votre achat de "${product.title}" a été confirmé.\n\nVous avez payé ${paymentData.totalCharge.toFixed(2)} € (dont ${paymentData.buyerFee.toFixed(2)} € de frais de service).`,
+        [
+          {
+            text: 'Retour',
+            onPress: () => router.back(),
+          },
+          {
+            text: 'OK',
+            style: 'cancel',
+          },
+        ]
+      );
+
+      setHasPurchased(true);
+    } catch (error: any) {
+      Alert.alert('Erreur', error.message || 'Une erreur est survenue lors du paiement');
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }} edges={['top']}>
@@ -377,7 +455,7 @@ export default function ProductDetailScreen() {
             <TouchableOpacity
               style={{
                 flex: 2,
-                backgroundColor: t.primaryBtn,
+                backgroundColor: isProcessingPayment ? t.muted : t.primaryBtn,
                 borderRadius: 14,
                 paddingVertical: 16,
                 alignItems: 'center',
@@ -385,14 +463,14 @@ export default function ProductDetailScreen() {
                 shadowColor: t.primaryBtn,
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.3,
-                shadowRadius: 8
+                shadowRadius: 8,
+                opacity: isProcessingPayment ? 0.6 : 1
               }}
-              onPress={() => {
-                setHasPurchased(true);
-              }}
+              onPress={handleBuyNow}
+              disabled={isProcessingPayment || hasPurchased}
             >
               <Text style={{ fontSize: 15, fontWeight: '700', color: t.white }}>
-                💰 Acheter maintenant
+                {isProcessingPayment ? '⏳ Traitement...' : hasPurchased ? '✓ Acheté' : '💰 Acheter maintenant'}
               </Text>
             </TouchableOpacity>
           </View>

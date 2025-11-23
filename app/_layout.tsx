@@ -1,3 +1,4 @@
+import { StripeProvider } from "@stripe/stripe-react-native";
 import { Stack } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { View } from "react-native";
@@ -7,6 +8,7 @@ import SplashScreen from "../components/SplashScreen";
 import { ThemeProvider, useTheme } from "../components/ThemeProvider";
 import { UserProvider } from "../components/UserProvider";
 import { useProductsStore } from "../stores/productsStore";
+import stripeService from "../services/stripe";
 import { THEMES } from "../themes";
 
 function RootInner() {
@@ -14,12 +16,26 @@ function RootInner() {
   const t = THEMES[theme];
   const [showSplash, setShowSplash] = useState(true);
   const [splashFinished, setSplashFinished] = useState(false);
+  const [stripePublishableKey, setStripePublishableKey] = useState<string>('');
   const loadFromStorage = useProductsStore((state) => state.loadFromStorage);
 
   // Load products from storage on app start
   useEffect(() => {
     loadFromStorage();
   }, [loadFromStorage]);
+
+  // Load Stripe publishable key
+  useEffect(() => {
+    const loadStripeKey = async () => {
+      try {
+        const key = await stripeService.getPublishableKey();
+        setStripePublishableKey(key);
+      } catch (error) {
+        console.error('Failed to load Stripe key:', error);
+      }
+    };
+    loadStripeKey();
+  }, []);
 
   const handleSplashFinish = () => {
     setShowSplash(false);
@@ -41,7 +57,13 @@ function RootInner() {
   return (
     <View style={{ backgroundColor: t.rootBg, flex: 1 }}>
       {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
-      {splashFinished && <Stack screenOptions={{ headerShown: false }} />}
+      {splashFinished && stripePublishableKey ? (
+        <StripeProvider publishableKey={stripePublishableKey}>
+          <Stack screenOptions={{ headerShown: false }} />
+        </StripeProvider>
+      ) : splashFinished ? (
+        <Stack screenOptions={{ headerShown: false }} />
+      ) : null}
     </View>
   );
 }
