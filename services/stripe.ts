@@ -26,7 +26,7 @@ class StripeService {
    */
   async getPublishableKey(): Promise<string> {
     try {
-      const response = await api.get<StripePublicKeyResponse>('/stripe/public-key');
+      const response = await api.get<StripePublicKeyResponse>('/api/stripe/public-key');
       return response.data.publishableKey;
     } catch (error: any) {
       console.error('[Stripe] Failed to get publishable key:', error);
@@ -43,7 +43,7 @@ class StripeService {
     currency: string = 'eur'
   ): Promise<PaymentIntentResponse> {
     try {
-      const response = await api.post<PaymentIntentResponse>('/stripe/create-payment-intent', {
+      const response = await api.post<PaymentIntentResponse>('/api/stripe/create-payment-intent', {
         productId,
         amount,
         currency
