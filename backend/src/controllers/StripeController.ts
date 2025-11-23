@@ -6,6 +6,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2024-11-20.acacia',
 });
 
+// Feature flag: Désactivé pour l'instant, sera activé via panneau admin
+const STRIPE_CONNECT_ENABLED = false;
+
 export class StripeController {
   /**
    * Créer un compte Stripe Connect pour le vendeur (onboarding)
