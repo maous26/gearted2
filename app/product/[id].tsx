@@ -1,4 +1,4 @@
-import { useStripe } from "@stripe/stripe-react-native";
+import { useStripe, PaymentSheet } from "@stripe/stripe-react-native";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
@@ -52,11 +52,22 @@ export default function ProductDetailScreen() {
         paymentIntentClientSecret: paymentData.clientSecret,
         merchantDisplayName: 'Gearted',
         returnURL: 'gearted://payment-success',
-        // Désactiver la collecte d'adresse de billing (on la demandera après pour la livraison)
+        // Désactiver complètement la collecte d'adresse de billing
+        billingDetailsCollectionConfiguration: {
+          name: PaymentSheet.CollectionMode.NEVER,
+          email: PaymentSheet.CollectionMode.NEVER,
+          phone: PaymentSheet.CollectionMode.NEVER,
+          address: PaymentSheet.AddressCollectionMode.NEVER,
+          attachDefaultsToPaymentMethod: true,
+        },
+        // Fournir des valeurs par défaut (obligatoire avec NEVER)
         defaultBillingDetails: {
-          name: '',
-          email: '',
-          phone: '',
+          name: 'Client',
+          email: '[email protected]',
+          address: {
+            country: 'FR',
+            postalCode: '00000',
+          },
         },
         appearance: {
           colors: {
