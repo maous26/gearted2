@@ -302,4 +302,105 @@ export class ShippingController {
       });
     }
   }
+
+  /**
+   * Supprimer les données d'adresse d'une transaction (RGPD - Droit à l'oubli)
+   * DELETE /api/shipping/address/:transactionId
+   */
+  static async deleteShippingAddress(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { transactionId } = req.params;
+
+      // Vérifier que la transaction appartient à l'utilisateur (acheteur)
+      const transaction = await prisma.transaction.findUnique({
+        where: { id: transactionId },
+        include: { product: true }
+      });
+
+      if (!transaction) {
+        return res.status(404).json({ error: 'Transaction not found' });
+      }
+
+      if (transaction.buyerId !== userId) {
+        return res.status(403).json({ error: 'Unauthorized' });
+      }
+
+      // Supprimer l'adresse de livraison
+      const updatedTransaction = await prisma.transaction.update({
+        where: { id: transactionId },
+        data: {
+          shippingAddress: null
+        }
+      });
+
+      return res.json({
+        success: true,
+        message: 'Shipping address deleted successfully'
+      });
+    } catch (error: any) {
+      console.error('[Shipping] Delete address error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Obtenir toutes les adresses de livraison de l'utilisateur (RGPD - Droit d'accès)
+   * GET /api/shipping/my-addresses
+   */
+  static async getMyShippingAddresses(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      // Récupérer toutes les transactions avec adresse de livraison
+      const transactions = await prisma.transaction.findMany({
+        where: {
+          buyerId: userId,
+          shippingAddress: {
+            not: null
+          }
+        },
+        include: {
+          product: {
+            select: {
+              id: true,
+              title: true,
+              images: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+
+      return res.json({
+        success: true,
+        addresses: transactions.map(t => ({
+          transactionId: t.id,
+          address: t.shippingAddress,
+          productTitle: t.product.title,
+          productImage: (t.product.images as any)?.[0],
+          createdAt: t.createdAt,
+          trackingNumber: t.trackingNumber
+        }))
+      });
+    } catch (error: any) {
+      console.error('[Shipping] Get my addresses error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
 }

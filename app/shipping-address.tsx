@@ -7,8 +7,11 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../components/ThemeProvider';
 import { THEMES } from '../themes';
 import shippingService, { ShippingAddress } from '../services/shipping';
@@ -20,6 +23,7 @@ export default function ShippingAddressScreen() {
   const { transactionId } = useLocalSearchParams();
 
   const [loading, setLoading] = useState(false);
+  const [gdprConsent, setGdprConsent] = useState(false);
   const [address, setAddress] = useState<ShippingAddress>({
     name: '',
     street1: '',
@@ -36,6 +40,11 @@ export default function ShippingAddressScreen() {
     // Validation
     if (!address.name || !address.street1 || !address.city || !address.zip) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
+    if (!gdprConsent) {
+      Alert.alert('Consentement requis', 'Vous devez accepter la collecte de vos données pour la livraison');
       return;
     }
 
@@ -61,10 +70,18 @@ export default function ShippingAddressScreen() {
   };
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: t.rootBg }}
-      contentContainerStyle={{ padding: 20 }}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }} edges={['top']}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={0}
+      >
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
       <Text style={{ fontSize: 24, fontWeight: 'bold', color: t.text, marginBottom: 10 }}>
         📦 Adresse de livraison
       </Text>
@@ -216,17 +233,58 @@ export default function ShippingAddressScreen() {
         autoCapitalize="none"
       />
 
+      {/* RGPD - Consentement */}
+      <View style={{
+        backgroundColor: t.cardBg,
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: t.border
+      }}>
+        <TouchableOpacity
+          style={{ flexDirection: 'row', alignItems: 'flex-start' }}
+          onPress={() => setGdprConsent(!gdprConsent)}
+        >
+          <View style={{
+            width: 24,
+            height: 24,
+            borderRadius: 6,
+            borderWidth: 2,
+            borderColor: gdprConsent ? t.primaryBtn : t.border,
+            backgroundColor: gdprConsent ? t.primaryBtn : 'transparent',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 12,
+            marginTop: 2
+          }}>
+            {gdprConsent && (
+              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>✓</Text>
+            )}
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: t.text, fontSize: 14, lineHeight: 20 }}>
+              J'accepte que mes données personnelles (nom, adresse, téléphone) soient collectées et utilisées uniquement pour la livraison de ma commande. Ces données seront supprimées 30 jours après la livraison.
+            </Text>
+            <Text style={{ color: t.primaryBtn, fontSize: 13, marginTop: 8, fontWeight: '600' }}>
+              En savoir plus sur nos pratiques RGPD →
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
       {/* Bouton de soumission */}
       <TouchableOpacity
         style={{
-          backgroundColor: loading ? t.muted : t.primaryBtn,
+          backgroundColor: loading || !gdprConsent ? t.muted : t.primaryBtn,
           padding: 16,
           borderRadius: 8,
           alignItems: 'center',
           marginBottom: 40,
+          opacity: loading || !gdprConsent ? 0.6 : 1,
         }}
         onPress={handleSubmit}
-        disabled={loading}
+        disabled={loading || !gdprConsent}
       >
         {loading ? (
           <ActivityIndicator color="#FFF" />
@@ -236,6 +294,8 @@ export default function ShippingAddressScreen() {
           </Text>
         )}
       </TouchableOpacity>
-    </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

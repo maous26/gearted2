@@ -22,4 +22,8 @@ router.get('/tracking/:transactionId', ShippingController.getTracking);
 // Obtenir toutes les expéditions en attente (vendeur)
 router.get('/pending', ShippingController.getPendingShipments);
 
+// RGPD - Gestion des données personnelles
+router.delete('/address/:transactionId', ShippingController.deleteShippingAddress);
+router.get('/my-addresses', ShippingController.getMyShippingAddresses);
+
 export default router;

@@ -108,6 +108,32 @@ class ShippingService {
       throw new Error(error.response?.data?.error || 'Erreur lors de la récupération des expéditions');
     }
   }
+
+  /**
+   * RGPD - Supprimer l'adresse de livraison d'une transaction
+   */
+  async deleteShippingAddress(transactionId: string) {
+    try {
+      const response = await api.delete(`/api/shipping/address/${transactionId}`);
+      return response;
+    } catch (error: any) {
+      console.error('[Shipping] Failed to delete shipping address:', error);
+      throw new Error(error.response?.data?.error || 'Erreur lors de la suppression de l\'adresse');
+    }
+  }
+
+  /**
+   * RGPD - Obtenir toutes les adresses de livraison de l'utilisateur
+   */
+  async getMyShippingAddresses() {
+    try {
+      const response = await api.get('/api/shipping/my-addresses');
+      return response;
+    } catch (error: any) {
+      console.error('[Shipping] Failed to get my addresses:', error);
+      throw new Error(error.response?.data?.error || 'Erreur lors de la récupération des adresses');
+    }
+  }
 }
 
 export default new ShippingService();
