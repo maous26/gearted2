@@ -29,6 +29,7 @@ import userRoutes from './routes/users';
 import stripeRoutes from './routes/stripe';
 import shippingRoutes from './routes/shipping';
 import webhookRoutes from './routes/webhook';
+import transactionRoutes from './routes/transactions';
 
 // Load environment variables
 dotenv.config();
@@ -147,6 +148,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/shipping', shippingRoutes);
+app.use('/api/transactions', transactionRoutes);
 
 // Serve static files (uploads)
 app.use('/uploads', express.static('uploads'));
