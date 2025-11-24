@@ -74,9 +74,20 @@ export class TransactionController {
         console.log('[Transactions] First sale structure:', JSON.stringify(sales[0], null, 2));
       }
 
+      // Transform images from objects to URLs array
+      const transformedSales = sales.map(sale => ({
+        ...sale,
+        product: sale.product ? {
+          ...sale.product,
+          images: Array.isArray(sale.product.images)
+            ? sale.product.images.map((img: any) => typeof img === 'string' ? img : img.url)
+            : []
+        } : undefined
+      }));
+
       return res.json({
         success: true,
-        sales
+        sales: transformedSales
       });
     } catch (error: any) {
       console.error('[Transactions] Get my sales error:', error);
@@ -140,9 +151,20 @@ export class TransactionController {
         console.log('[Transactions] First purchase structure:', JSON.stringify(purchases[0], null, 2));
       }
 
+      // Transform images from objects to URLs array
+      const transformedPurchases = purchases.map(purchase => ({
+        ...purchase,
+        product: purchase.product ? {
+          ...purchase.product,
+          images: Array.isArray(purchase.product.images)
+            ? purchase.product.images.map((img: any) => typeof img === 'string' ? img : img.url)
+            : []
+        } : undefined
+      }));
+
       return res.json({
         success: true,
-        purchases
+        purchases: transformedPurchases
       });
     } catch (error: any) {
       console.error('[Transactions] Get my purchases error:', error);
