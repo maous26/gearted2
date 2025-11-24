@@ -27,7 +27,7 @@ class StripeService {
   async getPublishableKey(): Promise<string> {
     try {
       const response = await api.get<StripePublicKeyResponse>('/api/stripe/public-key');
-      return response.data.publishableKey;
+      return response.publishableKey;
     } catch (error: any) {
       console.error('[Stripe] Failed to get publishable key:', error);
       throw new Error('Impossible de récupérer la clé Stripe');
@@ -49,11 +49,11 @@ class StripeService {
         currency
       });
 
-      if (!response.data.success) {
+      if (!response.success) {
         throw new Error('Échec de la création du paiement');
       }
 
-      return response.data;
+      return response;
     } catch (error: any) {
       console.error('[Stripe] Failed to create payment intent:', error);
 

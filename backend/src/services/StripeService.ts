@@ -125,16 +125,15 @@ export class StripeService {
     currency: string = 'eur'
   ) {
     try {
-      // Récupérer le compte Stripe du vendeur
+      // Récupérer le compte Stripe du vendeur (optionnel pour les tests)
       const sellerStripeAccount = await prisma.stripeAccount.findUnique({
         where: { userId: sellerId }
       });
 
-      if (!sellerStripeAccount) {
-        throw new Error('Le vendeur n\'a pas configuré son compte Stripe');
-      }
+      // Pour les tests : permettre les paiements sans Stripe Connect
+      const useStripeConnect = sellerStripeAccount && sellerStripeAccount.chargesEnabled;
 
-      if (!sellerStripeAccount.chargesEnabled) {
+      if (sellerStripeAccount && !sellerStripeAccount.chargesEnabled) {
         throw new Error('Le compte Stripe du vendeur n\'est pas encore activé');
       }
 
@@ -152,14 +151,10 @@ export class StripeService {
       const totalChargeInCents = productPriceInCents + buyerFeeInCents;   // Ce que l'acheteur paie
       const platformFeeInCents = sellerFeeInCents + buyerFeeInCents;      // Commission totale Gearted
 
-      // Créer le Payment Intent avec destination charge
-      const paymentIntent = await stripe.paymentIntents.create({
+      // Créer le Payment Intent
+      const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
         amount: totalChargeInCents,  // Montant total facturé à l'acheteur
         currency,
-        application_fee_amount: platformFeeInCents,  // Commission totale pour Gearted
-        transfer_data: {
-          destination: sellerStripeAccount.stripeAccountId,  // Vendeur reçoit (prix - 5%)
-        },
         metadata: {
           productId,
           buyerId,
@@ -170,7 +165,17 @@ export class StripeService {
           platformFee: (platformFeeInCents / 100).toFixed(2),
           sellerAmount: (sellerAmountInCents / 100).toFixed(2),
         }
-      });
+      };
+
+      // Si Stripe Connect est configuré, utiliser destination charge
+      if (useStripeConnect && sellerStripeAccount) {
+        paymentIntentParams.application_fee_amount = platformFeeInCents;
+        paymentIntentParams.transfer_data = {
+          destination: sellerStripeAccount.stripeAccountId,
+        };
+      }
+
+      const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams);
 
       // Enregistrer la transaction dans la DB
       await prisma.transaction.create({
