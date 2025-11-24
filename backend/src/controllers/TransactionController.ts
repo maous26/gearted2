@@ -36,7 +36,7 @@ export class TransactionController {
             sellerId: userId
           },
           status: {
-            in: ['SUCCEEDED', 'PROCESSING']
+            in: ['PENDING', 'SUCCEEDED', 'PROCESSING']  // Include PENDING pour voir les anciennes transactions
           }
         },
         include: {
@@ -89,7 +89,7 @@ export class TransactionController {
         where: {
           buyerId: userId,
           status: {
-            in: ['SUCCEEDED', 'PROCESSING']
+            in: ['PENDING', 'SUCCEEDED', 'PROCESSING']  // Include PENDING pour voir les anciennes transactions
           }
         },
         include: {
