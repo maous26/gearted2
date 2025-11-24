@@ -52,6 +52,12 @@ export default function ProductDetailScreen() {
         paymentIntentClientSecret: paymentData.clientSecret,
         merchantDisplayName: 'Gearted',
         returnURL: 'gearted://payment-success',
+        // Désactiver la collecte d'adresse de billing (on la demandera après pour la livraison)
+        defaultBillingDetails: {
+          name: '',
+          email: '',
+          phone: '',
+        },
         appearance: {
           colors: {
             primary: t.primaryBtn,
@@ -61,6 +67,11 @@ export default function ProductDetailScreen() {
             componentDivider: t.border,
             primaryText: t.heading,
             secondaryText: t.muted,
+            placeholderText: t.muted,
+          },
+          shapes: {
+            borderRadius: 12,
+            borderWidth: 1,
           },
         },
       });

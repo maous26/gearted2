@@ -266,9 +266,11 @@ export default function ShippingAddressScreen() {
             <Text style={{ color: t.text, fontSize: 14, lineHeight: 20 }}>
               J'accepte que mes données personnelles (nom, adresse, téléphone) soient collectées et utilisées uniquement pour la livraison de ma commande. Ces données seront supprimées 30 jours après la livraison.
             </Text>
-            <Text style={{ color: t.primaryBtn, fontSize: 13, marginTop: 8, fontWeight: '600' }}>
-              En savoir plus sur nos pratiques RGPD →
-            </Text>
+            <TouchableOpacity onPress={() => router.push('/privacy-policy')}>
+              <Text style={{ color: t.primaryBtn, fontSize: 13, marginTop: 8, fontWeight: '600' }}>
+                En savoir plus sur nos pratiques RGPD →
+              </Text>
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </View>
