@@ -28,6 +28,7 @@ import uploadRoutes from './routes/uploads';
 import userRoutes from './routes/users';
 import stripeRoutes from './routes/stripe';
 import shippingRoutes from './routes/shipping';
+import webhookRoutes from './routes/webhook';
 
 // Load environment variables
 dotenv.config();
@@ -112,6 +113,9 @@ const speedLimiter = slowDown({
 
 app.use(limiter);
 app.use(speedLimiter);
+
+// Stripe webhook route MUST be before express.json() to receive raw body
+app.use('/webhook', webhookRoutes);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
