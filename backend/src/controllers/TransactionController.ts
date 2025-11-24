@@ -69,6 +69,11 @@ export class TransactionController {
         }
       });
 
+      console.log(`[Transactions] Found ${sales.length} sales`);
+      if (sales.length > 0) {
+        console.log('[Transactions] First sale structure:', JSON.stringify(sales[0], null, 2));
+      }
+
       return res.json({
         success: true,
         sales
@@ -129,6 +134,11 @@ export class TransactionController {
           createdAt: 'desc'
         }
       });
+
+      console.log(`[Transactions] Found ${purchases.length} purchases`);
+      if (purchases.length > 0) {
+        console.log('[Transactions] First purchase structure:', JSON.stringify(purchases[0], null, 2));
+      }
 
       return res.json({
         success: true,
