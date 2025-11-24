@@ -16,6 +16,7 @@ export interface Product {
   rating: number;
   images: string[];
   featured: boolean;
+  status?: 'DRAFT' | 'PENDING_APPROVAL' | 'ACTIVE' | 'SOLD' | 'EXPIRED' | 'SUSPENDED' | 'DELETED';
   createdAt: string;
   handDelivery?: boolean; // Remise en main propre disponible
 }

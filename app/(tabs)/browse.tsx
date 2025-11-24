@@ -120,7 +120,29 @@ export default function BrowseScreen() {
             {product.condition}
           </Text>
         </View>
-        
+
+        {/* Badge VENDU */}
+        {product.status === 'SOLD' && (
+          <View style={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            backgroundColor: '#EF4444',
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 8,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+            elevation: 5
+          }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: 'white', letterSpacing: 0.5 }}>
+              VENDU
+            </Text>
+          </View>
+        )}
+
         {/* Favorite button */}
         <TouchableOpacity 
           style={{

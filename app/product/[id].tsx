@@ -231,23 +231,47 @@ export default function ProductDetailScreen() {
               )}
 
               {/* Badge condition */}
-              <View style={{
-                position: 'absolute',
-                top: 16,
-                right: 16,
-                backgroundColor: '#4CAF50',
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-                borderRadius: 20,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.2,
-                shadowRadius: 4
-              }}>
-                <Text style={{ color: 'white', fontWeight: '700', fontSize: 12, letterSpacing: 0.5 }}>
-                  {product.condition?.toUpperCase()}
-                </Text>
-              </View>
+              {product.status !== 'SOLD' && (
+                <View style={{
+                  position: 'absolute',
+                  top: 16,
+                  right: 16,
+                  backgroundColor: '#4CAF50',
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 4
+                }}>
+                  <Text style={{ color: 'white', fontWeight: '700', fontSize: 12, letterSpacing: 0.5 }}>
+                    {product.condition?.toUpperCase()}
+                  </Text>
+                </View>
+              )}
+
+              {/* Badge VENDU */}
+              {product.status === 'SOLD' && (
+                <View style={{
+                  position: 'absolute',
+                  top: 16,
+                  right: 16,
+                  backgroundColor: '#EF4444',
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
+                  borderRadius: 20,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 6,
+                  elevation: 8
+                }}>
+                  <Text style={{ color: 'white', fontWeight: '700', fontSize: 14, letterSpacing: 0.5 }}>
+                    ✓ VENDU
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Contenu principal */}
@@ -465,7 +489,7 @@ export default function ProductDetailScreen() {
             <TouchableOpacity
               style={{
                 flex: 2,
-                backgroundColor: isProcessingPayment ? t.muted : t.primaryBtn,
+                backgroundColor: (isProcessingPayment || hasPurchased || product.status === 'SOLD') ? t.muted : t.primaryBtn,
                 borderRadius: 14,
                 paddingVertical: 16,
                 alignItems: 'center',
@@ -474,13 +498,13 @@ export default function ProductDetailScreen() {
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.3,
                 shadowRadius: 8,
-                opacity: isProcessingPayment ? 0.6 : 1
+                opacity: (isProcessingPayment || product.status === 'SOLD') ? 0.6 : 1
               }}
               onPress={handleBuyNow}
-              disabled={isProcessingPayment || hasPurchased}
+              disabled={isProcessingPayment || hasPurchased || product.status === 'SOLD'}
             >
               <Text style={{ fontSize: 15, fontWeight: '700', color: t.white }}>
-                {isProcessingPayment ? '⏳ Traitement...' : hasPurchased ? '✓ Acheté' : '💰 Acheter maintenant'}
+                {product.status === 'SOLD' ? '❌ Produit vendu' : isProcessingPayment ? '⏳ Traitement...' : hasPurchased ? '✓ Acheté' : '💰 Acheter maintenant'}
               </Text>
             </TouchableOpacity>
           </View>
