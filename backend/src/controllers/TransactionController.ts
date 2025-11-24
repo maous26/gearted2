@@ -39,7 +39,15 @@ export class TransactionController {
             in: ['PENDING', 'SUCCEEDED', 'PROCESSING']  // Include PENDING pour voir les anciennes transactions
           }
         },
-        include: {
+        select: {
+          id: true,
+          amount: true,
+          currency: true,
+          status: true,
+          paymentIntentId: true,
+          trackingNumber: true,
+          shippingAddress: true,
+          createdAt: true,
           product: {
             select: {
               id: true,
@@ -92,7 +100,15 @@ export class TransactionController {
             in: ['PENDING', 'SUCCEEDED', 'PROCESSING']  // Include PENDING pour voir les anciennes transactions
           }
         },
-        include: {
+        select: {
+          id: true,
+          amount: true,
+          currency: true,
+          status: true,
+          paymentIntentId: true,
+          trackingNumber: true,
+          shippingAddress: true,
+          createdAt: true,
           product: {
             select: {
               id: true,
