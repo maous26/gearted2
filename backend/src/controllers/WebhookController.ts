@@ -1,10 +1,10 @@
-import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { Request, Response } from 'express';
 import Stripe from 'stripe';
 
 const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2025-10-29.clover',
 });
 
 export class WebhookController {
@@ -61,10 +61,10 @@ export class WebhookController {
       }
 
       // Répondre rapidement à Stripe
-      res.json({ received: true });
+      return res.json({ received: true });
     } catch (error: any) {
       console.error('[Webhook] Error processing event:', error);
-      res.status(500).json({ error: 'Webhook processing failed' });
+      return res.status(500).json({ error: 'Webhook processing failed' });
     }
   }
 

@@ -1,5 +1,5 @@
+import { Prisma, PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { ShippoService } from '../services/ShippoService';
 
 const prisma = new PrismaClient();
@@ -19,11 +19,19 @@ export class ShippingController {
       const { transactionId } = req.params;
       const { name, street1, street2, city, state, zip, country, phone, email } = req.body;
 
-      // Vérifier que la transaction appartient à l'utilisateur
-      const transaction = await prisma.transaction.findUnique({
+      // Chercher la transaction soit par ID soit par paymentIntentId
+      let transaction = await prisma.transaction.findUnique({
         where: { id: transactionId },
         include: { buyer: true, product: true }
       });
+
+      // Si pas trouvé par ID, essayer par paymentIntentId
+      if (!transaction) {
+        transaction = await prisma.transaction.findUnique({
+          where: { paymentIntentId: transactionId },
+          include: { buyer: true, product: true }
+        });
+      }
 
       if (!transaction) {
         return res.status(404).json({ error: 'Transaction not found' });
@@ -35,7 +43,7 @@ export class ShippingController {
 
       // Mettre à jour l'adresse de livraison
       const updatedTransaction = await prisma.transaction.update({
-        where: { id: transactionId },
+        where: { id: transaction.id },
         data: {
           shippingAddress: {
             name,
@@ -277,7 +285,7 @@ export class ShippingController {
           },
           status: 'SUCCEEDED',
           shippingAddress: {
-            not: null
+            not: Prisma.DbNull
           },
           trackingNumber: null
         },
@@ -334,7 +342,7 @@ export class ShippingController {
       const updatedTransaction = await prisma.transaction.update({
         where: { id: transactionId },
         data: {
-          shippingAddress: null
+          shippingAddress: Prisma.DbNull
         }
       });
 
@@ -367,7 +375,7 @@ export class ShippingController {
         where: {
           buyerId: userId,
           shippingAddress: {
-            not: null
+            not: Prisma.DbNull
           }
         },
         include: {
@@ -386,7 +394,7 @@ export class ShippingController {
 
       return res.json({
         success: true,
-        addresses: transactions.map(t => ({
+        addresses: transactions.map((t: any) => ({
           transactionId: t.id,
           address: t.shippingAddress,
           productTitle: t.product.title,
