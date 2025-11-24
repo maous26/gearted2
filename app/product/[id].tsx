@@ -82,22 +82,21 @@ export default function ProductDetailScreen() {
       }
 
       // 4. Paiement réussi !
+      setHasPurchased(true);
+
       Alert.alert(
-        'Achat confirmé !',
-        `Votre achat de "${product.title}" a été confirmé.\n\nVous avez payé ${paymentData.totalCharge.toFixed(2)} € (dont ${paymentData.buyerFee.toFixed(2)} € de frais de service).`,
+        'Achat confirmé ! 🎉',
+        `Votre achat de "${product.title}" a été confirmé.\n\nVous avez payé ${paymentData.totalCharge.toFixed(2)} € (dont ${paymentData.buyerFee.toFixed(2)} € de frais de service).\n\nVeuillez maintenant entrer votre adresse de livraison.`,
         [
           {
-            text: 'Retour',
-            onPress: () => router.back(),
-          },
-          {
-            text: 'OK',
-            style: 'cancel',
+            text: 'Entrer mon adresse',
+            onPress: () => router.push({
+              pathname: '/shipping-address',
+              params: { transactionId: paymentData.paymentIntentId }
+            }),
           },
         ]
       );
-
-      setHasPurchased(true);
     } catch (error: any) {
       Alert.alert('Erreur', error.message || 'Une erreur est survenue lors du paiement');
     } finally {
