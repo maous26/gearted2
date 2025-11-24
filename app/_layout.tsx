@@ -8,7 +8,6 @@ import SplashScreen from "../components/SplashScreen";
 import { ThemeProvider, useTheme } from "../components/ThemeProvider";
 import { UserProvider } from "../components/UserProvider";
 import { useProductsStore } from "../stores/productsStore";
-import stripeService from "../services/stripe";
 import { THEMES } from "../themes";
 
 function RootInner() {
@@ -26,15 +25,8 @@ function RootInner() {
 
   // Load Stripe publishable key
   useEffect(() => {
-    const loadStripeKey = async () => {
-      try {
-        const key = await stripeService.getPublishableKey();
-        setStripePublishableKey(key);
-      } catch (error) {
-        console.error('Failed to load Stripe key:', error);
-      }
-    };
-    loadStripeKey();
+    // Hardcoded for dev to avoid async loading issues
+    setStripePublishableKey('pk_test_51SVrSp5kpmvcwVKoKtTa2fpnh7C672dg2IA7WESQ8swOwRMHCa7a5gYfWo4HgvJoICIKA7CEphR3iSJHQsw6VYyE00Z6fjdwR7');
   }, []);
 
   const handleSplashFinish = () => {

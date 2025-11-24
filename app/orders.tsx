@@ -39,9 +39,11 @@ export default function OrdersScreen() {
 
       if (activeTab === 'sales') {
         const salesData = await transactionService.getMySales();
+        console.log('[Orders] Sales data received:', JSON.stringify(salesData, null, 2));
         setSales(salesData);
       } else {
         const purchasesData = await transactionService.getMyPurchases();
+        console.log('[Orders] Purchases data received:', JSON.stringify(purchasesData, null, 2));
         setPurchases(purchasesData);
       }
 
@@ -230,7 +232,11 @@ export default function OrdersScreen() {
               fontWeight: '700',
               color: t.primaryBtn,
             }}>
-              {order.amount?.toFixed(2)} €
+              {(order.amount && typeof order.amount === 'number')
+                ? order.amount.toFixed(2)
+                : (order.product?.price && typeof order.product.price === 'number')
+                  ? order.product.price.toFixed(2)
+                  : 'N/A'} €
             </Text>
 
             {/* Status badge */}
