@@ -187,8 +187,14 @@ export class ShippoService {
   static async buyShippingLabel(rateId: string) {
     const transaction = await this.purchaseLabel(rateId);
 
+    console.log('[Shippo] Purchase transaction response:', JSON.stringify(transaction, null, 2));
+
     if (transaction.status !== 'SUCCESS') {
-      throw new Error('Failed to purchase shipping label: ' + transaction.status);
+      const errorMessages = (transaction as any).messages || [];
+      const errorDetails = errorMessages.map((m: any) => m.text).join(', ');
+      console.error('[Shippo] Transaction failed with status:', transaction.status);
+      console.error('[Shippo] Error details:', errorDetails);
+      throw new Error('Failed to purchase shipping label: ' + (errorDetails || transaction.status));
     }
 
     return {
