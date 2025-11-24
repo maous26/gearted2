@@ -63,7 +63,7 @@ export default function ProductDetailScreen() {
         // Fournir des valeurs par défaut (obligatoire avec NEVER)
         defaultBillingDetails: {
           name: 'Client',
-          email: '[email protected]',
+          email: 'client@example.com',
           address: {
             country: 'FR',
             postalCode: '00000',
