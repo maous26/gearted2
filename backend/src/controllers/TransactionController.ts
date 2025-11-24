@@ -15,6 +15,21 @@ export class TransactionController {
         return res.status(401).json({ error: 'Authentication required' });
       }
 
+      console.log(`[Transactions] getMySales called for userId: ${userId}`);
+
+      // Debug: récupérer TOUTES les transactions pour voir ce qu'il y a
+      const allTransactions = await prisma.transaction.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          product: { select: { sellerId: true } }
+        }
+      });
+      console.log(`[Transactions] Total transactions in DB: ${allTransactions.length}`);
+      allTransactions.forEach(t => {
+        console.log(`  - Transaction ${t.id}: status=${t.status}, sellerId=${t.product.sellerId}, buyerId=${t.buyerId}`);
+      });
+
       const sales = await prisma.transaction.findMany({
         where: {
           product: {
