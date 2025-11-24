@@ -74,11 +74,13 @@ export class TransactionController {
         console.log('[Transactions] First sale structure:', JSON.stringify(sales[0], null, 2));
       }
 
-      // Transform images from objects to URLs array
+      // Transform images from objects to URLs array and convert Decimal to number
       const transformedSales = sales.map(sale => ({
         ...sale,
+        amount: typeof sale.amount === 'string' ? parseFloat(sale.amount) : sale.amount,
         product: sale.product ? {
           ...sale.product,
+          price: typeof sale.product.price === 'string' ? parseFloat(sale.product.price) : sale.product.price,
           images: Array.isArray(sale.product.images)
             ? sale.product.images.map((img: any) => typeof img === 'string' ? img : img.url)
             : []
@@ -151,11 +153,13 @@ export class TransactionController {
         console.log('[Transactions] First purchase structure:', JSON.stringify(purchases[0], null, 2));
       }
 
-      // Transform images from objects to URLs array
+      // Transform images from objects to URLs array and convert Decimal to number
       const transformedPurchases = purchases.map(purchase => ({
         ...purchase,
+        amount: typeof purchase.amount === 'string' ? parseFloat(purchase.amount) : purchase.amount,
         product: purchase.product ? {
           ...purchase.product,
+          price: typeof purchase.product.price === 'string' ? parseFloat(purchase.product.price) : purchase.product.price,
           images: Array.isArray(purchase.product.images)
             ? purchase.product.images.map((img: any) => typeof img === 'string' ? img : img.url)
             : []
