@@ -278,8 +278,14 @@ export default function OrdersScreen() {
                 alignItems: 'center',
               }}
               onPress={() => {
-                // TODO: Navigate to shipping label creation
-                Alert.alert('Créer étiquette', 'Fonctionnalité à venir');
+                router.push({
+                  pathname: '/create-shipping-label' as any,
+                  params: {
+                    transactionId: order.id,
+                    productTitle: order.product?.title || 'Produit',
+                    buyerName: order.buyer?.username || 'Inconnu',
+                  },
+                });
               }}
             >
               <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>
