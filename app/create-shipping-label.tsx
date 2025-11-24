@@ -20,10 +20,11 @@ import api from '../services/api';
 interface ShippingRate {
   rateId: string;
   provider: string;
-  servicelevel: {
-    name: string;
-    token: string;
+  servicelevel?: {
+    name?: string;
+    token?: string;
   };
+  servicelevelName?: string;
   amount: string;
   currency: string;
   estimatedDays: number;
@@ -302,7 +303,7 @@ export default function CreateShippingLabelScreen() {
                       {rate.provider}
                     </Text>
                     <Text style={{ fontSize: 14, color: t.mutedText, marginTop: 4 }}>
-                      {rate.servicelevel.name}
+                      {rate.servicelevel?.name || rate.servicelevelName || 'Service standard'}
                     </Text>
                     <Text style={{ fontSize: 12, color: t.mutedText, marginTop: 4 }}>
                       Livraison estimée: {rate.estimatedDays} jours
