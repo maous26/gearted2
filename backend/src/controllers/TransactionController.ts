@@ -75,7 +75,7 @@ export class TransactionController {
       }
 
       // Transform images from objects to URLs array and convert Decimal to number
-      // CRITICAL: parseFloat is required because Prisma returns Decimal as string
+      // CRITICAL: parseFloat is required because Prisma returns Decimal as string (forced rebuild)
       const transformedSales = sales.map(sale => ({
         ...sale,
         amount: typeof sale.amount === 'string' ? parseFloat(sale.amount) : sale.amount,
@@ -89,6 +89,10 @@ export class TransactionController {
       }));
 
       console.log('[Transactions] Transformed sales (first):', JSON.stringify(transformedSales[0], null, 2));
+      if (transformedSales.length > 0) {
+        console.log('[Transactions] Type check - amount:', typeof transformedSales[0].amount, '=', transformedSales[0].amount);
+        console.log('[Transactions] Type check - price:', typeof transformedSales[0].product?.price, '=', transformedSales[0].product?.price);
+      }
 
       return res.json({
         success: true,
