@@ -76,17 +76,22 @@ export class TransactionController {
 
       // Transform images from objects to URLs array and convert Decimal to number
       // CRITICAL: Prisma returns Decimal objects, must convert to number with Number()
-      const transformedSales = sales.map(sale => ({
-        ...sale,
-        amount: Number(sale.amount),
-        product: sale.product ? {
-          ...sale.product,
-          price: Number(sale.product.price),
-          images: Array.isArray(sale.product.images)
-            ? sale.product.images.map((img: any) => typeof img === 'string' ? img : img.url)
-            : []
-        } : undefined
-      }));
+      // Must explicitly destructure to avoid spread operator issues
+      const transformedSales = sales.map(sale => {
+        const { amount, product, ...rest } = sale;
+        return {
+          ...rest,
+          amount: Number(amount),
+          product: product ? {
+            id: product.id,
+            title: product.title,
+            price: Number(product.price),
+            images: Array.isArray(product.images)
+              ? product.images.map((img: any) => typeof img === 'string' ? img : img.url)
+              : []
+          } : undefined
+        };
+      });
 
       console.log('[Transactions] Transformed sales (first):', JSON.stringify(transformedSales[0], null, 2));
       if (transformedSales.length > 0) {
@@ -162,17 +167,23 @@ export class TransactionController {
 
       // Transform images from objects to URLs array and convert Decimal to number
       // CRITICAL: Prisma returns Decimal objects, must convert to number with Number()
-      const transformedPurchases = purchases.map(purchase => ({
-        ...purchase,
-        amount: Number(purchase.amount),
-        product: purchase.product ? {
-          ...purchase.product,
-          price: Number(purchase.product.price),
-          images: Array.isArray(purchase.product.images)
-            ? purchase.product.images.map((img: any) => typeof img === 'string' ? img : img.url)
-            : []
-        } : undefined
-      }));
+      // Must explicitly destructure to avoid spread operator issues
+      const transformedPurchases = purchases.map(purchase => {
+        const { amount, product, ...rest } = purchase;
+        return {
+          ...rest,
+          amount: Number(amount),
+          product: product ? {
+            id: product.id,
+            title: product.title,
+            price: Number(product.price),
+            images: Array.isArray(product.images)
+              ? product.images.map((img: any) => typeof img === 'string' ? img : img.url)
+              : [],
+            seller: product.seller
+          } : undefined
+        };
+      });
 
       return res.json({
         success: true,
