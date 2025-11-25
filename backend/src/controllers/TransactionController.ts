@@ -75,6 +75,7 @@ export class TransactionController {
       }
 
       // Transform images from objects to URLs array and convert Decimal to number
+      // CRITICAL: parseFloat is required because Prisma returns Decimal as string
       const transformedSales = sales.map(sale => ({
         ...sale,
         amount: typeof sale.amount === 'string' ? parseFloat(sale.amount) : sale.amount,
