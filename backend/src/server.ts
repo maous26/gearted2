@@ -30,6 +30,7 @@ import stripeRoutes from './routes/stripe';
 import shippingRoutes from './routes/shipping';
 import webhookRoutes from './routes/webhook';
 import transactionRoutes from './routes/transactions';
+import shippoAdminRoutes from './routes/shippoAdmin.routes';
 
 // Load environment variables
 dotenv.config();
@@ -149,6 +150,7 @@ app.use('/api/uploads', uploadRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/shipping', shippingRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/admin/shippo', shippoAdminRoutes);
 
 // Serve static files (uploads)
 app.use('/uploads', express.static('uploads'));
