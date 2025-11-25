@@ -5,7 +5,7 @@ node_modules/
 
 # Expo
 .expo/
-dist/
+# dist/  # Temporarily disabled to allow backend/dist/ to be committed
 web-build/
 
 # Native
