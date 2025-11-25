@@ -87,6 +87,8 @@ export class TransactionController {
         } : undefined
       }));
 
+      console.log('[Transactions] Transformed sales (first):', JSON.stringify(transformedSales[0], null, 2));
+
       return res.json({
         success: true,
         sales: transformedSales
