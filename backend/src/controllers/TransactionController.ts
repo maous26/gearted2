@@ -75,13 +75,13 @@ export class TransactionController {
       }
 
       // Transform images from objects to URLs array and convert Decimal to number
-      // CRITICAL: parseFloat is required because Prisma returns Decimal as string (forced rebuild)
+      // CRITICAL: Prisma returns Decimal objects, must convert to number with Number()
       const transformedSales = sales.map(sale => ({
         ...sale,
-        amount: typeof sale.amount === 'string' ? parseFloat(sale.amount) : sale.amount,
+        amount: Number(sale.amount),
         product: sale.product ? {
           ...sale.product,
-          price: typeof sale.product.price === 'string' ? parseFloat(sale.product.price) : sale.product.price,
+          price: Number(sale.product.price),
           images: Array.isArray(sale.product.images)
             ? sale.product.images.map((img: any) => typeof img === 'string' ? img : img.url)
             : []
@@ -161,12 +161,13 @@ export class TransactionController {
       }
 
       // Transform images from objects to URLs array and convert Decimal to number
+      // CRITICAL: Prisma returns Decimal objects, must convert to number with Number()
       const transformedPurchases = purchases.map(purchase => ({
         ...purchase,
-        amount: typeof purchase.amount === 'string' ? parseFloat(purchase.amount) : purchase.amount,
+        amount: Number(purchase.amount),
         product: purchase.product ? {
           ...purchase.product,
-          price: typeof purchase.product.price === 'string' ? parseFloat(purchase.product.price) : purchase.product.price,
+          price: Number(purchase.product.price),
           images: Array.isArray(purchase.product.images)
             ? purchase.product.images.map((img: any) => typeof img === 'string' ? img : img.url)
             : []
