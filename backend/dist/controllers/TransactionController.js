@@ -64,17 +64,21 @@ class TransactionController {
             if (sales.length > 0) {
                 console.log('[Transactions] First sale structure:', JSON.stringify(sales[0], null, 2));
             }
-            const transformedSales = sales.map(sale => ({
-                ...sale,
-                amount: typeof sale.amount === 'string' ? parseFloat(sale.amount) : sale.amount,
-                product: sale.product ? {
-                    ...sale.product,
-                    price: typeof sale.product.price === 'string' ? parseFloat(sale.product.price) : sale.product.price,
-                    images: Array.isArray(sale.product.images)
-                        ? sale.product.images.map((img) => typeof img === 'string' ? img : img.url)
-                        : []
-                } : undefined
-            }));
+            const transformedSales = sales.map(sale => {
+                const { amount, product, ...rest } = sale;
+                return {
+                    ...rest,
+                    amount: Number(amount),
+                    product: product ? {
+                        id: product.id,
+                        title: product.title,
+                        price: Number(product.price),
+                        images: Array.isArray(product.images)
+                            ? product.images.map((img) => typeof img === 'string' ? img : img.url)
+                            : []
+                    } : undefined
+                };
+            });
             console.log('[Transactions] Transformed sales (first):', JSON.stringify(transformedSales[0], null, 2));
             if (transformedSales.length > 0) {
                 console.log('[Transactions] Type check - amount:', typeof transformedSales[0].amount, '=', transformedSales[0].amount);
@@ -139,17 +143,22 @@ class TransactionController {
             if (purchases.length > 0) {
                 console.log('[Transactions] First purchase structure:', JSON.stringify(purchases[0], null, 2));
             }
-            const transformedPurchases = purchases.map(purchase => ({
-                ...purchase,
-                amount: typeof purchase.amount === 'string' ? parseFloat(purchase.amount) : purchase.amount,
-                product: purchase.product ? {
-                    ...purchase.product,
-                    price: typeof purchase.product.price === 'string' ? parseFloat(purchase.product.price) : purchase.product.price,
-                    images: Array.isArray(purchase.product.images)
-                        ? purchase.product.images.map((img) => typeof img === 'string' ? img : img.url)
-                        : []
-                } : undefined
-            }));
+            const transformedPurchases = purchases.map(purchase => {
+                const { amount, product, ...rest } = purchase;
+                return {
+                    ...rest,
+                    amount: Number(amount),
+                    product: product ? {
+                        id: product.id,
+                        title: product.title,
+                        price: Number(product.price),
+                        images: Array.isArray(product.images)
+                            ? product.images.map((img) => typeof img === 'string' ? img : img.url)
+                            : [],
+                        seller: product.seller
+                    } : undefined
+                };
+            });
             return res.json({
                 success: true,
                 purchases: transformedPurchases
