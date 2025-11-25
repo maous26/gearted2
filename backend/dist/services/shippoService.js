@@ -77,8 +77,9 @@ class ShippoService {
             rates: sortedRates.map((rate) => ({
                 rateId: rate.object_id,
                 provider: rate.provider,
-                serviceName: rate.servicelevel.name,
-                price: parseFloat(rate.amount),
+                servicelevel: rate.servicelevel,
+                servicelevelName: rate.servicelevel.name,
+                amount: parseFloat(rate.amount).toFixed(2),
                 currency: rate.currency,
                 estimatedDays: rate.estimated_days,
             })),

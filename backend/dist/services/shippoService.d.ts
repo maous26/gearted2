@@ -52,8 +52,12 @@ export declare class ShippoService {
         rates: {
             rateId: string;
             provider: string;
-            serviceName: string;
-            price: number;
+            servicelevel: {
+                name: string;
+                token: string;
+            };
+            servicelevelName: string;
+            amount: string;
             currency: string;
             estimatedDays: number;
         }[];
