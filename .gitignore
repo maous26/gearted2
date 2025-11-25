@@ -41,7 +41,7 @@ yarn-error.*
 /android
 
 # Backend
-backend/dist/
+# backend/dist/  # Temporarily allow dist/ to be committed for Railway deployment
 backend/node_modules/
 backend/*.log
 backend/prisma/dev.db
