@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ShippingController = void 0;
 const client_1 = require("@prisma/client");
@@ -101,10 +134,33 @@ class ShippingController {
                 weight: weight.toString(),
                 mass_unit: 'kg'
             };
-            const rates = await ShippoService_1.ShippoService.getShippingRates(fromAddress, toAddress, parcel);
+            const shippoRates = await ShippoService_1.ShippoService.getShippingRates(fromAddress, toAddress, parcel);
+            const mondialRelayRates = await Promise.resolve().then(() => __importStar(require('../services/MondialRelayService'))).then(module => module.MondialRelayService.getShippingRates(parseFloat(weight) * 1000, toAddress.country || 'FR'));
+            const allRates = [
+                ...shippoRates.rates,
+                {
+                    rateId: 'mondial-relay-standard',
+                    provider: 'Mondial Relay',
+                    servicelevel: { name: 'Point Relais', token: 'PR' },
+                    servicelevelName: 'Point Relais',
+                    amount: mondialRelayRates.standard.toFixed(2),
+                    currency: 'EUR',
+                    estimatedDays: 3
+                },
+                {
+                    rateId: 'mondial-relay-express',
+                    provider: 'Mondial Relay',
+                    servicelevel: { name: 'Domicile', token: 'DOM' },
+                    servicelevelName: 'Domicile',
+                    amount: mondialRelayRates.express.toFixed(2),
+                    currency: 'EUR',
+                    estimatedDays: 2
+                }
+            ];
             return res.json({
                 success: true,
-                ...rates
+                shipmentId: shippoRates.shipmentId,
+                rates: allRates
             });
         }
         catch (error) {

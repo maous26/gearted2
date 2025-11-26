@@ -132,12 +132,44 @@ export class ShippingController {
         mass_unit: 'kg' as const
       };
 
-      // Obtenir les tarifs via Shippo
-      const rates = await ShippoService.getShippingRates(fromAddress, toAddress, parcel);
+      // Obtenir les tarifs via Shippo (Colissimo)
+      const shippoRates = await ShippoService.getShippingRates(fromAddress, toAddress, parcel);
+
+      // Obtenir les tarifs Mondial Relay
+      const mondialRelayRates = await import('../services/MondialRelayService').then(module =>
+        module.MondialRelayService.getShippingRates(
+          parseFloat(weight) * 1000, // Convert kg to grams
+          toAddress.country || 'FR'
+        )
+      );
+
+      // Combiner tous les tarifs
+      const allRates = [
+        ...shippoRates.rates,
+        {
+          rateId: 'mondial-relay-standard',
+          provider: 'Mondial Relay',
+          servicelevel: { name: 'Point Relais', token: 'PR' },
+          servicelevelName: 'Point Relais',
+          amount: mondialRelayRates.standard.toFixed(2),
+          currency: 'EUR',
+          estimatedDays: 3
+        },
+        {
+          rateId: 'mondial-relay-express',
+          provider: 'Mondial Relay',
+          servicelevel: { name: 'Domicile', token: 'DOM' },
+          servicelevelName: 'Domicile',
+          amount: mondialRelayRates.express.toFixed(2),
+          currency: 'EUR',
+          estimatedDays: 2
+        }
+      ];
 
       return res.json({
         success: true,
-        ...rates
+        shipmentId: shippoRates.shipmentId,
+        rates: allRates
       });
     } catch (error: any) {
       console.error('[Shipping] Get rates error:', error);
