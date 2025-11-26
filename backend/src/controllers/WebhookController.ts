@@ -94,15 +94,21 @@ export class WebhookController {
         }
       });
 
-      // Marquer le produit comme VENDU
+      // Marquer le produit comme VENDU et planifier suppression dans 3 jours
+      const soldAt = new Date();
+      const deletionScheduledAt = new Date(soldAt.getTime() + (3 * 24 * 60 * 60 * 1000)); // +3 jours
+
       await prisma.product.update({
         where: { id: transaction.productId },
         data: {
-          status: 'SOLD'
+          status: 'SOLD',
+          soldAt: soldAt,
+          deletionScheduledAt: deletionScheduledAt
         }
       });
 
       console.log(`[Webhook] ✅ Product ${transaction.productId} marked as SOLD`);
+      console.log(`[Webhook] ✅ Product will be deleted on ${deletionScheduledAt.toISOString()}`);
       console.log(`[Webhook] ✅ Transaction ${transaction.id} marked as SUCCEEDED`);
     } catch (error) {
       console.error('[Webhook] Error handling payment success:', error);
