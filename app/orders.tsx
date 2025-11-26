@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../components/ThemeProvider';
 import { THEMES } from '../themes';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,6 +33,13 @@ export default function OrdersScreen() {
   useEffect(() => {
     loadOrders();
   }, [activeTab, statusFilter]);
+
+  // Recharger automatiquement quand on revient sur l'écran
+  useFocusEffect(
+    React.useCallback(() => {
+      loadOrders();
+    }, [activeTab, statusFilter])
+  );
 
   const loadOrders = async () => {
     try {

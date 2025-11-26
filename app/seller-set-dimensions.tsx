@@ -46,12 +46,16 @@ export default function SellerSetDimensionsScreen() {
       });
 
       Alert.alert(
-        'Dimensions enregistrées',
-        'L\'acheteur peut maintenant générer son étiquette de livraison.',
+        'Dimensions enregistrées ✓',
+        'L\'acheteur peut maintenant choisir son mode de livraison.',
         [
           {
             text: 'OK',
-            onPress: () => router.back(),
+            onPress: () => {
+              // Retour avec paramètre pour forcer le refresh
+              router.back();
+              // Note: L'écran orders.tsx devrait recharger automatiquement
+            },
           },
         ]
       );
