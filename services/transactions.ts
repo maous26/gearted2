@@ -56,7 +56,10 @@ class TransactionService {
       return response.sales || [];
     } catch (error: any) {
       console.error('[Transactions] Failed to get sales:', error);
-      throw new Error(error.response?.data?.error || 'Erreur lors de la récupération des ventes');
+      const errorMessage = typeof error.response?.data?.error === 'string'
+        ? error.response.data.error
+        : error.response?.data?.message || error.message || 'Erreur lors de la récupération des ventes';
+      throw new Error(errorMessage);
     }
   }
 
@@ -71,7 +74,10 @@ class TransactionService {
       return response.purchases || [];
     } catch (error: any) {
       console.error('[Transactions] Failed to get purchases:', error);
-      throw new Error(error.response?.data?.error || 'Erreur lors de la récupération des achats');
+      const errorMessage = typeof error.response?.data?.error === 'string'
+        ? error.response.data.error
+        : error.response?.data?.message || error.message || 'Erreur lors de la récupération des achats';
+      throw new Error(errorMessage);
     }
   }
 
@@ -86,7 +92,10 @@ class TransactionService {
       return response.transaction;
     } catch (error: any) {
       console.error('[Transactions] Failed to get transaction details:', error);
-      throw new Error(error.response?.data?.error || 'Erreur lors de la récupération de la transaction');
+      const errorMessage = typeof error.response?.data?.error === 'string'
+        ? error.response.data.error
+        : error.response?.data?.message || error.message || 'Erreur lors de la récupération de la transaction';
+      throw new Error(errorMessage);
     }
   }
 }
