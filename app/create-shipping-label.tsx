@@ -79,6 +79,20 @@ export default function CreateShippingLabelScreen() {
       return;
     }
 
+    // Check if it's Mondial Relay
+    const selectedRateData = rates.find(r => r.rateId === selectedRate);
+    const isMondialRelay = selectedRate.startsWith('mondial-relay-');
+
+    if (isMondialRelay) {
+      // Pour Mondial Relay, il faut d'abord sélectionner un point relais
+      Alert.alert(
+        'Fonctionnalité en cours',
+        'Pour Mondial Relay, vous devez d\'abord obtenir vos identifiants API auprès de Mondial Relay.\n\nContactez api@mondialrelay.fr ou 09 69 32 23 32 pour obtenir:\n- Code enseigne\n- Clé privée\n- Login/Password API',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     try {
       setCreatingLabel(true);
       const response = await api.post<{

@@ -132,10 +132,7 @@ export class ShippingController {
         mass_unit: 'kg' as const
       };
 
-      // Obtenir les tarifs via Shippo (Colissimo)
-      const shippoRates = await ShippoService.getShippingRates(fromAddress, toAddress, parcel);
-
-      // Obtenir les tarifs Mondial Relay
+      // Obtenir les tarifs Mondial Relay (Shippo désactivé - configuration directe des transporteurs)
       const mondialRelayRates = await import('../services/MondialRelayService').then(module =>
         module.MondialRelayService.getShippingRates(
           parseFloat(weight) * 1000, // Convert kg to grams
@@ -143,9 +140,9 @@ export class ShippingController {
         )
       );
 
-      // Combiner tous les tarifs
+      // Tarifs disponibles (uniquement Mondial Relay pour l'instant)
+      // TODO: Ajouter Colissimo direct, Chronopost, etc.
       const allRates = [
-        ...shippoRates.rates,
         {
           rateId: 'mondial-relay-standard',
           provider: 'Mondial Relay',
@@ -168,7 +165,7 @@ export class ShippingController {
 
       return res.json({
         success: true,
-        shipmentId: shippoRates.shipmentId,
+        shipmentId: null, // No Shippo - direct carrier APIs
         rates: allRates
       });
     } catch (error: any) {
@@ -183,6 +180,7 @@ export class ShippingController {
   /**
    * Acheter une étiquette de livraison
    * POST /api/shipping/label/:transactionId
+   * NOTE: Shippo désactivé - rediriger vers les APIs transporteurs directs
    */
   static async purchaseLabel(req: Request, res: Response) {
     try {
@@ -194,41 +192,19 @@ export class ShippingController {
       const { transactionId } = req.params;
       const { rateId } = req.body;
 
-      // Vérifier que l'utilisateur est le vendeur
-      const transaction = await prisma.transaction.findUnique({
-        where: { id: transactionId },
-        include: { product: true }
-      });
-
-      if (!transaction) {
-        return res.status(404).json({ error: 'Transaction not found' });
+      // Déterminer quel transporteur utiliser basé sur le rateId
+      if (rateId.startsWith('mondial-relay-')) {
+        // Rediriger vers l'API Mondial Relay
+        return res.status(400).json({
+          success: false,
+          error: 'For Mondial Relay labels, use /api/mondialrelay/label/:transactionId with pickupPointId and weight'
+        });
       }
 
-      if (transaction.product.sellerId !== userId) {
-        return res.status(403).json({ error: 'Only the seller can purchase shipping label' });
-      }
-
-      // Acheter l'étiquette via Shippo
-      const label = await ShippoService.buyShippingLabel(rateId);
-
-      // Mettre à jour la transaction avec le numéro de suivi
-      const updatedTransaction = await prisma.transaction.update({
-        where: { id: transactionId },
-        data: {
-          trackingNumber: label.trackingNumber,
-          metadata: {
-            ...((transaction.metadata as any) || {}),
-            labelUrl: label.labelUrl,
-            trackingUrl: label.trackingUrl,
-            estimatedDelivery: label.estimatedDelivery
-          }
-        }
-      });
-
-      return res.json({
-        success: true,
-        label,
-        transaction: updatedTransaction
+      // Shippo désactivé
+      return res.status(501).json({
+        success: false,
+        error: 'Shippo is disabled. Please use direct carrier APIs: /api/mondialrelay/label for Mondial Relay'
       });
     } catch (error: any) {
       console.error('[Shipping] Purchase label error:', error);
