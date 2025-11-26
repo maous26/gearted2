@@ -52,9 +52,8 @@ export default function SellerSetDimensionsScreen() {
           {
             text: 'OK',
             onPress: () => {
-              // Retour avec paramètre pour forcer le refresh
+              // Retour à l'écran orders - useFocusEffect déclenchera le rechargement
               router.back();
-              // Note: L'écran orders.tsx devrait recharger automatiquement
             },
           },
         ]
