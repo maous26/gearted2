@@ -245,6 +245,12 @@ model Product {
   location         String?
   shippingIncluded Boolean  @default(false)
   shippingCost     Decimal?
+  parcelDimensionsId String? // Lien vers les dimensions du colis
+  parcelDimensions ParcelDimensions? @relation(fields: [parcelDimensionsId], references: [id])
+  
+  // Payment tracking
+  paymentCompleted Boolean   @default(false) // Paiement réussi
+  paymentCompletedAt DateTime? // Date du paiement
 
   // Analytics
   views Int @default(0)
@@ -255,6 +261,7 @@ model Product {
   // Relations
   images       ProductImage[]
   transactions Transaction[]
+  shipments    Shipment[]
 
   @@map("products")
 }
@@ -414,4 +421,81 @@ enum TransactionStatus {
   FAILED
   REFUNDED
   CANCELLED
+}
+
+// Dimensions du colis (renseignées par le vendeur)
+model ParcelDimensions {
+  id        String @id @default(cuid())
+  
+  // Dimensions en cm
+  length Float // Longueur
+  width  Float // Largeur  
+  height Float // Hauteur
+  weight Float // Poids en kg
+  
+  // Optionnel: lien vers catalogue prédéfini
+  weaponModelId    String?
+  manufacturerId   String?
+  name             String? // Ex: "Boîte Tokyo Marui M4"
+  isFromCatalog    Boolean @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  products  Product[]
+  shipments Shipment[]
+  
+  @@map("parcel_dimensions")
+}
+
+// Expéditions
+model Shipment {
+  id String @id @default(cuid())
+  
+  // Produit et utilisateurs
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  buyerId   String
+  sellerId  String
+  
+  // Numéro de commande
+  orderNumber String @unique
+  
+  // Shippo tracking
+  shippoObjectId String?
+  trackingNumber String?
+  labelUrl       String?
+  trackingStatus String? @default("UNKNOWN")
+  
+  // Adresses
+  fromAddress Json // Adresse vendeur
+  toAddress   Json // Adresse acheteur
+  
+  // Dimensions du colis
+  parcelId String?
+  parcel   ParcelDimensions? @relation(fields: [parcelId], references: [id])
+  
+  // Transporteur
+  carrier           String?
+  serviceLevelToken String?
+  estimatedDays     Int?
+  
+  // Montant
+  amount   Decimal
+  currency String  @default("EUR")
+  
+  // Statut
+  status String @default("PENDING") // PENDING, LABEL_CREATED, SHIPPED, DELIVERED, CANCELLED
+  isPaid Boolean @default(false)
+  
+  // Métadonnées
+  metadata Json?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  shippedAt   DateTime?
+  deliveredAt DateTime?
+  
+  @@map("shipments")
 }
