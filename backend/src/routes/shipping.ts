@@ -7,10 +7,13 @@ const router = express.Router();
 // Toutes les routes nécessitent une authentification
 router.use(authenticate);
 
-// Ajouter une adresse de livraison
+// Ajouter une adresse de livraison (acheteur)
 router.post('/address/:transactionId', ShippingController.addShippingAddress);
 
-// Obtenir les tarifs de livraison (vendeur uniquement)
+// Définir les dimensions du colis (vendeur uniquement)
+router.post('/dimensions/:transactionId', ShippingController.setParcelDimensions);
+
+// Obtenir les tarifs de livraison (acheteur et vendeur)
 router.post('/rates/:transactionId', ShippingController.getShippingRates);
 
 // Acheter une étiquette de livraison (vendeur uniquement)

@@ -85,10 +85,19 @@ export default function CreateShippingLabelScreen() {
 
     if (isMondialRelay) {
       // Pour Mondial Relay, il faut d'abord sélectionner un point relais
+      // TODO: Ajouter un écran de sélection de point relais
       Alert.alert(
-        'Fonctionnalité en cours',
-        'Pour Mondial Relay, vous devez d\'abord obtenir vos identifiants API auprès de Mondial Relay.\n\nContactez api@mondialrelay.fr ou 09 69 32 23 32 pour obtenir:\n- Code enseigne\n- Clé privée\n- Login/Password API',
-        [{ text: 'OK' }]
+        'Point Relais requis',
+        'Pour Mondial Relay, la sélection du point relais sera disponible prochainement.\n\nEn attendant, vous pouvez tester avec les credentials de test configurés (BDTEST13).',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          {
+            text: 'Continuer quand même',
+            onPress: () => {
+              Alert.alert('Info', 'La fonctionnalité complète arrive bientôt!');
+            }
+          }
+        ]
       );
       return;
     }

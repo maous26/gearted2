@@ -91,6 +91,51 @@ class ShippingController {
             });
         }
     }
+    static async setParcelDimensions(req, res) {
+        try {
+            const userId = req.user?.userId;
+            if (!userId) {
+                return res.status(401).json({ error: 'Authentication required' });
+            }
+            const { transactionId } = req.params;
+            const { length, width, height, weight } = req.body;
+            const transaction = await prisma.transaction.findUnique({
+                where: { id: transactionId },
+                include: { product: true }
+            });
+            if (!transaction) {
+                return res.status(404).json({ error: 'Transaction not found' });
+            }
+            if (transaction.product.sellerId !== userId) {
+                return res.status(403).json({ error: 'Only the seller can set parcel dimensions' });
+            }
+            const updatedTransaction = await prisma.transaction.update({
+                where: { id: transactionId },
+                data: {
+                    metadata: {
+                        ...(transaction.metadata || {}),
+                        parcelDimensions: {
+                            length: parseFloat(length),
+                            width: parseFloat(width),
+                            height: parseFloat(height),
+                            weight: parseFloat(weight)
+                        }
+                    }
+                }
+            });
+            return res.json({
+                success: true,
+                transaction: updatedTransaction
+            });
+        }
+        catch (error) {
+            console.error('[Shipping] Set dimensions error:', error);
+            return res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
     static async getShippingRates(req, res) {
         try {
             const userId = req.user?.userId;
@@ -110,8 +155,10 @@ class ShippingController {
             if (!transaction) {
                 return res.status(404).json({ error: 'Transaction not found' });
             }
-            if (transaction.product.sellerId !== userId) {
-                return res.status(403).json({ error: 'Only the seller can get shipping rates' });
+            const isSeller = transaction.product.sellerId === userId;
+            const isBuyer = transaction.buyerId === userId;
+            if (!isSeller && !isBuyer) {
+                return res.status(403).json({ error: 'Access denied' });
             }
             if (!transaction.shippingAddress) {
                 return res.status(400).json({ error: 'Shipping address not provided yet' });

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 export declare class ShippingController {
     static addShippingAddress(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
+    static setParcelDimensions(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
     static getShippingRates(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
     static purchaseLabel(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
     static getTracking(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;

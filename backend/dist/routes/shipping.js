@@ -9,6 +9,7 @@ const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
 router.use(auth_1.authenticate);
 router.post('/address/:transactionId', ShippingController_1.ShippingController.addShippingAddress);
+router.post('/dimensions/:transactionId', ShippingController_1.ShippingController.setParcelDimensions);
 router.post('/rates/:transactionId', ShippingController_1.ShippingController.getShippingRates);
 router.post('/label/:transactionId', ShippingController_1.ShippingController.purchaseLabel);
 router.get('/tracking/:transactionId', ShippingController_1.ShippingController.getTracking);

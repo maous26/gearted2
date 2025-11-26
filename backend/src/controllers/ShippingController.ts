@@ -73,7 +73,63 @@ export class ShippingController {
   }
 
   /**
-   * Obtenir les tarifs de livraison
+   * Set parcel dimensions (seller only)
+   * POST /api/shipping/dimensions/:transactionId
+   */
+  static async setParcelDimensions(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { transactionId } = req.params;
+      const { length, width, height, weight } = req.body;
+
+      const transaction = await prisma.transaction.findUnique({
+        where: { id: transactionId },
+        include: { product: true }
+      });
+
+      if (!transaction) {
+        return res.status(404).json({ error: 'Transaction not found' });
+      }
+
+      if (transaction.product.sellerId !== userId) {
+        return res.status(403).json({ error: 'Only the seller can set parcel dimensions' });
+      }
+
+      // Store dimensions in metadata
+      const updatedTransaction = await prisma.transaction.update({
+        where: { id: transactionId },
+        data: {
+          metadata: {
+            ...((transaction.metadata as any) || {}),
+            parcelDimensions: {
+              length: parseFloat(length),
+              width: parseFloat(width),
+              height: parseFloat(height),
+              weight: parseFloat(weight)
+            }
+          }
+        }
+      });
+
+      return res.json({
+        success: true,
+        transaction: updatedTransaction
+      });
+    } catch (error: any) {
+      console.error('[Shipping] Set dimensions error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Obtenir les tarifs de livraison (buyer or seller can view)
    * POST /api/shipping/rates/:transactionId
    */
   static async getShippingRates(req: Request, res: Response) {
@@ -100,8 +156,12 @@ export class ShippingController {
         return res.status(404).json({ error: 'Transaction not found' });
       }
 
-      if (transaction.product.sellerId !== userId) {
-        return res.status(403).json({ error: 'Only the seller can get shipping rates' });
+      // Both seller (to set dimensions) and buyer (to see rates) can access this
+      const isSeller = transaction.product.sellerId === userId;
+      const isBuyer = transaction.buyerId === userId;
+
+      if (!isSeller && !isBuyer) {
+        return res.status(403).json({ error: 'Access denied' });
       }
 
       if (!transaction.shippingAddress) {
