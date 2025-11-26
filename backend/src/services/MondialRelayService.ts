@@ -3,10 +3,10 @@ import crypto from 'crypto';
 
 const MONDIAL_RELAY_WSDL = 'https://api.mondialrelay.com/Web_Services.asmx?WSDL';
 
-// Credentials from environment variables
-const MR_ENSEIGNE = process.env.MONDIAL_RELAY_ENSEIGNE || 'BDTEST'; // Code test par défaut
-const MR_PRIVATE_KEY = process.env.MONDIAL_RELAY_PRIVATE_KEY || 'PrivateK';
-const MR_BRAND = process.env.MONDIAL_RELAY_BRAND || 'NN';
+// Credentials from environment variables (using official Mondial Relay test credentials)
+const MR_ENSEIGNE = process.env.MONDIAL_RELAY_ENSEIGNE || 'BDTEST13';
+const MR_PRIVATE_KEY = process.env.MONDIAL_RELAY_PRIVATE_KEY || 'TestAPI1key';
+const MR_BRAND = process.env.MONDIAL_RELAY_BRAND || '11';
 
 interface PickupPoint {
   id: string;

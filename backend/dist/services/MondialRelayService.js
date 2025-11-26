@@ -7,9 +7,9 @@ exports.MondialRelayService = void 0;
 const soap_1 = __importDefault(require("soap"));
 const crypto_1 = __importDefault(require("crypto"));
 const MONDIAL_RELAY_WSDL = 'https://api.mondialrelay.com/Web_Services.asmx?WSDL';
-const MR_ENSEIGNE = process.env.MONDIAL_RELAY_ENSEIGNE || 'BDTEST';
-const MR_PRIVATE_KEY = process.env.MONDIAL_RELAY_PRIVATE_KEY || 'PrivateK';
-const MR_BRAND = process.env.MONDIAL_RELAY_BRAND || 'NN';
+const MR_ENSEIGNE = process.env.MONDIAL_RELAY_ENSEIGNE || 'BDTEST13';
+const MR_PRIVATE_KEY = process.env.MONDIAL_RELAY_PRIVATE_KEY || 'TestAPI1key';
+const MR_BRAND = process.env.MONDIAL_RELAY_BRAND || '11';
 class MondialRelayService {
     static calculateSecurityHash(params) {
         const concatenated = params.join('') + MR_PRIVATE_KEY;
