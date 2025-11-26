@@ -62,18 +62,9 @@ class ShippoAdminController {
     }
     static async connectMondialRelay(req, res) {
         try {
-            const { merchantId, apiKey, isTest = true } = req.body;
-            if (!merchantId || !apiKey) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'merchantId and apiKey are required'
-                });
-            }
-            const account = await ShippoCarrierService_1.ShippoCarrierService.connectMondialRelay({ merchantId, apiKey }, isTest);
-            return res.json({
-                success: true,
-                message: 'Mondial Relay account connected successfully',
-                account
+            return res.status(501).json({
+                success: false,
+                error: 'Mondial Relay is now integrated directly, not via Shippo. Use /api/mondialrelay endpoints instead.'
             });
         }
         catch (error) {

@@ -11,8 +11,11 @@ interface ColissimoCredentials {
     password: string;
 }
 interface MondialRelayCredentials {
-    merchantId: string;
-    apiKey: string;
+    enseigne: string;
+    privateKey: string;
+    brand: string;
+    apiLogin: string;
+    apiPassword: string;
 }
 interface ChronopostCredentials {
     accountNumber: string;

@@ -18,8 +18,11 @@ interface ColissimoCredentials {
 }
 
 interface MondialRelayCredentials {
-  merchantId: string;
-  apiKey: string;
+  enseigne: string;
+  privateKey: string;
+  brand: string;
+  apiLogin: string;
+  apiPassword: string;
 }
 
 interface ChronopostCredentials {
@@ -110,44 +113,14 @@ export class ShippoCarrierService {
 
   /**
    * Connect Mondial Relay carrier account
-   * Requires:
-   * - Merchant ID (account_id)
-   * - API Key
-   *
-   * To obtain credentials:
-   * 1. Sign up for Mondial Relay merchant account
-   * 2. Contact your Mondial Relay sales advisor
-   * 3. Request API activation
+   * NOTE: Deprecated - We now use MondialRelay API directly via SOAP, not via Shippo
+   * See MondialRelayService for the new implementation
    */
   static async connectMondialRelay(
     credentials: MondialRelayCredentials,
     isTest: boolean = true
   ): Promise<CarrierAccount> {
-    try {
-      console.log('[ShippoCarrier] Connecting Mondial Relay account...', { isTest });
-
-      const response = await axios.post(
-        `${SHIPPO_API_URL}/carrier_accounts/`,
-        {
-          carrier: 'mondialrelay',
-          account_id: credentials.merchantId,
-          parameters: {
-            key: credentials.apiKey
-          },
-          active: true,
-          test: isTest
-        },
-        { headers: this.headers }
-      );
-
-      console.log('[ShippoCarrier] Mondial Relay connected successfully:', response.data.object_id);
-      return response.data;
-    } catch (error: any) {
-      console.error('[ShippoCarrier] Connect Mondial Relay error:', error.response?.data || error.message);
-
-      const errorMessage = error.response?.data?.messages?.[0]?.text || error.message;
-      throw new Error(`Failed to connect Mondial Relay: ${errorMessage}`);
-    }
+    throw new Error('Mondial Relay is now integrated directly via SOAP API. Use MondialRelayService instead.');
   }
 
   /**
@@ -274,23 +247,8 @@ export class ShippoCarrierService {
       console.log('[ShippoCarrier] Colissimo credentials not found in .env');
     }
 
-    // Try Mondial Relay
-    if (process.env.MONDIAL_RELAY_MERCHANT_ID && process.env.MONDIAL_RELAY_API_KEY) {
-      try {
-        results.mondialRelay = await this.connectMondialRelay(
-          {
-            merchantId: process.env.MONDIAL_RELAY_MERCHANT_ID,
-            apiKey: process.env.MONDIAL_RELAY_API_KEY
-          },
-          isTest
-        );
-      } catch (error: any) {
-        results.mondialRelay = error;
-        console.warn('[ShippoCarrier] Mondial Relay setup failed:', error.message);
-      }
-    } else {
-      console.log('[ShippoCarrier] Mondial Relay credentials not found in .env');
-    }
+    // Mondial Relay - Deprecated (now using direct SOAP API via MondialRelayService)
+    console.log('[ShippoCarrier] Mondial Relay is now integrated directly via SOAP API, skipping Shippo setup');
 
     // Try Chronopost
     if (process.env.CHRONOPOST_ACCOUNT_NUMBER) {

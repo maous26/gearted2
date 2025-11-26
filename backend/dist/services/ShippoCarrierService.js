@@ -51,25 +51,7 @@ class ShippoCarrierService {
         }
     }
     static async connectMondialRelay(credentials, isTest = true) {
-        try {
-            console.log('[ShippoCarrier] Connecting Mondial Relay account...', { isTest });
-            const response = await axios_1.default.post(`${SHIPPO_API_URL}/carrier_accounts/`, {
-                carrier: 'mondialrelay',
-                account_id: credentials.merchantId,
-                parameters: {
-                    key: credentials.apiKey
-                },
-                active: true,
-                test: isTest
-            }, { headers: this.headers });
-            console.log('[ShippoCarrier] Mondial Relay connected successfully:', response.data.object_id);
-            return response.data;
-        }
-        catch (error) {
-            console.error('[ShippoCarrier] Connect Mondial Relay error:', error.response?.data || error.message);
-            const errorMessage = error.response?.data?.messages?.[0]?.text || error.message;
-            throw new Error(`Failed to connect Mondial Relay: ${errorMessage}`);
-        }
+        throw new Error('Mondial Relay is now integrated directly via SOAP API. Use MondialRelayService instead.');
     }
     static async connectChronopost(credentials, isTest = true) {
         try {
@@ -135,21 +117,7 @@ class ShippoCarrierService {
         else {
             console.log('[ShippoCarrier] Colissimo credentials not found in .env');
         }
-        if (process.env.MONDIAL_RELAY_MERCHANT_ID && process.env.MONDIAL_RELAY_API_KEY) {
-            try {
-                results.mondialRelay = await this.connectMondialRelay({
-                    merchantId: process.env.MONDIAL_RELAY_MERCHANT_ID,
-                    apiKey: process.env.MONDIAL_RELAY_API_KEY
-                }, isTest);
-            }
-            catch (error) {
-                results.mondialRelay = error;
-                console.warn('[ShippoCarrier] Mondial Relay setup failed:', error.message);
-            }
-        }
-        else {
-            console.log('[ShippoCarrier] Mondial Relay credentials not found in .env');
-        }
+        console.log('[ShippoCarrier] Mondial Relay is now integrated directly via SOAP API, skipping Shippo setup');
         if (process.env.CHRONOPOST_ACCOUNT_NUMBER) {
             try {
                 results.chronopost = await this.connectChronopost({

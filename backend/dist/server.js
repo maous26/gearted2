@@ -33,6 +33,7 @@ const shipping_1 = __importDefault(require("./routes/shipping"));
 const webhook_1 = __importDefault(require("./routes/webhook"));
 const transactions_1 = __importDefault(require("./routes/transactions"));
 const shippoAdmin_routes_1 = __importDefault(require("./routes/shippoAdmin.routes"));
+const mondialrelay_routes_1 = __importDefault(require("./routes/mondialrelay.routes"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const server = (0, http_1.createServer)(app);
@@ -124,6 +125,7 @@ app.use('/api/stripe', stripe_1.default);
 app.use('/api/shipping', shipping_1.default);
 app.use('/api/transactions', transactions_1.default);
 app.use('/api/admin/shippo', shippoAdmin_routes_1.default);
+app.use('/api/mondialrelay', mondialrelay_routes_1.default);
 app.use('/uploads', express_1.default.static('uploads'));
 io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);

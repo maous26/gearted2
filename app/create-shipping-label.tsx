@@ -305,9 +305,19 @@ export default function CreateShippingLabelScreen() {
                     <Text style={{ fontSize: 14, color: t.mutedText, marginTop: 4 }}>
                       {rate.servicelevel?.name || rate.servicelevelName || 'Service standard'}
                     </Text>
-                    <Text style={{ fontSize: 12, color: t.mutedText, marginTop: 4 }}>
-                      Livraison estimée: {rate.estimatedDays} jours
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                      <Ionicons name="car-outline" size={14} color={t.mutedText} style={{ marginRight: 4 }} />
+                      <Text style={{ fontSize: 12, color: t.mutedText }}>
+                        Livraison estimée: <Text style={{ fontWeight: '600' }}>{(() => {
+                          const deliveryDate = new Date();
+                          deliveryDate.setDate(deliveryDate.getDate() + rate.estimatedDays);
+                          return deliveryDate.toLocaleDateString('fr-FR', {
+                            day: 'numeric',
+                            month: 'short'
+                          });
+                        })()}</Text> ({rate.estimatedDays} jour{rate.estimatedDays > 1 ? 's' : ''})
+                      </Text>
+                    </View>
                   </View>
                   <Text style={{ fontSize: 18, fontWeight: '700', color: t.primaryBtn }}>
                     {rate.amount} {rate.currency}
@@ -331,7 +341,7 @@ export default function CreateShippingLabelScreen() {
                 <ActivityIndicator size="small" color="#FFF" />
               ) : (
                 <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 16 }}>
-                  Acheter l'étiquette
+                  Générer l'étiquette
                 </Text>
               )}
             </TouchableOpacity>
