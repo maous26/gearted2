@@ -120,11 +120,14 @@ export class MondialRelayController {
         });
       }
 
-      // Check authorization (only seller can create label)
-      if (transaction.product.sellerId !== userId) {
+      // Check authorization (seller or buyer can create label)
+      const isSeller = transaction.product.sellerId === userId;
+      const isBuyer = transaction.buyerId === userId;
+
+      if (!isSeller && !isBuyer) {
         return res.status(403).json({
           success: false,
-          error: 'Only the seller can create shipping labels'
+          error: 'Access denied'
         });
       }
 
