@@ -1,0 +1,304 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useTheme } from '../components/ThemeProvider';
+import { THEMES } from '../themes';
+import { Ionicons } from '@expo/vector-icons';
+import api from '../services/api';
+
+interface ShippingRate {
+  rateId: string;
+  provider: string;
+  servicelevel?: {
+    name?: string;
+    token?: string;
+  };
+  servicelevelName?: string;
+  amount: string;
+  currency: string;
+  estimatedDays: number;
+}
+
+export default function BuyerChooseShippingScreen() {
+  const { theme } = useTheme();
+  const t = THEMES[theme];
+  const router = useRouter();
+  const params = useLocalSearchParams();
+
+  const transactionId = params.transactionId as string;
+  const productTitle = params.productTitle as string;
+  const sellerName = params.sellerName as string;
+
+  const [loading, setLoading] = useState(true);
+  const [rates, setRates] = useState<ShippingRate[]>([]);
+  const [selectedRate, setSelectedRate] = useState<string | null>(null);
+  const [creatingLabel, setCreatingLabel] = useState(false);
+  const [dimensions, setDimensions] = useState<{
+    length: number;
+    width: number;
+    height: number;
+    weight: number;
+  } | null>(null);
+
+  useEffect(() => {
+    fetchRates();
+  }, []);
+
+  const fetchRates = async () => {
+    try {
+      setLoading(true);
+      const response = await api.post<{
+        success: boolean;
+        rates: ShippingRate[];
+      }>(`/api/shipping/rates/${transactionId}`);
+
+      setRates(response.rates || []);
+    } catch (error: any) {
+      console.error('Failed to get shipping rates:', error);
+      Alert.alert('Erreur', error.message || 'Impossible de récupérer les tarifs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateLabel = async () => {
+    if (!selectedRate) {
+      Alert.alert('Erreur', 'Veuillez sélectionner un mode de livraison');
+      return;
+    }
+
+    const isMondialRelay = selectedRate.startsWith('mondial-relay-');
+
+    if (isMondialRelay) {
+      // Pour Mondial Relay, il faut sélectionner un point relais
+      Alert.alert(
+        'Point Relais requis',
+        'Pour Mondial Relay, la sélection du point relais sera disponible prochainement.\n\nEn attendant, vous pouvez tester avec les credentials de test configurés (BDTEST13).',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          {
+            text: 'Continuer quand même',
+            onPress: () => {
+              Alert.alert('Info', 'La fonctionnalité complète arrive bientôt!');
+            }
+          }
+        ]
+      );
+      return;
+    }
+
+    try {
+      setCreatingLabel(true);
+      const response = await api.post<{
+        success: boolean;
+        label: any;
+        transaction: any;
+      }>(`/api/shipping/label/${transactionId}`, {
+        rateId: selectedRate,
+      });
+
+      Alert.alert(
+        'Succès',
+        'Étiquette créée avec succès! Le vendeur peut maintenant expédier votre colis.',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.back(),
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.error('Failed to generate label:', error);
+      Alert.alert('Erreur', error.message || 'Impossible de créer l\'étiquette');
+    } finally {
+      setCreatingLabel(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }} edges={['top']}>
+      <StatusBar style={theme === 'night' ? 'light' : 'dark'} />
+
+      {/* Header */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 20,
+          paddingVertical: 16,
+        }}
+      >
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Ionicons name="arrow-back" size={24} color={t.text} />
+        </TouchableOpacity>
+        <Text style={{ fontSize: 20, fontWeight: '700', color: t.heading }}>
+          Choisir la livraison
+        </Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
+        {/* Info commande */}
+        <View
+          style={{
+            backgroundColor: t.cardBg,
+            borderRadius: 16,
+            padding: 16,
+            marginBottom: 20,
+            borderWidth: 1,
+            borderColor: t.border,
+          }}
+        >
+          <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading, marginBottom: 8 }}>
+            {productTitle}
+          </Text>
+          <Text style={{ fontSize: 14, color: t.mutedText }}>
+            Vendeur: {sellerName}
+          </Text>
+        </View>
+
+        {/* Instructions */}
+        <View
+          style={{
+            backgroundColor: t.accentBg,
+            borderRadius: 12,
+            padding: 16,
+            marginBottom: 20,
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+          }}
+        >
+          <Ionicons name="information-circle" size={24} color={t.primaryBtn} style={{ marginRight: 12 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 14, color: t.text, lineHeight: 20 }}>
+              Le vendeur a défini les dimensions du colis. Choisissez votre mode de livraison préféré.
+            </Text>
+          </View>
+        </View>
+
+        {/* Tarifs disponibles */}
+        {loading ? (
+          <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={t.primaryBtn} />
+            <Text style={{ marginTop: 16, fontSize: 14, color: t.mutedText }}>
+              Récupération des tarifs...
+            </Text>
+          </View>
+        ) : rates.length > 0 ? (
+          <View
+            style={{
+              backgroundColor: t.cardBg,
+              borderRadius: 16,
+              padding: 16,
+              marginBottom: 20,
+              borderWidth: 1,
+              borderColor: t.border,
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading, marginBottom: 16 }}>
+              Modes de livraison disponibles
+            </Text>
+
+            {rates.map((rate) => (
+              <TouchableOpacity
+                key={rate.rateId}
+                onPress={() => setSelectedRate(rate.rateId)}
+                style={{
+                  backgroundColor: selectedRate === rate.rateId ? t.accentBg : t.rootBg,
+                  borderWidth: 2,
+                  borderColor: selectedRate === rate.rateId ? t.primaryBtn : t.border,
+                  borderRadius: 12,
+                  padding: 16,
+                  marginBottom: 12,
+                }}
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
+                      {rate.provider}
+                    </Text>
+                    <Text style={{ fontSize: 14, color: t.mutedText, marginTop: 4 }}>
+                      {rate.servicelevel?.name || rate.servicelevelName || 'Service standard'}
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                      <Ionicons name="car-outline" size={14} color={t.mutedText} style={{ marginRight: 4 }} />
+                      <Text style={{ fontSize: 12, color: t.mutedText }}>
+                        Livraison estimée: <Text style={{ fontWeight: '600' }}>{(() => {
+                          const deliveryDate = new Date();
+                          deliveryDate.setDate(deliveryDate.getDate() + rate.estimatedDays);
+                          return deliveryDate.toLocaleDateString('fr-FR', {
+                            day: 'numeric',
+                            month: 'short'
+                          });
+                        })()}</Text> ({rate.estimatedDays} jour{rate.estimatedDays > 1 ? 's' : ''})
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={{ fontSize: 18, fontWeight: '700', color: t.primaryBtn }}>
+                    {rate.amount} {rate.currency}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity
+              onPress={generateLabel}
+              disabled={!selectedRate || creatingLabel}
+              style={{
+                backgroundColor: selectedRate ? t.primaryBtn : t.muted,
+                paddingVertical: 14,
+                borderRadius: 12,
+                alignItems: 'center',
+                marginTop: 8,
+              }}
+            >
+              {creatingLabel ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : (
+                <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 16 }}>
+                  Générer l'étiquette
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View
+            style={{
+              backgroundColor: t.cardBg,
+              borderRadius: 16,
+              padding: 24,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: t.border,
+            }}
+          >
+            <Ionicons name="cube-outline" size={48} color={t.mutedText} />
+            <Text style={{ fontSize: 16, color: t.heading, fontWeight: '600', marginTop: 16 }}>
+              En attente des dimensions
+            </Text>
+            <Text style={{ fontSize: 14, color: t.mutedText, textAlign: 'center', marginTop: 8 }}>
+              Le vendeur n'a pas encore défini les dimensions du colis.
+            </Text>
+          </View>
+        )}
+
+        {/* Note */}
+        <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
+          <Text style={{ fontSize: 12, color: t.mutedText, textAlign: 'center', lineHeight: 18 }}>
+            Une fois l'étiquette générée, le vendeur recevra une notification pour expédier votre colis.
+          </Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}

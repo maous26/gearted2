@@ -16,6 +16,7 @@ import { notFound } from './middleware/notFound';
 
 // Import routes
 import authRoutes from './routes/auth';
+import discordAuthRoutes from './routes/discord-auth';
 import categoryRoutes from './routes/categories';
 import compatibilityRoutes from './routes/compatibility';
 import favoritesRoutes from './routes/favorites';
@@ -25,6 +26,12 @@ import reviewRoutes from './routes/reviews';
 import searchRoutes from './routes/search';
 import uploadRoutes from './routes/uploads';
 import userRoutes from './routes/users';
+import stripeRoutes from './routes/stripe';
+import shippingRoutes from './routes/shipping';
+import webhookRoutes from './routes/webhook';
+import transactionRoutes from './routes/transactions';
+import shippoAdminRoutes from './routes/shippoAdmin.routes';
+import mondialrelayRoutes from './routes/mondialrelay.routes';
 
 // Load environment variables
 dotenv.config();
@@ -110,6 +117,9 @@ const speedLimiter = slowDown({
 app.use(limiter);
 app.use(speedLimiter);
 
+// Stripe webhook route MUST be before express.json() to receive raw body
+app.use('/webhook', webhookRoutes);
+
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -127,6 +137,7 @@ if (process.env.NODE_ENV === 'development') {
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', discordAuthRoutes); // Discord OAuth routes
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/favorites', favoritesRoutes);
@@ -137,6 +148,11 @@ app.use('/api/search', searchRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/uploads', uploadRoutes);
+app.use('/api/stripe', stripeRoutes);
+app.use('/api/shipping', shippingRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/admin/shippo', shippoAdminRoutes);
+app.use('/api/mondialrelay', mondialrelayRoutes);
 
 // Serve static files (uploads)
 app.use('/uploads', express.static('uploads'));

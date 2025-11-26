@@ -6,7 +6,6 @@ import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
     Alert,
-    Dimensions,
     Image,
     ScrollView,
     StatusBar,
@@ -27,78 +26,27 @@ import { THEMES } from "../../themes";
 
 type ThemeTokens = typeof THEMES["ranger"];
 
-// Combined Zod validation schema
+// Zod validation schema for sale listings
 const listingSchema = z.object({
   title: z.string().min(5, "Le titre doit contenir au moins 5 caractères").max(100, "Le titre ne peut pas dépasser 100 caractères"),
   description: z.string().min(20, "La description doit contenir au moins 20 caractères").max(1000, "La description ne peut pas dépasser 1000 caractères"),
   category: z.string().min(1, "La catégorie est requise"),
   condition: z.string().min(1, "L'état est requis"),
   brand: z.string().optional(),
-  price: z.string().optional(),
-  wantedItems: z.string().optional(),
-  exchangeValue: z.string().optional(),
+  price: z.string().min(1, "Le prix est requis").refine(
+    (val) => {
+      const priceNum = Number(val);
+      return !isNaN(priceNum) && priceNum > 0;
+    },
+    { message: "Le prix doit être un nombre positif" }
+  ),
   images: z.array(z.string()).min(1, "Au moins une photo est requise").max(5, "Maximum 5 photos"),
   handDelivery: z.boolean().optional(),
-}).refine(
-  (data) => {
-    // For sell type, price is required and must be valid
-    if (data.price !== undefined && data.price.trim() !== '') {
-      const priceNum = Number(data.price);
-      return !isNaN(priceNum) && priceNum > 0;
-    }
-    return true;
-  },
-  { message: "Le prix doit être un nombre positif", path: ["price"] }
-).refine(
-  (data) => {
-    // For exchange type, wantedItems is required
-    if (data.wantedItems !== undefined && data.wantedItems.trim() !== '') {
-      return data.wantedItems.length >= 10;
-    }
-    return true;
-  },
-  { message: "Décrivez ce que vous recherchez (min. 10 caractères)", path: ["wantedItems"] }
-);
+});
 
 type ListingFormData = z.infer<typeof listingSchema>;
 
 // Stable components (defined outside SellScreen) to prevent remounts on keystroke
-function TypeTabButton({
-  t,
-  type,
-  label,
-  currentType,
-  onPress,
-}: {
-  t: ThemeTokens;
-  type: "SALE" | "TRADE" | "BOTH";
-  label: string;
-  currentType: "SALE" | "TRADE" | "BOTH";
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      style={{
-        flex: 1,
-        paddingVertical: 12,
-        backgroundColor: currentType === type ? t.primaryBtn : t.cardBg,
-        borderRadius: 8,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: currentType === type ? t.primaryBtn : t.border
-      }}
-      onPress={onPress}
-    >
-      <Text style={{
-        color: currentType === type ? t.white : t.heading,
-        fontWeight: '600',
-      }}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
 function FormInputField({ 
   t,
   label, 
@@ -255,19 +203,14 @@ const BRANDS = [
   "Other"
 ];
 
-const { width } = Dimensions.get('window');
-
-type ListingType = "SALE" | "TRADE" | "BOTH";
-
 export default function SellScreen() {
   const { theme } = useTheme();
   const { user } = useUser();
-  const [listingType, setListingType] = useState<ListingType>("SALE");
   const [images, setImages] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const queryClient = useQueryClient();
   const addProduct = useProductsStore((state) => state.addProduct);
-  
+
   const t = THEMES[theme];
 
   // React Hook Form setup
@@ -280,10 +223,8 @@ export default function SellScreen() {
       category: "",
       condition: "",
       brand: "",
-      wantedItems: "",
-      exchangeValue: "",
-  images: [],
-  handDelivery: false
+      images: [],
+      handDelivery: false
     }
   });
 
@@ -293,27 +234,16 @@ export default function SellScreen() {
   }, [images, setValue]);
 
   const onSubmit = async (data: ListingFormData) => {
-    // Validate based on listing type
-    if (listingType === 'SALE' && (!data.price || data.price.trim() === '')) {
-      Alert.alert("Erreur", "Le prix est requis pour une vente");
-      return;
-    }
-    if ((listingType === 'TRADE' || listingType === 'BOTH') && (!data.wantedItems || data.wantedItems.trim() === '')) {
-      Alert.alert("Erreur", "Veuillez indiquer ce que vous recherchez en échange");
-      return;
-    }
     try {
       setSubmitting(true);
-      const payload: any = {
+      const payload = {
         title: data.title,
         description: data.description,
-        price: (listingType === 'SALE' || listingType === 'BOTH') ? Number(data.price) : 0,
+        price: Number(data.price),
         condition: data.condition,
         category: data.category,
         location: 'Paris, 75001',
         images,
-        listingType,
-        tradeFor: (listingType === 'TRADE' || listingType === 'BOTH') ? data.wantedItems : undefined,
         handDelivery: Boolean(data.handDelivery),
       };
       const created = await api.post<{ id: string }>("/api/products", {
@@ -323,7 +253,7 @@ export default function SellScreen() {
       }, {
         headers: user?.username ? { 'x-user': user.username } : undefined
       });
-      
+
       // Add to local store for persistence
       addProduct({
         id: created.id,
@@ -340,21 +270,15 @@ export default function SellScreen() {
         featured: false,
         createdAt: new Date().toISOString(),
         handDelivery: Boolean(data.handDelivery),
-        listingType,
-        tradeFor: payload.tradeFor,
       });
-      
+
       // refresh products list cache
       queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
 
       Alert.alert(
         "Succès",
-        listingType === 'SALE'
-          ? "Votre annonce de vente a été publiée !"
-          : listingType === 'TRADE'
-          ? "Votre annonce d'échange a été publiée !"
-          : "Votre annonce a été publiée !",
+        "Votre annonce a été publiée!",
         [
           {
             text: "Voir",
@@ -472,80 +396,6 @@ export default function SellScreen() {
     setImages(images.filter((_, i) => i !== index));
   };
 
-  const TabButton = ({ type, label }: { type: ListingType; label: string }) => (
-    <TouchableOpacity
-      style={{
-        flex: 1,
-        paddingVertical: 12,
-        backgroundColor: listingType === type ? t.primaryBtn : t.cardBg,
-        borderRadius: 8,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: listingType === type ? t.primaryBtn : t.border
-      }}
-      onPress={() => setListingType(type)}
-    >
-      <Text style={{
-        color: listingType === type ? t.white : t.heading,
-        fontWeight: '600',
-        fontSize: 16
-      }}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-
-  const InputField = ({ 
-    label, 
-    value, 
-    onChangeText, 
-    placeholder, 
-    multiline = false,
-    keyboardType = "default" as any
-  }: {
-    label: string;
-    value: string;
-    onChangeText: (text: string) => void;
-    placeholder: string;
-    multiline?: boolean;
-    keyboardType?: any;
-  }) => (
-    <View style={{ marginBottom: 16 }}>
-      <Text style={{
-        fontSize: 16,
-        fontWeight: '600',
-        color: t.heading,
-        marginBottom: 8
-      }}>
-        {label} <Text style={{ color: '#FF6B6B' }}>*</Text>
-      </Text>
-      <TextInput
-        style={{
-          backgroundColor: t.cardBg,
-          borderRadius: 8,
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          borderWidth: 1,
-          borderColor: t.border,
-          fontSize: 16,
-          color: t.heading,
-          minHeight: multiline ? 100 : 50,
-          textAlignVertical: multiline ? 'top' : 'center'
-        }}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={t.muted}
-        multiline={multiline}
-        keyboardType={keyboardType}
-        blurOnSubmit={false}
-        returnKeyType={multiline ? "default" : "next"}
-        autoCorrect={false}
-        autoCapitalize="sentences"
-      />
-    </View>
-  );
-
   // Toggle field for Remise en main propre
   const HandDeliveryToggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => (
     <View style={{ marginBottom: 16 }}>
@@ -569,63 +419,8 @@ export default function SellScreen() {
         </Text>
       </TouchableOpacity>
       <Text style={{ color: t.muted, fontSize: 12, marginTop: 6 }}>
-        Si activée, l’acheteur devra récupérer l’article en personne.
+        Si activée, l'acheteur devra récupérer l'article en personne.
       </Text>
-    </View>
-  );
-
-  const SelectField = ({ 
-    label, 
-    value, 
-    options, 
-    onSelect, 
-    placeholder 
-  }: {
-    label: string;
-    value: string;
-    options: { label: string; value: string }[];
-    onSelect: (value: string) => void;
-    placeholder: string;
-  }) => (
-    <View style={{ marginBottom: 16 }}>
-      <Text style={{
-        fontSize: 16,
-        fontWeight: '600',
-        color: t.heading,
-        marginBottom: 8
-      }}>
-        {label} <Text style={{ color: '#FF6B6B' }}>*</Text>
-      </Text>
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={{ flexDirection: 'row', gap: 8, paddingBottom: 4 }}>
-          {options.map((option) => (
-            <TouchableOpacity
-              key={option.value}
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 20,
-                backgroundColor: value === option.value ? t.primaryBtn : t.cardBg,
-                borderWidth: 1,
-                borderColor: value === option.value ? t.primaryBtn : t.border
-              }}
-              onPress={() => onSelect(option.value)}
-            >
-              <Text style={{
-                color: value === option.value ? t.white : t.heading,
-                fontWeight: '500',
-                fontSize: 14
-              }}>
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
     </View>
   );
 
@@ -641,26 +436,8 @@ export default function SellScreen() {
         contentContainerStyle={{ paddingBottom: 50, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Type Selection */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-          <Text style={{
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: t.heading,
-            marginBottom: 16
-          }}>
-            Type d'annonce
-          </Text>
-          
-          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
-            <TypeTabButton t={t} type="SALE" currentType={listingType} label="💰 Vente" onPress={() => setListingType('SALE')} />
-            <TypeTabButton t={t} type="TRADE" currentType={listingType} label="🔄 Échange" onPress={() => setListingType('TRADE')} />
-            <TypeTabButton t={t} type="BOTH" currentType={listingType} label="💰🔄 Les deux" onPress={() => setListingType('BOTH')} />
-          </View>
-        </View>
-
         {/* Form */}
-        <View style={{ paddingHorizontal: 16 }}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
           {/* Title */}
           <Controller
             control={control}
@@ -733,7 +510,7 @@ export default function SellScreen() {
             control={control}
             name="brand"
             render={({ field: { onChange, value } }) => (
-              <FormSelectField 
+              <FormSelectField
                 t={t}
                 label="Marque"
                 value={value || ""}
@@ -744,91 +521,22 @@ export default function SellScreen() {
             )}
           />
 
-          {/* Price or Exchange */}
-          {listingType === "SALE" ? (
-            <Controller
-              control={control}
-              name="price"
-              render={({ field: { onChange, value } }) => (
-                <FormInputField 
-                  t={t}
-                  label="Prix"
-                  value={value || ""}
-                  onChangeText={onChange}
-                  placeholder="Ex: 250.00"
-                  keyboardType="numeric"
-                  error={(errors as any).price?.message}
-                />
-              )}
-            />
-          ) : listingType === "TRADE" ? (
-            <>
-              <Controller
-                control={control}
-                name="wantedItems"
-                render={({ field: { onChange, value } }) => (
-                  <FormInputField 
-                    t={t}
-                    label="Recherche en échange"
-                    value={value || ""}
-                    onChangeText={onChange}
-                    placeholder="Décrivez ce que vous recherchez..."
-                    multiline={true}
-                    error={(errors as any).wantedItems?.message}
-                  />
-                )}
+          {/* Price */}
+          <Controller
+            control={control}
+            name="price"
+            render={({ field: { onChange, value } }) => (
+              <FormInputField
+                t={t}
+                label="Prix"
+                value={value}
+                onChangeText={onChange}
+                placeholder="Ex: 250.00"
+                keyboardType="numeric"
+                error={errors.price?.message}
               />
-              <Controller
-                control={control}
-                name="exchangeValue"
-                render={({ field: { onChange, value } }) => (
-                  <FormInputField 
-                    t={t}
-                    label="Valeur estimée (optionnel)"
-                    value={value || ""}
-                    onChangeText={onChange}
-                    placeholder="Ex: 200.00"
-                    keyboardType="numeric"
-                  />
-                )}
-              />
-            </>
-          ) : (
-            <>
-              {/* BOTH: Show both price and wanted items */}
-              <Controller
-                control={control}
-                name="price"
-                render={({ field: { onChange, value } }) => (
-                  <FormInputField 
-                    t={t}
-                    label="Prix de vente"
-                    value={value || ""}
-                    onChangeText={onChange}
-                    placeholder="Ex: 250.00"
-                    keyboardType="numeric"
-                    error={(errors as any).price?.message}
-                  />
-                )}
-              />
-              <Controller
-                control={control}
-                name="wantedItems"
-                render={({ field: { onChange, value } }) => (
-                  <FormInputField 
-                    t={t}
-                    label="Ou accepte en échange"
-                    value={value || ""}
-                    onChangeText={onChange}
-                    placeholder="Décrivez ce que vous recherchez..."
-                    multiline={true}
-                    error={(errors as any).wantedItems?.message}
-                  />
-                )}
-              />
-            </>
-          )}
-
+            )}
+          />
 
           {/* Images Section */}
           <View style={{ marginBottom: 24 }}>
@@ -933,13 +641,7 @@ export default function SellScreen() {
               fontWeight: 'bold',
               fontSize: 18
             }}>
-              {submitting
-                ? 'Publication...'
-                : listingType === "SALE" 
-                  ? "Publier l'annonce de vente" 
-                  : listingType === "TRADE"
-                  ? "Publier l'annonce d'échange"
-                  : "Publier l'annonce"}
+              {submitting ? 'Publication...' : "Publier l'annonce"}
             </Text>
           </TouchableOpacity>
         </View>

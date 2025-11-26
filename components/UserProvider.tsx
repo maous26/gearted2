@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import TokenManager from '../services/storage';
 
 const USER_STORAGE_KEY = '@gearted_user_profile';
 
@@ -14,6 +15,10 @@ export interface UserProfile {
   location?: string;
   phone?: string;
   bio?: string;
+  provider?: string;
+  role?: string;
+  badge?: string;
+  badges?: string[]; // Tous les badges Discord de l'utilisateur
 }
 
 interface UserContextValue {
@@ -77,7 +82,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
         lastName: updates.lastName !== undefined ? updates.lastName : user.lastName,
         location: updates.location !== undefined ? updates.location : user.location,
         phone: updates.phone !== undefined ? updates.phone : user.phone,
-        bio: updates.bio !== undefined ? updates.bio : user.bio
+        bio: updates.bio !== undefined ? updates.bio : user.bio,
+        provider: updates.provider !== undefined ? updates.provider : user.provider,
+        role: updates.role !== undefined ? updates.role : user.role,
+        badge: updates.badge !== undefined ? updates.badge : user.badge,
+        badges: updates.badges !== undefined ? updates.badges : user.badges
       };
       setUser(updatedUser);
     } else {
@@ -91,7 +100,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
         lastName: updates.lastName,
         location: updates.location,
         phone: updates.phone,
-        bio: updates.bio
+        bio: updates.bio,
+        provider: updates.provider,
+        role: updates.role,
+        badge: updates.badge,
+        badges: updates.badges
       };
       setUser(updatedUser);
     }
@@ -100,28 +113,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    // Déconnexion : on vide le state MAIS on recharge immédiatement depuis AsyncStorage
-    // Cela permet de garder les infos du profil affichées même après déconnexion
+    // Déconnexion : supprimer les tokens et vider le profil
     setIsOnboarded(false);
-    
+    setUser(null);
+
     try {
-      // Recharger le profil depuis le stockage pour le garder affiché
-      const storedUser = await AsyncStorage.getItem(USER_STORAGE_KEY);
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-  // Profil rechargé après déconnexion
-      } else {
-        setUser(null);
-  // Aucun profil trouvé après déconnexion
-      }
+      // Supprimer les tokens JWT
+      await TokenManager.clearTokens();
+      console.log('[UserProvider] Tokens cleared');
+
+      // Optionnel : supprimer aussi le profil du stockage local
+      // await AsyncStorage.removeItem(USER_STORAGE_KEY);
     } catch (error) {
-      console.error('[UserProvider] Error reloading profile after logout:', error);
-      setUser(null);
+      console.error('[UserProvider] Error during logout:', error);
     }
-    
-    // Note: Les tokens JWT sont supprimés par TokenManager.clearTokens()
-    // Le profil reste visible mais l'utilisateur devra se reconnecter pour accéder à l'app
   };
 
   const completeOnboarding = () => {

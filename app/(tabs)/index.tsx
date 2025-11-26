@@ -3,13 +3,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Dimensions,
-    Pressable,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    View
+  Dimensions,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CompatDrawer } from "../../components/CompatDrawer";
@@ -29,7 +29,7 @@ export default function AuthenticatedHome() {
   const [isCompatDrawerOpen, setIsCompatDrawerOpen] = useState(false);
   const [selectedManufacturer, setSelectedManufacturer] = useState("");
   const [selectedWeaponType, setSelectedWeaponType] = useState("");
-  
+
   const t = THEMES[theme];
 
   const { data: productsData, isLoading: isLoadingProducts } = useProducts({ sortBy: 'recent' });
@@ -64,7 +64,7 @@ export default function AuthenticatedHome() {
   }, [productsData]);
 
   const popularCategories = React.useMemo(() => {
-    if (!categoryStats) return CATEGORIES.slice(0, 6);
+    if (!categoryStats || categoryStats.length === 0) return CATEGORIES.slice(0, 6);
     const topCategorySlugs = categoryStats.slice(0, 6).map(stat => stat.category);
     return CATEGORIES.filter(cat => topCategorySlugs.includes(cat.slug));
   }, [categoryStats]);
@@ -101,7 +101,7 @@ export default function AuthenticatedHome() {
               onChangeText={setSearchText}
               placeholderTextColor={t.muted}
             />
-            <Pressable 
+            <Pressable
               style={{
                 backgroundColor: t.primaryBtn,
                 paddingHorizontal: 16,
@@ -119,16 +119,16 @@ export default function AuthenticatedHome() {
         </LinearGradient>
 
         {/* Featured Listings */}
-        <View style={{ 
-          paddingHorizontal: 16, 
+        <View style={{
+          paddingHorizontal: 16,
           paddingVertical: 24,
           backgroundColor: t.sectionLight + '33'
         }}>
-          <View style={{ 
-            flexDirection: 'row', 
-            alignItems: 'center', 
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: 16 
+            marginBottom: 16
           }}>
             <Text style={{
               fontSize: 18,
@@ -149,7 +149,7 @@ export default function AuthenticatedHome() {
               </Text>
             </Pressable>
           </View>
-          
+
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={{ flexDirection: 'row' }}>
               {isLoadingProducts ? (
@@ -176,9 +176,9 @@ export default function AuthenticatedHome() {
                 ))
               ) : featuredListings.length === 0 ? (
                 // No products message
-                <View style={{ 
-                  width: 300, 
-                  padding: 32, 
+                <View style={{
+                  width: 300,
+                  padding: 32,
                   alignItems: 'center',
                   backgroundColor: t.cardBg,
                   borderRadius: 16
@@ -246,46 +246,20 @@ export default function AuthenticatedHome() {
                         {product.title}
                       </Text>
                     </View>
-                    {product.listingType && product.listingType !== 'SALE' && (
-                      <View style={{ alignSelf: 'flex-start', marginVertical: 6 }}>
-                        <View style={{
-                          paddingHorizontal: 8,
-                          paddingVertical: 3,
-                          backgroundColor: product.listingType === 'TRADE' ? '#FF6B35' : '#4ECDC4',
-                          borderRadius: 10,
-                        }}>
-                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF', letterSpacing: 0.3 }}>
-                            {product.listingType === 'TRADE' ? '🔄 ÉCHANGE' : '💰 V/E'}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
                     <Text style={{
                       fontSize: 18,
                       fontWeight: 'bold',
                       color: t.primaryBtn,
                       marginBottom: 4
                     }}>
-                      {product.listingType === 'TRADE' ? '—' : `${Number(product.price).toFixed(2)} €`}
+                      {`${Number(product.price).toFixed(2)} €`}
                     </Text>
                     <Text style={{ fontSize: 13, color: t.muted, marginBottom: 4 }}>
                       📍 {product.location || 'Localisation non spécifiée'}
                     </Text>
-                    <View style={{
-                      backgroundColor: t.sectionLight + '40',
-                      paddingHorizontal: 8,
-                      paddingVertical: 4,
-                      borderRadius: 6,
-                      alignSelf: 'flex-start'
-                    }}>
-                      <Text style={{ fontSize: 11, color: t.muted, fontWeight: '500' }}>
-                        {product.condition === 'NEW' ? 'Neuf' : 
-                         product.condition === 'LIKE_NEW' ? 'Comme neuf' :
-                         product.condition === 'GOOD' ? 'Bon état' : 
-                         product.condition === 'FAIR' ? 'Correct' :
-                         product.condition === 'POOR' ? 'Usé' : 'Utilisé'}
-                      </Text>
-                    </View>
+                    <Text style={{ fontSize: 12, color: t.muted }}>
+                      👤 {product.seller}
+                    </Text>
                   </View>
                 </Pressable>
               ))}
@@ -294,12 +268,12 @@ export default function AuthenticatedHome() {
         </View>
 
         {/* Compatibility */}
-        <View style={{ 
-          backgroundColor: t.sectionLight + '66', 
-          paddingHorizontal: 16, 
-          paddingVertical: 24 
+        <View style={{
+          backgroundColor: t.sectionLight + '66',
+          paddingHorizontal: 16,
+          paddingVertical: 24
         }}>
-          <CompatibilityTeaser 
+          <CompatibilityTeaser
             theme={theme}
             onOpenDrawer={(item1, item2, result) => {
               // ...existing code...
@@ -320,7 +294,7 @@ export default function AuthenticatedHome() {
           }}>
             CATÉGORIES POPULAIRES
           </Text>
-          
+
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 }}>
             {popularCategories.map((category) => (
               <View key={category.slug} style={{ padding: 4 }}>
@@ -363,7 +337,7 @@ export default function AuthenticatedHome() {
           }}>
             DERNIÈRES ANNONCES
           </Text>
-          
+
           {isLoadingProducts ? (
             <View style={{
               backgroundColor: t.cardBg,
@@ -451,7 +425,7 @@ export default function AuthenticatedHome() {
         {/* Quick Actions */}
         <View style={{ paddingHorizontal: 16, paddingBottom: 32 }}>
           <View style={{ flexDirection: 'row' }}>
-            <Pressable 
+            <Pressable
               style={{
                 flex: 1,
                 backgroundColor: t.primaryBtn,
@@ -466,8 +440,8 @@ export default function AuthenticatedHome() {
                 Vendre un article
               </Text>
             </Pressable>
-            
-            <Pressable 
+
+            <Pressable
               style={{
                 flex: 1,
                 backgroundColor: t.cardBg,
@@ -481,6 +455,25 @@ export default function AuthenticatedHome() {
             >
               <Text style={{ color: t.heading, fontWeight: '600' }}>
                 Mes favoris
+              </Text>
+            </Pressable>
+          </View>
+
+          <View style={{ flexDirection: 'row', marginTop: 12 }}>
+            <Pressable
+              style={{
+                flex: 1,
+                backgroundColor: t.sectionLight,
+                paddingVertical: 16,
+                borderRadius: 12,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: t.primaryBtn
+              }}
+              onPress={() => router.push('/orders' as any)}
+            >
+              <Text style={{ color: t.primaryBtn, fontWeight: '600' }}>
+                💼 Mes ventes & achats
               </Text>
             </Pressable>
           </View>

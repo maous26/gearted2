@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../components/ThemeProvider";
+import { UserBadge } from "../../components/UserBadge";
 import { THEMES } from "../../themes";
 
 import { useUser } from '../../components/UserProvider';
@@ -20,6 +21,8 @@ type User = {
   id: string;
   username: string;
   avatar?: string;
+  role?: string;
+  badge?: string;
 };
 
 type Message = {
@@ -61,13 +64,19 @@ export default function MessagesScreen() {
   useEffect(() => {
     if (!user?.id) return;
     setLoading(true);
-    api.get<Conversation[]>(`/api/messages/conversations/${user.id}`)
+    api
+      .get<Conversation[]>('/api/messages/conversations')
       .then((data) => {
         setConversations(Array.isArray(data) ? data : []);
-        setError("");
+        setError('');
       })
-      .catch(() => {
-        setError("Impossible de charger les conversations. Veuillez réessayer plus tard.");
+      .catch((err) => {
+        console.warn('[MessagesScreen] Failed to load conversations:', err);
+        if ((err as any)?.response?.status === 401) {
+          setError("Vous devez être connecté pour voir vos messages.");
+        } else {
+          setError("Impossible de charger les conversations. Veuillez réessayer plus tard.");
+        }
         setConversations([]);
       })
       .finally(() => setLoading(false));
@@ -113,9 +122,12 @@ export default function MessagesScreen() {
           {/* Contenu */}
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-              <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
-                {other?.username || 'Utilisateur'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
+                  {other?.username || 'Utilisateur'}
+                </Text>
+                <UserBadge role={other?.role} badge={other?.badge} size="small" />
+              </View>
               <Text style={{ fontSize: 12, color: t.muted }}>
                 {lastMsg ? formatTimestamp(lastMsg.sentAt) : ''}
               </Text>

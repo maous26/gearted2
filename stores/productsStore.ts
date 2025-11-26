@@ -11,13 +11,14 @@ export interface Product {
   location: string;
   seller: string;
   sellerId: string;
+  sellerRole?: string; // Discord role
+  sellerBadges?: string[]; // Discord badges
   rating: number;
   images: string[];
   featured: boolean;
+  status?: 'DRAFT' | 'PENDING_APPROVAL' | 'ACTIVE' | 'SOLD' | 'EXPIRED' | 'SUSPENDED' | 'DELETED';
   createdAt: string;
   handDelivery?: boolean; // Remise en main propre disponible
-  listingType?: 'SALE' | 'TRADE' | 'BOTH'; // Type d'annonce
-  tradeFor?: string; // Description de ce que le vendeur cherche en échange
 }
 
 const PRODUCTS_STORAGE_KEY = '@gearted_products';

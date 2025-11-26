@@ -2,7 +2,17 @@ import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, InternalAxiosRequ
 import TokenManager from './storage';
 
 // Configuration de l'API
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.22:3000';
+// Toggle between local and production
+const USE_LOCAL = false; // Set to false to use Railway (for Discord OAuth)
+const LOCAL_URL = 'http://192.168.1.22:3000';
+const RAILWAY_URL = 'https://empowering-truth-production.up.railway.app';
+
+const API_URL = USE_LOCAL ? LOCAL_URL : RAILWAY_URL;
+const API_ENV = USE_LOCAL ? 'development' : 'production';
+
+// Logs de debug pour vérifier que Expo charge bien le .env
+console.log('🔗 [API SERVICE] Using API URL:', API_URL);
+console.log('🌍 [API SERVICE] Environment:', API_ENV);
 
 class ApiService {
   private api: AxiosInstance;
@@ -52,7 +62,7 @@ class ApiService {
               data: originalRequest.data,
             }
           );
-        } catch {}
+        } catch { }
 
         // Si 401 et pas déjà retry, tenter refresh token
         if (error.response?.status === 401 && !originalRequest._retry) {
@@ -65,37 +75,43 @@ class ApiService {
             }
 
             // Correct refresh endpoint (server mounts /api/auth and route is /refresh-token)
-              const response = await this.api.post('/api/auth/refresh-token', { refreshToken });
+            const response = await this.api.post('/api/auth/refresh-token', { refreshToken });
 
-              // Extraire proprement les tokens du payload
-              const payload = (response as any).data ?? response;
-              const accessToken = payload?.accessToken ?? payload?.tokens?.accessToken ?? null;
-              const newRefreshToken = payload?.refreshToken ?? payload?.tokens?.refreshToken ?? null;
+            // Extraire proprement les tokens du payload
+            // Le backend peut retourner plusieurs structures:
+            // 1. {accessToken, refreshToken}
+            // 2. {tokens: {accessToken, refreshToken}}
+            // 3. {data: {tokens: {accessToken, refreshToken}}}
+            const payload = (response as any).data ?? response;
+            const tokensObj = payload?.data?.tokens ?? payload?.tokens ?? payload;
+            const accessToken = tokensObj?.accessToken ?? null;
+            const newRefreshToken = tokensObj?.refreshToken ?? null;
 
-              // Valider les tokens avant de tenter de les sauvegarder
-              if (typeof accessToken !== 'string' || typeof newRefreshToken !== 'string' || !accessToken || !newRefreshToken) {
-                console.error('[API] Invalid tokens received from refresh endpoint:', {
-                  accessToken,
-                  newRefreshToken,
-                  payload
-                });
-                // Nettoyer les tokens existants et forcer la sortie
-                await TokenManager.clearTokens();
-                throw new Error('Session expirée');
-              }
+            // Valider les tokens avant de tenter de les sauvegarder
+            if (typeof accessToken !== 'string' || typeof newRefreshToken !== 'string' || !accessToken || !newRefreshToken) {
+              console.error('[API] Invalid tokens received from refresh endpoint:', {
+                accessToken,
+                newRefreshToken,
+                tokensObj,
+                payload
+              });
+              // Nettoyer les tokens existants et forcer la sortie
+              await TokenManager.clearTokens();
+              throw new Error('Session expirée');
+            }
 
-              try {
-                await TokenManager.saveTokens(accessToken, newRefreshToken);
-              } catch (saveError) {
-                console.error('[API] Error saving refreshed tokens:', saveError);
-                // Si on ne peut pas sauvegarder les tokens, on les efface pour éviter incohérences
-                await TokenManager.clearTokens();
-                throw saveError;
-              }
+            try {
+              await TokenManager.saveTokens(accessToken, newRefreshToken);
+            } catch (saveError) {
+              console.error('[API] Error saving refreshed tokens:', saveError);
+              // Si on ne peut pas sauvegarder les tokens, on les efface pour éviter incohérences
+              await TokenManager.clearTokens();
+              throw saveError;
+            }
 
-              originalRequest.headers = originalRequest.headers || {};
-              originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-              return this.api(originalRequest);
+            originalRequest.headers = originalRequest.headers || {};
+            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+            return this.api(originalRequest);
           } catch (refreshError) {
             // Refresh failed, logout user
             await TokenManager.clearTokens();

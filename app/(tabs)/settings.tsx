@@ -1,4 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import React, { useState } from "react";
 import {
@@ -15,8 +16,10 @@ import {
     View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from "../../components/ThemeProvider";
 import { useUser } from "../../components/UserProvider";
+import { UserBadge } from "../../components/UserBadge";
 import userService from "../../services/user";
 import { THEMES, ThemeKey } from "../../themes";
 
@@ -28,8 +31,9 @@ export default function Settings() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editUsername, setEditUsername] = useState(user?.username || "");
   const [editTeamName, setEditTeamName] = useState(user?.teamName || "");
+  const [editLocation, setEditLocation] = useState(user?.location || "");
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const t = THEMES[theme];
 
   const selectAvatar = async () => {
@@ -65,6 +69,32 @@ export default function Settings() {
     }
   };
 
+  const requestGeolocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert("Permission refusée", "L'accès à la localisation est nécessaire");
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
+      // Reverse geocoding pour obtenir l'adresse
+      const addresses = await Location.reverseGeocodeAsync({ latitude, longitude });
+
+      if (addresses.length > 0) {
+        const address = addresses[0];
+        const locationString = `${address.city || ''}, ${address.postalCode || ''}`.trim().replace(/^,\s*/, '');
+        setEditLocation(locationString);
+        Alert.alert("Localisation détectée", locationString);
+      }
+    } catch (error: any) {
+      console.error('[Settings] Error getting location:', error);
+      Alert.alert("Erreur", "Impossible d'obtenir votre localisation");
+    }
+  };
+
   const saveProfile = async () => {
     if (!editUsername.trim()) {
       Alert.alert("Erreur", "Le nom d'utilisateur ne peut pas être vide");
@@ -80,6 +110,7 @@ export default function Settings() {
       try {
         const updatedUser = await userService.updateProfile({
           username: editUsername.trim(),
+          location: editLocation.trim() || undefined,
         });
   // Profil sauvegardé sur le backend
         backendSuccess = true;
@@ -239,7 +270,27 @@ export default function Settings() {
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
       <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
 
-      <ScrollView 
+      {/* Header avec flèche retour */}
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: t.border
+      }}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{ marginRight: 12 }}
+        >
+          <Ionicons name="arrow-back" size={24} color={t.heading} />
+        </TouchableOpacity>
+        <Text style={{ fontSize: 20, fontWeight: '700', color: t.heading }}>
+          Paramètres
+        </Text>
+      </View>
+
+      <ScrollView
         style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}
         keyboardShouldPersistTaps="always"
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'none'}
@@ -268,6 +319,7 @@ export default function Settings() {
                 } else {
                   setEditUsername(user?.username || "");
                   setEditTeamName(user?.teamName || "");
+                  setEditLocation(user?.location || "");
                   setIsEditingProfile(true);
                 }
               }}
@@ -343,14 +395,17 @@ export default function Settings() {
                 autoFocus={false}
               />
             ) : (
-              <Text style={{ fontSize: 16, color: t.heading, fontWeight: '600' }}>
-                {user?.username || "Non défini"}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ fontSize: 16, color: t.heading, fontWeight: '600' }}>
+                  {user?.username || "Non défini"}
+                </Text>
+                <UserBadge role={user?.role} badge={user?.badge} size="medium" />
+              </View>
             )}
           </View>
 
           {/* Team Name */}
-          <View>
+          <View style={{ marginBottom: 16 }}>
             <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>
               Équipe
             </Text>
@@ -379,12 +434,90 @@ export default function Settings() {
             )}
           </View>
 
+          {/* Location */}
+          <View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <Text style={{ fontSize: 14, color: t.muted }}>
+                📍 Localisation
+              </Text>
+              {isEditingProfile && (
+                <TouchableOpacity
+                  onPress={requestGeolocation}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: t.primaryBtn,
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    borderRadius: 6
+                  }}
+                >
+                  <Ionicons name="location" size={14} color={t.white} style={{ marginRight: 4 }} />
+                  <Text style={{ fontSize: 12, color: t.white, fontWeight: '500' }}>
+                    Me localiser
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {isEditingProfile ? (
+              <TextInput
+                style={{
+                  backgroundColor: t.rootBg,
+                  borderRadius: 8,
+                  padding: 12,
+                  fontSize: 16,
+                  color: t.heading,
+                  borderWidth: 1,
+                  borderColor: t.border
+                }}
+                value={editLocation}
+                onChangeText={setEditLocation}
+                placeholder="Ville, Code postal"
+                placeholderTextColor={t.muted}
+                maxLength={50}
+                autoFocus={false}
+              />
+            ) : (
+              <Text style={{ fontSize: 16, color: t.heading }}>
+                {user?.location || "Non défini"}
+              </Text>
+            )}
+          </View>
+
+          {/* Modifier le mot de passe - Seulement pour les comptes non-Discord */}
+          {user?.provider !== 'discord' && (
+            <TouchableOpacity
+              onPress={() => router.push("/change-password" as any)}
+              style={{
+                marginTop: 16,
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                backgroundColor: t.rootBg,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: t.border,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="lock-closed" size={18} color={t.primaryBtn} style={{ marginRight: 8 }} />
+                <Text style={{ fontSize: 15, fontWeight: '500', color: t.heading }}>
+                  Modifier le mot de passe
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={t.muted} />
+            </TouchableOpacity>
+          )}
+
           {isEditingProfile && (
             <TouchableOpacity
               onPress={() => {
                 setIsEditingProfile(false);
                 setEditUsername(user?.username || "");
                 setEditTeamName(user?.teamName || "");
+                setEditLocation(user?.location || "");
               }}
               style={{ marginTop: 12, alignItems: 'center' }}
             >
@@ -422,51 +555,35 @@ export default function Settings() {
           />
         </View>
 
-        {/* Account Section */}
-        <View style={{ marginTop: 32 }}>
-          <Text style={{ 
-            fontSize: 18, 
-            fontWeight: '700', 
-            color: t.heading,
-            marginBottom: 16 
-          }}>
-            Compte
-          </Text>
-          
-          <TouchableOpacity style={{
-            paddingVertical: 16,
-            paddingHorizontal: 16,
-            backgroundColor: t.cardBg,
-            borderRadius: 12,
-            marginBottom: 8,
-            borderWidth: 1,
-            borderColor: t.border
-          }}>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
-              Profil utilisateur
-            </Text>
-            <Text style={{ fontSize: 14, color: t.muted, marginTop: 2 }}>
-              Modifier vos informations personnelles
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={{
-            paddingVertical: 16,
-            paddingHorizontal: 16,
-            backgroundColor: t.cardBg,
-            borderRadius: 12,
-            marginBottom: 8,
-            borderWidth: 1,
-            borderColor: t.border
-          }}>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
-              Sécurité
-            </Text>
-            <Text style={{ fontSize: 14, color: t.muted, marginTop: 2 }}>
-              Modifier votre mot de passe et paramètres de sécurité
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {/* Modifier le mot de passe - Seulement pour les comptes non-Discord */}
+        {user?.provider !== 'discord' && (
+          <View style={{ marginTop: 32 }}>
+            <TouchableOpacity
+              onPress={() => router.push("/change-password" as any)}
+              style={{
+                paddingVertical: 16,
+                paddingHorizontal: 16,
+                backgroundColor: t.cardBg,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: t.border,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
+                  Modifier le mot de passe
+                </Text>
+                <Text style={{ fontSize: 14, color: t.muted, marginTop: 2 }}>
+                  Changer votre mot de passe de connexion
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={t.muted} />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Logout */}
         <TouchableOpacity 

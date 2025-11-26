@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Modal,
   ScrollView,
   StatusBar,
   Text,
@@ -15,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { EmptyState } from "../../components/EmptyState";
 import { ProductCardSkeleton } from "../../components/Skeleton";
 import { useTheme } from "../../components/ThemeProvider";
+import { UserBadge } from "../../components/UserBadge";
 import { CATEGORIES } from "../../data";
 import { useDebounce } from "../../hooks/useDebounce";
 import { useFavorites, useInfiniteProducts, useToggleFavorite } from "../../hooks/useProducts";
@@ -118,7 +120,29 @@ export default function BrowseScreen() {
             {product.condition}
           </Text>
         </View>
-        
+
+        {/* Badge VENDU */}
+        {product.status === 'SOLD' && (
+          <View style={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            backgroundColor: '#EF4444',
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 8,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+            elevation: 5
+          }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: 'white', letterSpacing: 0.5 }}>
+              VENDU
+            </Text>
+          </View>
+        )}
+
         {/* Favorite button */}
         <TouchableOpacity 
           style={{
@@ -156,42 +180,14 @@ export default function BrowseScreen() {
           </Text>
         </View>
 
-        {/* Listing Type Badge - Au-dessus du prix */}
-        {product.listingType && product.listingType !== 'SALE' && (
-          <View style={{ alignSelf: 'flex-start', marginBottom: 6 }}>
-            <View style={{
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              backgroundColor: product.listingType === 'TRADE' ? '#FF6B35' : '#4ECDC4',
-              borderRadius: 12,
-            }}>
-              <Text style={{ fontSize: 10, fontWeight: '700', color: '#FFF', letterSpacing: 0.3 }}>
-                {product.listingType === 'TRADE' ? '🔄 ÉCHANGE' : '💰 VENTE/ÉCHANGE'}
-              </Text>
-            </View>
-          </View>
-        )}
-
         <Text style={{
           fontSize: 20,
           fontWeight: 'bold',
           color: t.primaryBtn,
           marginBottom: 4
         }}>
-          {product.listingType === 'TRADE' ? '—' : `${product.price.toFixed(2)} €`}
+          {product.price.toFixed(2)} €
         </Text>
-
-        {/* Show tradeFor if available */}
-        {product.tradeFor && (
-          <Text style={{
-            fontSize: 12,
-            color: t.muted,
-            fontStyle: 'italic',
-            marginBottom: 6
-          }} numberOfLines={2}>
-            🔄 Recherche: {product.tradeFor}
-          </Text>
-        )}
 
         <View style={{
           flexDirection: 'row',
@@ -365,70 +361,29 @@ export default function BrowseScreen() {
             }}>
               {totalCount} résultat{totalCount > 1 ? 's' : ''}
             </Text>
-            
-            <View style={{ position: 'relative', zIndex: 100 }}>
-              <TouchableOpacity 
-                style={{
-                  backgroundColor: t.cardBg,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: t.border
-                }}
-                onPress={() => {
-                  setShowSortOptions(v => !v);
-                }}
-              >
-                <Text style={{ color: t.heading, fontSize: 12 }}>
-                  📊 Trier: {
-                    filters.sortBy === 'recent' ? '🕒 Plus récent' : 
-                    filters.sortBy === 'price_low' ? '💰 Prix ↑' : 
-                    filters.sortBy === 'price_high' ? '💎 Prix ↓' : 
-                    '⭐ Note'
-                  }
-                </Text>
-              </TouchableOpacity>
-              {showSortOptions && (
-                <View style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: 36,
-                  backgroundColor: t.cardBg,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: t.border,
-                  shadowColor: '#000',
-                  shadowOpacity: 0.2,
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowRadius: 8,
-                  elevation: 5,
-                  zIndex: 1000
-                }}>
-                  {([
-                    { key: 'recent', label: '🕒 Plus récent' },
-                    { key: 'price_low', label: '💰 Prix croissant' },
-                    { key: 'price_high', label: '💎 Prix décroissant' },
-                    { key: 'rating', label: '⭐ Meilleure note' }
-                  ] as const).map(opt => (
-                    <TouchableOpacity 
-                      key={opt.key}
-                      onPress={() => handleSortSelect(opt.key)}
-                      style={{ 
-                        paddingHorizontal: 12, 
-                        paddingVertical: 10, 
-                        minWidth: 160, 
-                        backgroundColor: filters.sortBy === opt.key ? t.sectionLight : t.cardBg 
-                      }}
-                    >
-                      <Text style={{ color: t.heading, fontSize: 14 }}>
-                        {opt.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: t.cardBg,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: t.border
+              }}
+              onPress={() => {
+                setShowSortOptions(v => !v);
+              }}
+            >
+              <Text style={{ color: t.heading, fontSize: 12 }}>
+                📊 Trier: {
+                  filters.sortBy === 'recent' ? '🕒 Plus récent' :
+                  filters.sortBy === 'price_low' ? '💰 Prix ↑' :
+                  filters.sortBy === 'price_high' ? '💎 Prix ↓' :
+                  '⭐ Note'
+                }
+              </Text>
+            </TouchableOpacity>
           </View>
             </View>
           )}
@@ -458,6 +413,65 @@ export default function BrowseScreen() {
           <EmptyState type="search" />
         </View>
       )}
+
+      {/* Sort Modal - Rendered outside FlatList for proper z-index */}
+      <Modal
+        visible={showSortOptions}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSortOptions(false)}
+      >
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+          activeOpacity={1}
+          onPress={() => setShowSortOptions(false)}
+        >
+          <View style={{
+            backgroundColor: t.cardBg,
+            borderRadius: 12,
+            padding: 8,
+            minWidth: 200,
+            borderWidth: 1,
+            borderColor: t.border,
+            shadowColor: '#000',
+            shadowOpacity: 0.3,
+            shadowOffset: { width: 0, height: 4 },
+            shadowRadius: 12
+          }}>
+            {([
+              { key: 'recent', label: '🕒 Plus récent' },
+              { key: 'price_low', label: '💰 Prix croissant' },
+              { key: 'price_high', label: '💎 Prix décroissant' },
+              { key: 'rating', label: '⭐ Meilleure note' }
+            ] as const).map((opt, index, array) => (
+              <TouchableOpacity
+                key={opt.key}
+                onPress={() => handleSortSelect(opt.key)}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                  backgroundColor: filters.sortBy === opt.key ? t.primaryBtn + '20' : 'transparent',
+                  borderRadius: 8,
+                  marginBottom: index < array.length - 1 ? 4 : 0
+                }}
+              >
+                <Text style={{
+                  color: filters.sortBy === opt.key ? t.primaryBtn : t.heading,
+                  fontSize: 15,
+                  fontWeight: filters.sortBy === opt.key ? '600' : '400'
+                }}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }

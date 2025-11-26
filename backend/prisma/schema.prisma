@@ -15,32 +15,42 @@ model User {
   id        String  @id @default(cuid())
   email     String  @unique
   username  String  @unique
-  password  String
+  password  String? // Optional pour OAuth users
   firstName String?
   lastName  String?
   avatar    String?
   phone     String?
-  
+
+  // OAuth fields
+  provider     String?   // "local", "discord", etc.
+  providerId   String?   // Discord user ID
+  providerData Json?     // Données brutes du provider
+
   // Account status
   isEmailVerified Boolean  @default(false)
   isActive        Boolean  @default(true)
   role            UserRole @default(USER)
-  
+
   // Profile information
   bio      String?
   location String?
-  
+  badges   String[] @default([]) // Discord badges/roles
+
   // Security
   refreshToken String?
+
+  @@unique([provider, providerId]) // Éviter les doublons OAuth
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
   // Relations
-  products      Product[]
-  sentMessages  Message[]
-  conversations Conversation[] @relation("ConversationParticipants")
-  
+  products       Product[]
+  sentMessages   Message[]
+  conversations  Conversation[] @relation("ConversationParticipants")
+  stripeAccount  StripeAccount?
+  transactions   Transaction[]
+
   @@map("users")
 }
 
@@ -224,11 +234,7 @@ model Product {
   condition ProductCondition
   price     Decimal
   currency  String           @default("EUR")
-  
-  // Sale or Trade
-  listingType ListingType @default(SALE) // SALE, TRADE, or BOTH
-  tradeFor    String? // Description of what the seller wants in exchange
-  
+
   // Product status
   status   ProductStatus @default(DRAFT)
   isActive Boolean       @default(true)
@@ -245,8 +251,9 @@ model Product {
   updatedAt DateTime @updatedAt
   
   // Relations
-  images ProductImage[]
-  
+  images       ProductImage[]
+  transactions Transaction[]
+
   @@map("products")
 }
 
@@ -294,12 +301,6 @@ enum ProductCondition {
   FOR_PARTS
 }
 
-enum ListingType {
-  SALE // Vente uniquement
-  TRADE // Échange uniquement
-  BOTH // Vente ou échange
-}
-
 enum ProductStatus {
   DRAFT
   PENDING_APPROVAL
@@ -339,4 +340,76 @@ enum PartType {
   CYLINDER
   NOZZLE
   TAPPET_PLATE
+}
+
+// Stripe Connect Models
+model StripeAccount {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Stripe Connect account ID
+  stripeAccountId String  @unique
+  accountType     String  @default("express") // "express" or "standard"
+
+  // Account status
+  chargesEnabled  Boolean @default(false)
+  payoutsEnabled  Boolean @default(false)
+  detailsSubmitted Boolean @default(false)
+
+  // Onboarding
+  onboardingComplete Boolean @default(false)
+
+  // Metadata
+  country  String?
+  currency String  @default("eur")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("stripe_accounts")
+}
+
+model Transaction {
+  id        String @id @default(cuid())
+
+  // Product and buyer
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  buyerId   String
+  buyer     User    @relation(fields: [buyerId], references: [id])
+
+  // Payment info
+  amount           Decimal
+  currency         String  @default("EUR")
+  platformFee      Decimal // Commission Gearted
+  sellerAmount     Decimal // Montant pour le vendeur
+
+  // Stripe IDs
+  paymentIntentId  String  @unique
+  transferId       String? // Transfer to seller's connected account
+
+  // Status
+  status TransactionStatus @default(PENDING)
+
+  // Shipping
+  shippingAddress  Json?
+  trackingNumber   String?
+
+  // Metadata
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("transactions")
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  CANCELLED
 }

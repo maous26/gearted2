@@ -9,7 +9,7 @@
     "dev": "concurrently \"tsc -w\" \"nodemon dist/server.js\"",
     "dev:ts": "ts-node src/server.ts",
     "db:generate": "prisma generate",
-    "db:push": "prisma db push",
+    "db:push": "prisma db push --accept-data-loss",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "npm run db:push",
     "db:studio": "prisma studio",
@@ -33,10 +33,14 @@
   },
   "dependencies": {
     "@prisma/client": "^6.18.0",
+    "@stripe/stripe-js": "^8.5.2",
+    "@stripe/stripe-react-native": "^0.57.0",
+    "axios": "^1.13.2",
     "bcryptjs": "^3.0.2",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "crypto": "^1.0.1",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-rate-limit": "^8.1.0",
@@ -52,8 +56,9 @@
     "prisma": "^6.18.0",
     "rate-limit": "^0.1.1",
     "sharp": "^0.34.4",
+    "soap": "^1.6.0",
     "socket.io": "^4.8.1",
-    "stripe": "^19.1.0"
+    "stripe": "^19.3.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient, ProductCondition, ListingType } from '@prisma/client';
+import { PrismaClient, ProductCondition } from '@prisma/client';
 import { authenticate, optionalAuth } from '../middleware/auth';
 import { sanitizeFields } from '../middleware/sanitize';
 
@@ -15,26 +15,30 @@ const BASE_PRODUCTS = [
     condition: "Excellent",
     location: "Paris, 75001",
     seller: "AirsoftPro92",
+    sellerId: "mock-user-1",
+    sellerRole: "USER",
+    sellerBadges: ["verified", "premium"],
     rating: 4.8,
     images: ["https://via.placeholder.com/200x150/4B5D3A/FFFFFF?text=AK-74"],
     category: "repliques",
     featured: true,
     createdAt: new Date().toISOString(),
-    listingType: 'SALE',
   },
   {
-    id: "2", 
+    id: "2",
     title: "Red Dot Sight - EOTech 552",
     price: 45.50,
     condition: "Très bon",
     location: "Lyon, 69000",
     seller: "TacticalGear",
+    sellerId: "mock-user-2",
+    sellerRole: "USER",
+    sellerBadges: ["verified", "founder"],
     rating: 4.9,
     images: ["https://via.placeholder.com/200x150/8B4513/FFFFFF?text=Red+Dot"],
     category: "optiques",
     featured: true,
     createdAt: new Date().toISOString(),
-    listingType: 'SALE',
   },
   {
     id: "3",
@@ -43,13 +47,14 @@ const BASE_PRODUCTS = [
     condition: "Neuf",
     location: "Marseille, 13000",
     seller: "CustomAirsoft",
+    sellerId: "mock-user-3",
+    sellerRole: "ADMIN",
+    sellerBadges: ["verified", "admin"],
     rating: 5.0,
     images: ["https://via.placeholder.com/200x150/2C3E50/FFFFFF?text=M4A1"],
     category: "repliques",
     featured: false,
     createdAt: new Date().toISOString(),
-    listingType: 'TRADE',
-    tradeFor: "Casque FAST ou upgrade interne AEG",
   },
   {
     id: "4",
@@ -58,12 +63,14 @@ const BASE_PRODUCTS = [
     condition: "Bon",
     location: "Toulouse, 31000",
     seller: "MilitarySurplus",
+    sellerId: "mock-user-4",
+    sellerRole: "USER",
+    sellerBadges: ["verified"],
     rating: 4.6,
     images: ["https://via.placeholder.com/200x150/556B2F/FFFFFF?text=Gilet"],
     category: "equipements",
     featured: false,
     createdAt: new Date().toISOString(),
-    listingType: 'SALE',
   },
   {
     id: "5",
@@ -72,13 +79,14 @@ const BASE_PRODUCTS = [
     condition: "Excellent",
     location: "Bordeaux, 33000",
     seller: "OptiquesPro",
+    sellerId: "mock-user-5",
+    sellerRole: "MODERATOR",
+    sellerBadges: ["verified", "moderator"],
     rating: 4.7,
     images: ["https://via.placeholder.com/200x150/4682B4/FFFFFF?text=Scope"],
     category: "optiques",
     featured: false,
     createdAt: new Date().toISOString(),
-    listingType: 'BOTH',
-    tradeFor: "Red dot compact ou mount déporté",
   }
 ];
 
@@ -114,15 +122,6 @@ const extraProducts = Array.from({ length: 40 }).map((_, i) => {
   const title = `${titlePool[i % titlePool.length]} #${id}`;
   const hex = ['4B5D3A', '8B4513', '2C3E50', '556B2F', '4682B4', '2F4F4F'][i % 6];
 
-  // Déterminer le type d'annonce mock
-  const listingType = i % 3 === 0 ? 'TRADE' : i % 3 === 1 ? 'BOTH' : 'SALE';
-  const tradeFor =
-    listingType === 'SALE'
-      ? undefined
-      : listingType === 'TRADE'
-      ? 'Ouvert aux échanges contre autre réplique ou équipement'
-      : 'À vendre ou à échanger selon proposition';
-
   return {
     id,
     title,
@@ -137,8 +136,6 @@ const extraProducts = Array.from({ length: 40 }).map((_, i) => {
     featured: i % 9 === 0,
     createdAt: new Date(Date.now() - i * 86400000).toISOString(),
     description: `${title} en ${condition}. Parfait pour compléter ton setup.`,
-    listingType,
-    tradeFor,
   };
 });
 
@@ -192,15 +189,13 @@ function mapDbProductToListingShape(p: any) {
     location: p.location || 'Paris, 75001',
     seller: p.seller?.username || p.seller?.email || 'Vendeur',
     sellerId: p.sellerId,
+    sellerRole: p.seller?.role || undefined,
+    sellerBadges: p.seller?.badges || [],
     rating: 4.7, // TODO: brancher sur reviews quand dispo
     images: imageUrls.length ? imageUrls : [firstImage],
     category: p.category?.slug || 'autre',
     featured: false,
     createdAt: p.createdAt?.toISOString?.() ?? new Date().toISOString(),
-    // Champs spécifiques vente / échange
-    listingType: p.listingType,                // 'SALE' | 'TRADE' | 'BOTH'
-    tradeFor: p.tradeFor || null,              // Ce que le vendeur cherche en échange
-    handDelivery: p.handDelivery ?? false,     // Remise en main propre dispo
   };
 }
 
@@ -342,7 +337,7 @@ router.get('/stats/categories', (req, res) => {
 router.post(
   '/',
   authenticate,
-  sanitizeFields('title', 'description', 'location', 'tradeFor'),
+  sanitizeFields('title', 'description', 'location'),
   async (req: Request, res: Response) => {
   try {
     if (!req.user) {
@@ -357,9 +352,6 @@ router.post(
       category,
       location,
       images = [],
-      listingType,
-      tradeFor,
-      handDelivery,
     } = req.body;
 
     if (!title || !description || !condition || !category) {
@@ -379,15 +371,8 @@ router.post(
       },
     });
 
-    // ListingType & condition
+    // Condition mapping
     const resolvedCondition = mapConditionLabelToEnum(condition);
-    const allowedListingTypes: ListingType[] = [
-      ListingType.SALE,
-      ListingType.TRADE,
-      ListingType.BOTH,
-    ];
-    const resolvedListingType =
-      allowedListingTypes.find((t) => t === listingType) ?? ListingType.SALE;
 
     const numericPrice =
       typeof price === 'number'
@@ -413,12 +398,6 @@ router.post(
         condition: resolvedCondition,
         price: numericPrice,
         currency: 'EUR',
-        listingType: resolvedListingType,
-        tradeFor:
-          resolvedListingType === ListingType.TRADE ||
-          resolvedListingType === ListingType.BOTH
-            ? tradeFor
-            : undefined,
         status: 'ACTIVE',
         isActive: true,
         location: location || 'Paris, 75001',

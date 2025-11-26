@@ -1,12 +1,14 @@
+import { useStripe, PaymentSheet } from "@stripe/stripe-react-native";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Dimensions, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Dimensions, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import OfferTypeModal from "../../components/OfferTypeModal";
 import RatingModal from "../../components/RatingModal";
 import { useTheme } from "../../components/ThemeProvider";
+import { UserBadge } from "../../components/UserBadge";
 import { useProduct } from "../../hooks/useProducts";
+import stripeService from "../../services/stripe";
 import { THEMES } from "../../themes";
 
 const { width } = Dimensions.get('window');
@@ -19,14 +21,107 @@ export default function ProductDetailScreen() {
   const { data: product, isLoading, isError } = useProduct(productId);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [showOfferTypeModal, setShowOfferTypeModal] = useState(false);
   const [hasPurchased, setHasPurchased] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
   const images = useMemo(() => {
     const arr = product?.images || [];
     return arr.filter((u: string) => typeof u === 'string' && !u.startsWith('file://'));
   }, [product]);
+
+  /**
+   * Gérer l'achat du produit avec Stripe Payment Sheet
+   */
+  const handleBuyNow = async () => {
+    if (!product) return;
+
+    setIsProcessingPayment(true);
+
+    try {
+      // 1. Créer le Payment Intent sur le backend
+      const paymentData = await stripeService.createPaymentIntent(
+        product.id,
+        product.price,
+        'eur'
+      );
+
+      // 2. Initialiser le Payment Sheet
+      const { error: initError } = await initPaymentSheet({
+        paymentIntentClientSecret: paymentData.clientSecret,
+        merchantDisplayName: 'Gearted',
+        returnURL: 'gearted://payment-success',
+        // Désactiver complètement la collecte d'adresse de billing
+        billingDetailsCollectionConfiguration: {
+          name: PaymentSheet.CollectionMode.NEVER,
+          email: PaymentSheet.CollectionMode.NEVER,
+          phone: PaymentSheet.CollectionMode.NEVER,
+          address: PaymentSheet.AddressCollectionMode.NEVER,
+          attachDefaultsToPaymentMethod: true,
+        },
+        // Fournir des valeurs par défaut (obligatoire avec NEVER)
+        defaultBillingDetails: {
+          address: {
+            country: 'FR',
+          },
+        },
+        appearance: {
+          colors: {
+            primary: t.primaryBtn,
+            background: t.cardBg,
+            componentBackground: t.cardBg,
+            componentBorder: t.border,
+            componentDivider: t.border,
+            primaryText: t.heading,
+            secondaryText: t.muted,
+            placeholderText: t.muted,
+          },
+          shapes: {
+            borderRadius: 12,
+            borderWidth: 1,
+          },
+        },
+      });
+
+      if (initError) {
+        Alert.alert('Erreur', initError.message);
+        return;
+      }
+
+      // 3. Présenter le Payment Sheet à l'utilisateur
+      const { error: presentError } = await presentPaymentSheet();
+
+      if (presentError) {
+        // L'utilisateur a annulé ou une erreur s'est produite
+        if (presentError.code !== 'Canceled') {
+          Alert.alert('Erreur de paiement', presentError.message);
+        }
+        return;
+      }
+
+      // 4. Paiement réussi !
+      setHasPurchased(true);
+
+      Alert.alert(
+        'Achat confirmé ! 🎉',
+        `Votre achat de "${product.title}" a été confirmé.\n\nVous avez payé ${paymentData.totalCharge.toFixed(2)} € (dont ${paymentData.buyerFee.toFixed(2)} € de frais de service).\n\nVeuillez maintenant entrer votre adresse de livraison.`,
+        [
+          {
+            text: 'Entrer mon adresse',
+            onPress: () => router.push({
+              pathname: '/shipping-address',
+              params: { transactionId: paymentData.paymentIntentId }
+            }),
+          },
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert('Erreur', error.message || 'Une erreur est survenue lors du paiement');
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }} edges={['top']}>
@@ -144,93 +239,74 @@ export default function ProductDetailScreen() {
               )}
 
               {/* Badge condition */}
-              <View style={{
-                position: 'absolute',
-                top: 16,
-                right: 16,
-                backgroundColor: '#4CAF50',
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-                borderRadius: 20,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.2,
-                shadowRadius: 4
-              }}>
-                <Text style={{ color: 'white', fontWeight: '700', fontSize: 12, letterSpacing: 0.5 }}>
-                  {product.condition?.toUpperCase()}
-                </Text>
-              </View>
+              {product.status !== 'SOLD' && (
+                <View style={{
+                  position: 'absolute',
+                  top: 16,
+                  right: 16,
+                  backgroundColor: '#4CAF50',
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 4
+                }}>
+                  <Text style={{ color: 'white', fontWeight: '700', fontSize: 12, letterSpacing: 0.5 }}>
+                    {product.condition?.toUpperCase()}
+                  </Text>
+                </View>
+              )}
+
+              {/* Badge VENDU */}
+              {product.status === 'SOLD' && (
+                <View style={{
+                  position: 'absolute',
+                  top: 16,
+                  right: 16,
+                  backgroundColor: '#EF4444',
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
+                  borderRadius: 20,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 6,
+                  elevation: 8
+                }}>
+                  <Text style={{ color: 'white', fontWeight: '700', fontSize: 14, letterSpacing: 0.5 }}>
+                    ✓ VENDU
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Contenu principal */}
             <View style={{ padding: 20 }}>
-              {/* Titre et badge type */}
+              {/* Titre */}
               <View style={{ marginBottom: 12 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 }}>
-                  <Text style={{
-                    fontSize: 26,
-                    fontWeight: '700',
-                    color: t.heading,
-                    flex: 1,
-                    lineHeight: 32,
-                    letterSpacing: -0.5
-                  }}>
-                    {product.title}
-                  </Text>
-                </View>
-
-                {/* Badge type d'annonce */}
-                {product.listingType && product.listingType !== 'SALE' && (
-                  <View style={{ alignSelf: 'flex-start' }}>
-                    <View style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      backgroundColor: product.listingType === 'TRADE' ? '#FF6B35' : '#4ECDC4',
-                      borderRadius: 20,
-                    }}>
-                      <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFF', letterSpacing: 0.5 }}>
-                        {product.listingType === 'TRADE' ? '🔄 ÉCHANGE UNIQUEMENT' : '💰 VENTE OU ÉCHANGE'}
-                      </Text>
-                    </View>
-                  </View>
-                )}
+                <Text style={{
+                  fontSize: 26,
+                  fontWeight: '700',
+                  color: t.heading,
+                  lineHeight: 32,
+                  letterSpacing: -0.5
+                }}>
+                  {product.title}
+                </Text>
               </View>
 
-              {/* Prix - Affiché uniquement si ce n'est pas un échange pur */}
-              {product.listingType !== 'TRADE' && (
-                <Text style={{
-                  fontSize: 34,
-                  fontWeight: '800',
-                  color: t.primaryBtn,
-                  marginBottom: 24,
-                  letterSpacing: -1
-                }}>
-                  {`${Number(product.price).toFixed(2)} €`}
-                </Text>
-              )}
-
-              {/* Section Recherche en échange */}
-              {product.tradeFor && (
-                <View style={{
-                  backgroundColor: '#FFF9E6',
-                  borderRadius: 16,
-                  padding: 16,
-                  marginBottom: 20,
-                  borderWidth: 1,
-                  borderColor: '#FFD54F'
-                }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                    <Text style={{ fontSize: 18, marginRight: 6 }}>🔄</Text>
-                    <Text style={{ fontSize: 13, color: '#F57C00', fontWeight: '700', letterSpacing: 0.5 }}>
-                      RECHERCHE EN ÉCHANGE
-                    </Text>
-                  </View>
-                  <Text style={{ fontSize: 15, color: '#424242', lineHeight: 22 }}>
-                    {product.tradeFor}
-                  </Text>
-                </View>
-              )}
+              {/* Prix */}
+              <Text style={{
+                fontSize: 34,
+                fontWeight: '800',
+                color: t.primaryBtn,
+                marginBottom: 24,
+                letterSpacing: -1
+              }}>
+                {`${Number(product.price).toFixed(2)} €`}
+              </Text>
 
               {/* Infos localisation et date */}
               <View style={{
@@ -401,7 +477,6 @@ export default function ProductDetailScreen() {
                 borderColor: t.border
               }}
               onPress={() => {
-                const offerType = product?.listingType === 'TRADE' ? 'trade' : product?.listingType === 'BOTH' ? 'both' : 'sale';
                 router.push({
                   pathname: '/chat/new',
                   params: {
@@ -409,8 +484,7 @@ export default function ProductDetailScreen() {
                     sellerName: product?.seller,
                     sellerAvatar: `https://via.placeholder.com/50/4B5D3A/FFFFFF?text=${product?.seller?.charAt(0) || 'U'}`,
                     productId: product?.id,
-                    productTitle: product?.title,
-                    offerType
+                    productTitle: product?.title
                   }
                 });
               }}
@@ -420,69 +494,30 @@ export default function ProductDetailScreen() {
               </Text>
             </TouchableOpacity>
 
-            {product?.listingType !== 'TRADE' && (
-              <TouchableOpacity
-                style={{
-                  flex: 2,
-                  backgroundColor: t.primaryBtn,
-                  borderRadius: 14,
-                  paddingVertical: 16,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  shadowColor: t.primaryBtn,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8
-                }}
-                onPress={() => {
-                  if (product?.listingType === 'BOTH') {
-                    setShowOfferTypeModal(true);
-                  } else {
-                    setHasPurchased(true);
-                  }
-                }}
-              >
-                <Text style={{ fontSize: 15, fontWeight: '700', color: t.white }}>
-                  {product?.listingType === 'BOTH' ? '💰 Acheter ou échanger' : '💰 Acheter maintenant'}
-                </Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={{
+                flex: 2,
+                backgroundColor: (isProcessingPayment || hasPurchased || product.status === 'SOLD') ? t.muted : t.primaryBtn,
+                borderRadius: 14,
+                paddingVertical: 16,
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: t.primaryBtn,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                opacity: (isProcessingPayment || product.status === 'SOLD') ? 0.6 : 1
+              }}
+              onPress={handleBuyNow}
+              disabled={isProcessingPayment || hasPurchased || product.status === 'SOLD'}
+            >
+              <Text style={{ fontSize: 15, fontWeight: '700', color: t.white }}>
+                {product.status === 'SOLD' ? '❌ Produit vendu' : isProcessingPayment ? '⏳ Traitement...' : hasPurchased ? '✓ Acheté' : '💰 Acheter maintenant'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
-
-      <OfferTypeModal
-        visible={showOfferTypeModal}
-        onClose={() => setShowOfferTypeModal(false)}
-        productTitle={product?.title || ''}
-        price={product?.price || 0}
-        tradeFor={product?.tradeFor}
-        onBuy={() => {
-          setHasPurchased(true);
-          router.push({
-            pathname: '/chat/new',
-            params: {
-              sellerId: product?.sellerId || product?.id,
-              sellerName: product?.seller,
-              sellerAvatar: `https://via.placeholder.com/50/4B5D3A/FFFFFF?text=${product?.seller?.charAt(0) || 'U'}`,
-              productId: product?.id,
-              productTitle: product?.title
-            }
-          });
-        }}
-        onTrade={() => {
-          router.push({
-            pathname: '/chat/new',
-            params: {
-              sellerId: product?.sellerId || product?.id,
-              sellerName: product?.seller,
-              sellerAvatar: `https://via.placeholder.com/50/4B5D3A/FFFFFF?text=${product?.seller?.charAt(0) || 'U'}`,
-              productId: product?.id,
-              productTitle: product?.title
-            }
-          });
-        }}
-      />
 
       <RatingModal
         visible={showRatingModal}
