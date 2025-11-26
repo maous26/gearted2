@@ -20,6 +20,14 @@ export interface Transaction {
     title: string;
     images: string[];
     price: number;
+    parcelDimensionsId?: string; // Lien vers dimensions du colis
+    parcelDimensions?: {
+      id: string;
+      length: number;
+      width: number;
+      height: number;
+      weight: number;
+    };
     seller?: {
       id: string;
       username: string;

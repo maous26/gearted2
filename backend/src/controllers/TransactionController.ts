@@ -54,7 +54,9 @@ export class TransactionController {
               title: true,
               images: true,
               price: true,
-              status: true
+              status: true,
+              parcelDimensionsId: true,
+              parcelDimensions: true
             }
           },
           buyer: {
@@ -88,6 +90,8 @@ export class TransactionController {
             title: product.title,
             price: Number(product.price),
             status: product.status,
+            parcelDimensionsId: product.parcelDimensionsId,
+            parcelDimensions: product.parcelDimensions,
             images: Array.isArray(product.images)
               ? product.images.map((img: any) => typeof img === 'string' ? img : img.url)
               : []
@@ -148,6 +152,8 @@ export class TransactionController {
               images: true,
               price: true,
               status: true,
+              parcelDimensionsId: true,
+              parcelDimensions: true,
               seller: {
                 select: {
                   id: true,
@@ -181,6 +187,8 @@ export class TransactionController {
             title: product.title,
             price: Number(product.price),
             status: product.status,
+            parcelDimensionsId: product.parcelDimensionsId,
+            parcelDimensions: product.parcelDimensions,
             images: Array.isArray(product.images)
               ? product.images.map((img: any) => typeof img === 'string' ? img : img.url)
               : [],

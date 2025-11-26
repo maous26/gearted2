@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CompatDrawer } from "../../components/CompatDrawer";
-import { CompatibilityTeaser } from "../../components/CompatibilityTeaser";
+// import { CompatibilityTeaser } from "../../components/CompatibilityTeaser"; // Désactivé
 import { useTheme } from "../../components/ThemeProvider";
 import { CATEGORIES } from "../../data";
 import { useCategoryStats, useProducts } from "../../hooks/useProducts";
@@ -287,20 +287,6 @@ export default function AuthenticatedHome() {
               ))}
             </View>
           </ScrollView>
-        </View>
-
-        {/* Compatibility */}
-        <View style={{
-          backgroundColor: t.sectionLight + '66',
-          paddingHorizontal: 16,
-          paddingVertical: 24
-        }}>
-          <CompatibilityTeaser
-            theme={theme}
-            onOpenDrawer={(item1, item2, result) => {
-              // ...existing code...
-            }}
-          />
         </View>
 
         {/* Categories */}

@@ -296,30 +296,52 @@ export default function OrdersScreen() {
 
           {/* Action buttons for buyers - choose shipping */}
           {!isSale && !order.trackingNumber && order.shippingAddress && (
-            <TouchableOpacity
-              style={{
-                marginTop: 12,
-                backgroundColor: t.primaryBtn,
-                paddingVertical: 10,
-                paddingHorizontal: 16,
-                borderRadius: 10,
-                alignItems: 'center',
-              }}
-              onPress={() => {
-                router.push({
-                  pathname: '/buyer-choose-shipping' as any,
-                  params: {
-                    transactionId: order.id,
-                    productTitle: order.product?.title || 'Produit',
-                    sellerName: order.seller?.username || 'Inconnu',
-                  },
-                });
-              }}
-            >
-              <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>
-                📮 Choisir le mode de livraison
-              </Text>
-            </TouchableOpacity>
+            <>
+              {order.product?.parcelDimensionsId ? (
+                <TouchableOpacity
+                  style={{
+                    marginTop: 12,
+                    backgroundColor: t.primaryBtn,
+                    paddingVertical: 10,
+                    paddingHorizontal: 16,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                  }}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/buyer-choose-shipping' as any,
+                      params: {
+                        transactionId: order.id,
+                        productTitle: order.product?.title || 'Produit',
+                        sellerName: order.seller?.username || 'Inconnu',
+                      },
+                    });
+                  }}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>
+                    📮 Choisir le mode de livraison
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <View
+                  style={{
+                    marginTop: 12,
+                    backgroundColor: t.muted + '40',
+                    paddingVertical: 10,
+                    paddingHorizontal: 16,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ color: t.muted, fontWeight: '600', fontSize: 14 }}>
+                    ⏳ En attente des dimensions du colis
+                  </Text>
+                  <Text style={{ color: t.muted, fontSize: 11, marginTop: 4 }}>
+                    Le vendeur doit d'abord renseigner les dimensions
+                  </Text>
+                </View>
+              )}
+            </>
           )}
         </View>
       </View>

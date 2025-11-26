@@ -218,4 +218,105 @@ router.get('/products/:productId/shipping-info', async (req: Request, res: Respo
   }
 });
 
+/**
+ * Vendeur renseigne les dimensions via transactionId (plus pratique depuis l'UI)
+ */
+router.post('/dimensions/:transactionId', async (req: Request, res: Response): Promise<any> => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const { transactionId } = req.params;
+  const { length, width, height, weight } = req.body;
+
+  // Validation
+  if (!length || !width || !height || !weight) {
+    return res.status(400).json({ 
+      error: 'Toutes les dimensions sont requises' 
+    });
+  }
+
+  const dimensions = {
+    length: parseFloat(length),
+    width: parseFloat(width),
+    height: parseFloat(height),
+    weight: parseFloat(weight)
+  };
+
+  if (Object.values(dimensions).some(v => isNaN(v) || v <= 0)) {
+    return res.status(400).json({ 
+      error: 'Toutes les dimensions doivent être des nombres positifs' 
+    });
+  }
+
+  try {
+    // Récupérer la transaction et vérifier que c'est bien le vendeur
+    const transaction = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+      include: {
+        product: {
+          include: {
+            parcelDimensions: true
+          }
+        }
+      }
+    });
+
+    if (!transaction) {
+      return res.status(404).json({ error: 'Transaction non trouvée' });
+    }
+
+    if (transaction.product.sellerId !== req.user.userId) {
+      return res.status(403).json({ 
+        error: 'Vous n\'êtes pas autorisé à modifier ce produit' 
+      });
+    }
+
+    // Créer ou mettre à jour les dimensions
+    let parcelDimensions;
+    
+    if (transaction.product.parcelDimensionsId) {
+      parcelDimensions = await prisma.parcelDimensions.update({
+        where: { id: transaction.product.parcelDimensionsId },
+        data: dimensions
+      });
+    } else {
+      parcelDimensions = await prisma.parcelDimensions.create({
+        data: dimensions
+      });
+      
+      await prisma.product.update({
+        where: { id: transaction.product.id },
+        data: { parcelDimensionsId: parcelDimensions.id }
+      });
+    }
+
+    // Si paiement complété, marquer comme SOLD
+    const updateData: any = {};
+    if (transaction.product.paymentCompleted && transaction.product.status !== 'SOLD') {
+      updateData.status = 'SOLD';
+      updateData.soldAt = new Date();
+      
+      await prisma.product.update({
+        where: { id: transaction.product.id },
+        data: updateData
+      });
+      
+      console.log(`[Shipping] Produit ${transaction.product.id} marqué comme SOLD`);
+    }
+
+    return res.json({
+      success: true,
+      parcelDimensions,
+      message: 'Dimensions enregistrées avec succès'
+    });
+
+  } catch (error) {
+    console.error('[Shipping] Error saving dimensions:', error);
+    return res.status(500).json({ 
+      error: 'Erreur lors de l\'enregistrement des dimensions' 
+    });
+  }
+});
+
 export default router;
