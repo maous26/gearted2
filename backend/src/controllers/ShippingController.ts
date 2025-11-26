@@ -140,7 +140,6 @@ export class ShippingController {
       }
 
       const { transactionId } = req.params;
-      const { length, width, height, weight } = req.body;
 
       // Récupérer la transaction avec adresse et info vendeur
       const transaction = await prisma.transaction.findUnique({
@@ -166,6 +165,21 @@ export class ShippingController {
 
       if (!transaction.shippingAddress) {
         return res.status(400).json({ error: 'Shipping address not provided yet' });
+      }
+
+      // Get dimensions from request body OR from transaction metadata (if seller already set them)
+      const bodyDimensions = req.body || {};
+      const metadataDimensions = (transaction.metadata as any)?.parcelDimensions || {};
+
+      const length = bodyDimensions.length || metadataDimensions.length;
+      const width = bodyDimensions.width || metadataDimensions.width;
+      const height = bodyDimensions.height || metadataDimensions.height;
+      const weight = bodyDimensions.weight || metadataDimensions.weight;
+
+      if (!length || !width || !height || !weight) {
+        return res.status(400).json({
+          error: 'Parcel dimensions not provided. The seller must set dimensions first.'
+        });
       }
 
       // Adresse du vendeur (à configurer - pour l'instant hardcodé)
