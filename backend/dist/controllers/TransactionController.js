@@ -45,7 +45,8 @@ class TransactionController {
                             id: true,
                             title: true,
                             images: true,
-                            price: true
+                            price: true,
+                            status: true
                         }
                     },
                     buyer: {
@@ -73,6 +74,7 @@ class TransactionController {
                         id: product.id,
                         title: product.title,
                         price: Number(product.price),
+                        status: product.status,
                         images: Array.isArray(product.images)
                             ? product.images.map((img) => typeof img === 'string' ? img : img.url)
                             : []
@@ -125,6 +127,7 @@ class TransactionController {
                             title: true,
                             images: true,
                             price: true,
+                            status: true,
                             seller: {
                                 select: {
                                     id: true,
@@ -152,6 +155,7 @@ class TransactionController {
                         id: product.id,
                         title: product.title,
                         price: Number(product.price),
+                        status: product.status,
                         images: Array.isArray(product.images)
                             ? product.images.map((img) => typeof img === 'string' ? img : img.url)
                             : [],
