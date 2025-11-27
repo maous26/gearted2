@@ -518,6 +518,27 @@ router.post('/dimensions/:transactionId', async (req: Request, res: Response): P
       console.log(`[Shipping/Dimensions] Produit ${transaction.product.id} marqué comme SOLD`);
     }
 
+    // Créer une notification pour l'acheteur
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: transaction.buyerId,
+          title: '📦 Dimensions du colis enregistrées',
+          message: `Les dimensions du colis pour "${transaction.product.title}" ont été renseignées. Vous pouvez maintenant générer votre étiquette d'expédition !`,
+          type: 'SHIPPING_UPDATE',
+          data: {
+            transactionId: transaction.id,
+            productId: transaction.product.id,
+            productTitle: transaction.product.title,
+          },
+        },
+      });
+      console.log(`[Shipping/Dimensions] Notification created for buyer ${transaction.buyerId}`);
+    } catch (notifError) {
+      console.error(`[Shipping/Dimensions] Failed to create notification:`, notifError);
+      // Don't fail the request if notification creation fails
+    }
+
     console.log(`[Shipping/Dimensions] SUCCESS - dimensions saved for transaction ${transactionId}`);
     return res.json({
       success: true,
