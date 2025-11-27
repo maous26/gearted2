@@ -260,7 +260,7 @@ export default function OrdersScreen() {
             </View>
           </View>
 
-          {/* Tracking info if available */}
+          {/* Tracking info with button to view label */}
           {order.trackingNumber && (
             <View style={{
               marginTop: 8,
@@ -268,9 +268,39 @@ export default function OrdersScreen() {
               borderTopWidth: 1,
               borderTopColor: t.border,
             }}>
-              <Text style={{ fontSize: 12, color: t.mutedText }}>
+              <Text style={{ fontSize: 12, color: t.mutedText, marginBottom: 8 }}>
                 📍 Suivi: {order.trackingNumber}
               </Text>
+
+              {/* Button to view shipping label */}
+              {!isSale && (
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: t.primaryBtn,
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    borderRadius: 8,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/shipping-label' as any,
+                      params: {
+                        trackingNumber: order.trackingNumber,
+                        productTitle: order.product?.title || 'Produit',
+                        carrier: order.trackingNumber?.split('-')[0] || 'Transporteur',
+                      },
+                    });
+                  }}
+                >
+                  <Ionicons name="print-outline" size={16} color="#FFF" style={{ marginRight: 6 }} />
+                  <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 13 }}>
+                    Voir l'étiquette
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
