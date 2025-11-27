@@ -421,10 +421,14 @@ router.post('/dimensions/:transactionId', async (req: Request, res: Response): P
   const { transactionId } = req.params;
   const { length, width, height, weight } = req.body;
 
+  console.log(`[Shipping/Dimensions] START - transactionId: ${transactionId}, user: ${req.user.userId}`);
+  console.log(`[Shipping/Dimensions] Received dimensions:`, { length, width, height, weight });
+
   // Validation
   if (!length || !width || !height || !weight) {
-    return res.status(400).json({ 
-      error: 'Toutes les dimensions sont requises' 
+    console.log(`[Shipping/Dimensions] VALIDATION FAILED - missing dimensions`);
+    return res.status(400).json({
+      error: 'Toutes les dimensions sont requises'
     });
   }
 
@@ -466,37 +470,43 @@ router.post('/dimensions/:transactionId', async (req: Request, res: Response): P
 
     // Créer ou mettre à jour les dimensions
     let parcelDimensions;
-    
+
     if (transaction.product.parcelDimensionsId) {
+      console.log(`[Shipping/Dimensions] UPDATING existing dimensions ID: ${transaction.product.parcelDimensionsId}`);
       parcelDimensions = await prisma.parcelDimensions.update({
         where: { id: transaction.product.parcelDimensionsId },
         data: dimensions
       });
     } else {
+      console.log(`[Shipping/Dimensions] CREATING new dimensions for product ${transaction.product.id}`);
       parcelDimensions = await prisma.parcelDimensions.create({
         data: dimensions
       });
-      
+
+      console.log(`[Shipping/Dimensions] LINKING dimensions ${parcelDimensions.id} to product ${transaction.product.id}`);
       await prisma.product.update({
         where: { id: transaction.product.id },
         data: { parcelDimensionsId: parcelDimensions.id }
       });
     }
 
+    console.log(`[Shipping/Dimensions] Dimensions saved:`, parcelDimensions);
+
     // Si paiement complété, marquer comme SOLD
     const updateData: any = {};
     if (transaction.product.paymentCompleted && transaction.product.status !== 'SOLD') {
       updateData.status = 'SOLD';
       updateData.soldAt = new Date();
-      
+
       await prisma.product.update({
         where: { id: transaction.product.id },
         data: updateData
       });
-      
-      console.log(`[Shipping] Produit ${transaction.product.id} marqué comme SOLD`);
+
+      console.log(`[Shipping/Dimensions] Produit ${transaction.product.id} marqué comme SOLD`);
     }
 
+    console.log(`[Shipping/Dimensions] SUCCESS - dimensions saved for transaction ${transactionId}`);
     return res.json({
       success: true,
       parcelDimensions,

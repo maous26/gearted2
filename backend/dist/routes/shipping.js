@@ -165,6 +165,156 @@ router.get('/products/:productId/shipping-info', async (req, res) => {
         });
     }
 });
+router.post('/rates/:transactionId', async (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+    const { transactionId } = req.params;
+    try {
+        const transaction = await prisma.transaction.findUnique({
+            where: { id: transactionId },
+            include: {
+                product: {
+                    include: {
+                        parcelDimensions: true
+                    }
+                },
+                buyer: true
+            }
+        });
+        if (!transaction) {
+            return res.status(404).json({ error: 'Transaction non trouvée' });
+        }
+        if (transaction.buyerId !== req.user.userId) {
+            return res.status(403).json({
+                error: 'Vous n\'êtes pas autorisé à accéder à cette transaction'
+            });
+        }
+        if (!transaction.product.parcelDimensions) {
+            return res.status(400).json({
+                error: 'Les dimensions du colis ne sont pas encore définies par le vendeur'
+            });
+        }
+        if (!transaction.shippingAddress) {
+            return res.status(400).json({
+                error: 'L\'adresse de livraison n\'est pas définie'
+            });
+        }
+        const dimensions = transaction.product.parcelDimensions;
+        const basePrice = Math.max(5, (dimensions.weight * 3) + ((dimensions.length + dimensions.width + dimensions.height) / 100));
+        const rates = [
+            {
+                rateId: 'colissimo-standard',
+                provider: 'Colissimo',
+                servicelevel: {
+                    name: 'Domicile',
+                    token: 'colissimo-domicile'
+                },
+                amount: basePrice.toFixed(2),
+                currency: 'EUR',
+                estimatedDays: 2
+            },
+            {
+                rateId: 'colissimo-relais',
+                provider: 'Colissimo',
+                servicelevel: {
+                    name: 'Point Relais',
+                    token: 'colissimo-relais'
+                },
+                amount: (basePrice * 0.8).toFixed(2),
+                currency: 'EUR',
+                estimatedDays: 3
+            },
+            {
+                rateId: 'chronopost-express',
+                provider: 'Chronopost',
+                servicelevel: {
+                    name: 'Express',
+                    token: 'chronopost-express'
+                },
+                amount: (basePrice * 1.5).toFixed(2),
+                currency: 'EUR',
+                estimatedDays: 1
+            }
+        ];
+        return res.json({
+            success: true,
+            rates,
+            dimensions
+        });
+    }
+    catch (error) {
+        console.error('[Shipping] Error getting rates:', error);
+        return res.status(500).json({
+            error: 'Erreur lors de la récupération des tarifs'
+        });
+    }
+});
+router.post('/label/:transactionId', async (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+    const { transactionId } = req.params;
+    const { rateId } = req.body;
+    if (!rateId) {
+        return res.status(400).json({ error: 'Le tarif de livraison est requis' });
+    }
+    try {
+        const transaction = await prisma.transaction.findUnique({
+            where: { id: transactionId },
+            include: {
+                product: {
+                    include: {
+                        parcelDimensions: true,
+                        seller: true
+                    }
+                },
+                buyer: true
+            }
+        });
+        if (!transaction) {
+            return res.status(404).json({ error: 'Transaction non trouvée' });
+        }
+        if (transaction.buyerId !== req.user.userId) {
+            return res.status(403).json({
+                error: 'Vous n\'êtes pas autorisé à accéder à cette transaction'
+            });
+        }
+        if (transaction.trackingNumber) {
+            return res.status(400).json({
+                error: 'Une étiquette a déjà été créée pour cette transaction'
+            });
+        }
+        const trackingNumber = `${rateId.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id: transactionId },
+            data: {
+                trackingNumber,
+                status: 'PROCESSING'
+            },
+            include: {
+                product: true,
+                buyer: true
+            }
+        });
+        const labelUrl = `https://example.com/labels/${trackingNumber}.pdf`;
+        return res.json({
+            success: true,
+            label: {
+                trackingNumber,
+                labelUrl,
+                carrier: rateId.split('-')[0]
+            },
+            transaction: updatedTransaction
+        });
+    }
+    catch (error) {
+        console.error('[Shipping] Error generating label:', error);
+        return res.status(500).json({
+            error: 'Erreur lors de la génération de l\'étiquette'
+        });
+    }
+});
 router.post('/dimensions/:transactionId', async (req, res) => {
     if (!req.user) {
         return res.status(401).json({ error: 'Authentication required' });
