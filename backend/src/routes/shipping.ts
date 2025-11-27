@@ -335,7 +335,10 @@ router.post('/label/:transactionId', async (req: Request, res: Response): Promis
   const { transactionId } = req.params;
   const { rateId } = req.body;
 
+  console.log(`[Shipping/Label] START - transactionId: ${transactionId}, user: ${req.user.userId}, rateId: ${rateId}`);
+
   if (!rateId) {
+    console.log(`[Shipping/Label] VALIDATION FAILED - missing rateId`);
     return res.status(400).json({ error: 'Le tarif de livraison est requis' });
   }
 
@@ -355,11 +358,15 @@ router.post('/label/:transactionId', async (req: Request, res: Response): Promis
     });
 
     if (!transaction) {
+      console.log(`[Shipping/Label] Transaction ${transactionId} NOT FOUND`);
       return res.status(404).json({ error: 'Transaction non trouvée' });
     }
 
+    console.log(`[Shipping/Label] Transaction found - buyerId: ${transaction.buyerId}, currentTrackingNumber: ${transaction.trackingNumber}`);
+
     // Vérifier que l'utilisateur est bien l'acheteur
     if (transaction.buyerId !== req.user.userId) {
+      console.log(`[Shipping/Label] FORBIDDEN - user ${req.user.userId} is not the buyer ${transaction.buyerId}`);
       return res.status(403).json({
         error: 'Vous n\'êtes pas autorisé à accéder à cette transaction'
       });
@@ -367,6 +374,7 @@ router.post('/label/:transactionId', async (req: Request, res: Response): Promis
 
     // Vérifier qu'une étiquette n'a pas déjà été créée
     if (transaction.trackingNumber) {
+      console.log(`[Shipping/Label] Label already exists - trackingNumber: ${transaction.trackingNumber}`);
       return res.status(400).json({
         error: 'Une étiquette a déjà été créée pour cette transaction'
       });
@@ -375,6 +383,7 @@ router.post('/label/:transactionId', async (req: Request, res: Response): Promis
     // Générer un numéro de suivi factice
     // TODO: Intégrer avec un vrai service de livraison
     const trackingNumber = `${rateId.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+    console.log(`[Shipping/Label] Generated trackingNumber: ${trackingNumber}`);
 
     // Mettre à jour la transaction avec le numéro de suivi
     const updatedTransaction = await prisma.transaction.update({
@@ -389,9 +398,12 @@ router.post('/label/:transactionId', async (req: Request, res: Response): Promis
       }
     });
 
+    console.log(`[Shipping/Label] Transaction updated - status: ${updatedTransaction.status}`);
+
     // Créer une URL factice pour l'étiquette PDF
     const labelUrl = `https://example.com/labels/${trackingNumber}.pdf`;
 
+    console.log(`[Shipping/Label] SUCCESS - Label created for transaction ${transactionId}`);
     return res.json({
       success: true,
       label: {

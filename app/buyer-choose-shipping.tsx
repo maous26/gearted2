@@ -76,6 +76,8 @@ export default function BuyerChooseShippingScreen() {
       return;
     }
 
+    console.log('[BuyerShipping] START generateLabel - transactionId:', transactionId, 'rateId:', selectedRate);
+
     const isMondialRelay = selectedRate.startsWith('mondial-relay-');
 
     if (isMondialRelay) {
@@ -98,6 +100,8 @@ export default function BuyerChooseShippingScreen() {
 
     try {
       setCreatingLabel(true);
+      console.log('[BuyerShipping] Calling API /api/shipping/label/' + transactionId);
+
       const response = await api.post<{
         success: boolean;
         label: any;
@@ -105,6 +109,8 @@ export default function BuyerChooseShippingScreen() {
       }>(`/api/shipping/label/${transactionId}`, {
         rateId: selectedRate,
       });
+
+      console.log('[BuyerShipping] Label created successfully:', response);
 
       Alert.alert(
         'Succès',
@@ -117,7 +123,8 @@ export default function BuyerChooseShippingScreen() {
         ]
       );
     } catch (error: any) {
-      console.error('Failed to generate label:', error);
+      console.error('[BuyerShipping] Failed to generate label:', error);
+      console.error('[BuyerShipping] Error response:', error.response?.data);
       Alert.alert('Erreur', error.message || 'Impossible de créer l\'étiquette');
     } finally {
       setCreatingLabel(false);
