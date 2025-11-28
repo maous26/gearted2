@@ -67,7 +67,15 @@ class ApiService {
         // Si 401 et pas déjà retry, tenter refresh token
         // Ne pas tenter de refresh si la requête échouée EST déjà le refresh endpoint
         const isRefreshEndpoint = originalRequest.url?.includes('/refresh-token');
-        if (error.response?.status === 401 && !originalRequest._retry && !isRefreshEndpoint) {
+
+        // Si c'est déjà un retry qui échoue, on déconnecte l'utilisateur
+        if (error.response?.status === 401 && originalRequest._retry) {
+          console.log('[API] Retry failed with 401, clearing tokens');
+          await TokenManager.clearTokens();
+          return Promise.reject(new Error('Session expired after refresh'));
+        }
+
+        if (error.response?.status === 401 && !isRefreshEndpoint) {
           originalRequest._retry = true;
 
           try {
@@ -121,20 +129,19 @@ class ApiService {
               throw saveError;
             }
 
-            originalRequest.headers = originalRequest.headers || {};
+            // Update the Authorization header with the new token
+            if (!originalRequest.headers) {
+              originalRequest.headers = {} as any;
+            }
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+
+            console.log('[API] Retrying request with new token:', originalRequest.method?.toUpperCase(), originalRequest.url);
             return this.api(originalRequest);
           } catch (refreshError: any) {
-            // Refresh failed, logout user
-            // Don't log 401 errors as they are expected when refresh token is expired
-            if (refreshError.response?.status !== 401) {
-              console.error('[API] Refresh failed:', refreshError.response?.status, refreshError.message);
-            } else {
-              console.log('[API] Session expired (refresh token invalid)');
-            }
-
+            // Refresh token request itself failed
+            console.error('[API] Refresh token request failed:', refreshError.response?.status, refreshError.message);
             await TokenManager.clearTokens();
-            return Promise.reject(refreshError);
+            return Promise.reject(new Error('Session expired - please log in again'));
           }
         }
 
