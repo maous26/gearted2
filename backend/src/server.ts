@@ -121,23 +121,27 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Rate limiting
+// Rate limiting - Assouplir pour les apps mobiles
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_REQUESTS || '100'), // limit each IP to 100 requests per windowMs
+  max: parseInt(process.env.RATE_LIMIT_REQUESTS || '500'), // 500 requêtes par 15 min (au lieu de 100)
   message: {
     error: 'Too many requests from this IP, please try again later.',
     retryAfter: Math.ceil(parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000') / 1000)
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Ne pas limiter les webhooks Stripe
+    return req.path.startsWith('/webhook');
+  }
 });
 
-// Speed limiter for repeated requests
+// Speed limiter for repeated requests - Assouplir
 const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  delayAfter: 50, // allow 50 requests per 15 minutes at full speed
-  delayMs: () => 500, // 500ms delay per request after delayAfter
+  delayAfter: 200, // 200 requêtes avant ralentissement (au lieu de 50)
+  delayMs: () => 100, // 100ms delay (au lieu de 500ms)
   validate: { delayMs: false } // Disable deprecation warning
 });
 
