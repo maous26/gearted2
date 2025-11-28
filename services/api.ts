@@ -33,6 +33,13 @@ class ApiService {
     // Request interceptor - Ajouter le token
     this.api.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
+        // Skip adding token if Authorization header already exists (from retry logic)
+        const hasAuthHeader = config.headers?.Authorization;
+        if (hasAuthHeader) {
+          console.log('[API Request] Using existing Authorization header');
+          return config;
+        }
+
         const token = await TokenManager.getAccessToken();
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -119,15 +126,9 @@ class ApiService {
 
             console.log('[API] Tokens validated successfully');
 
-            try {
-              await TokenManager.saveTokens(accessToken, newRefreshToken);
-              console.log('[API] Tokens saved, retrying original request');
-            } catch (saveError) {
-              console.error('[API] Error saving refreshed tokens:', saveError);
-              // Si on ne peut pas sauvegarder les tokens, on les efface pour éviter incohérences
-              await TokenManager.clearTokens();
-              throw saveError;
-            }
+            // Save tokens - if this fails, clear everything and bail out
+            await TokenManager.saveTokens(accessToken, newRefreshToken);
+            console.log('[API] Tokens saved, retrying original request');
 
             // Update the Authorization header with the new token
             if (!originalRequest.headers) {
@@ -135,10 +136,16 @@ class ApiService {
             }
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
 
+            // Log token info for debugging
+            const tokenPreview = accessToken.substring(0, 20) + '...' + accessToken.substring(accessToken.length - 10);
             console.log('[API] Retrying request with new token:', originalRequest.method?.toUpperCase(), originalRequest.url);
+            console.log('[API] Token preview:', tokenPreview);
+
+            // Retry the original request - errors will be handled by the outer interceptor
             return this.api(originalRequest);
           } catch (refreshError: any) {
-            // Refresh token request itself failed
+            // Only catch errors from the refresh token REQUEST itself, not from the retry
+            // If we get here, it means the token refresh call failed, not the retried request
             console.error('[API] Refresh token request failed:', refreshError.response?.status, refreshError.message);
             await TokenManager.clearTokens();
             return Promise.reject(new Error('Session expired - please log in again'));
