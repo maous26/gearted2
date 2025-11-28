@@ -5,23 +5,18 @@ import { authenticate } from '../middleware/auth';
 const router = Router();
 const prisma = new PrismaClient();
 
-// Apply authentication to all routes
-router.use(authenticate);
-
 /**
  * Clean database - keep only specified users
  * DELETE /api/admin/clean-database
- * Requires admin role or specific user
+ * Requires admin secret key in X-Admin-Secret header
  */
 router.delete('/clean-database', async (req: Request, res: Response): Promise<any> => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
+  // Check for admin secret key in header
+  const adminSecret = req.headers['x-admin-secret'];
+  const expectedSecret = process.env.ADMIN_SECRET_KEY || 'gearted-admin-2025';
 
-  // Only allow specific users to run this
-  const allowedUserIds = ['cmi746ikv0003pi2dixdztg7s']; // iswael's ID
-  if (!allowedUserIds.includes(req.user.userId)) {
-    return res.status(403).json({ error: 'Not authorized to perform this action' });
+  if (!adminSecret || adminSecret !== expectedSecret) {
+    return res.status(403).json({ error: 'Invalid or missing admin secret key' });
   }
 
   try {
