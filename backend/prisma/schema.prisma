@@ -45,11 +45,12 @@ model User {
   updatedAt DateTime @updatedAt
   
   // Relations
-  products       Product[]
-  sentMessages   Message[]
-  conversations  Conversation[] @relation("ConversationParticipants")
-  stripeAccount  StripeAccount?
-  transactions   Transaction[]
+  products         Product[]
+  sentMessages     Message[]
+  conversations    Conversation[] @relation("ConversationParticipants")
+  stripeAccount    StripeAccount?
+  transactions     Transaction[]
+  shippingAddresses ShippingAddress[]
 
   @@map("users")
 }
@@ -521,4 +522,31 @@ model Shipment {
   deliveredAt DateTime?
   
   @@map("shipments")
+}
+
+// Adresses de livraison sauvegardées par utilisateur
+model ShippingAddress {
+  id String @id @default(cuid())
+  
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Informations d'adresse
+  name     String
+  street1  String
+  street2  String?
+  city     String
+  state    String?
+  zip      String
+  country  String
+  phone    String
+  email    String
+  
+  // Adresse par défaut
+  isDefault Boolean @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("shipping_addresses")
 }
