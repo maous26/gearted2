@@ -108,18 +108,21 @@ const corsOptions = {
 app.use((0, cors_1.default)(corsOptions));
 const limiter = (0, express_rate_limit_1.default)({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
-    max: parseInt(process.env.RATE_LIMIT_REQUESTS || '100'),
+    max: parseInt(process.env.RATE_LIMIT_REQUESTS || '500'),
     message: {
         error: 'Too many requests from this IP, please try again later.',
         retryAfter: Math.ceil(parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000') / 1000)
     },
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => {
+        return req.path.startsWith('/webhook');
+    }
 });
 const speedLimiter = (0, express_slow_down_1.default)({
     windowMs: 15 * 60 * 1000,
-    delayAfter: 50,
-    delayMs: () => 500,
+    delayAfter: 200,
+    delayMs: () => 100,
     validate: { delayMs: false }
 });
 app.use(limiter);

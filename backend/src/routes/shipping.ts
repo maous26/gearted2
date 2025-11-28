@@ -556,17 +556,17 @@ router.post('/dimensions/:transactionId', async (req: Request, res: Response): P
 
 /**
  * Sauvegarder l'adresse de livraison pour une transaction
- * POST /api/shipping/address/:paymentIntentId
+ * POST /api/shipping/address/:transactionId
  */
-router.post('/address/:paymentIntentId', async (req: Request, res: Response): Promise<any> => {
+router.post('/address/:transactionId', async (req: Request, res: Response): Promise<any> => {
   if (!req.user) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  const { paymentIntentId } = req.params;
+  const { transactionId } = req.params;
   const { name, street1, street2, city, state, zip, country, phone, email, saveAddress } = req.body;
 
-  console.log(`[Shipping/Address] START - paymentIntentId: ${paymentIntentId}, user: ${req.user.userId}`);
+  console.log(`[Shipping/Address] START - transactionId: ${transactionId}, user: ${req.user.userId}`);
   console.log(`[Shipping/Address] Received address:`, { name, street1, city, zip, country, saveAddress });
 
   // Validation
@@ -578,14 +578,22 @@ router.post('/address/:paymentIntentId', async (req: Request, res: Response): Pr
   }
 
   try {
-    // Trouver la transaction par paymentIntentId
-    const transaction = await prisma.transaction.findUnique({
-      where: { paymentIntentId },
+    // Trouver la transaction par ID ou par paymentIntentId
+    let transaction = await prisma.transaction.findUnique({
+      where: { id: transactionId },
       include: { product: true }
     });
 
+    // Si pas trouvé par ID, essayer par paymentIntentId
     if (!transaction) {
-      console.log(`[Shipping/Address] Transaction not found for paymentIntentId: ${paymentIntentId}`);
+      transaction = await prisma.transaction.findUnique({
+        where: { paymentIntentId: transactionId },
+        include: { product: true }
+      });
+    }
+
+    if (!transaction) {
+      console.log(`[Shipping/Address] Transaction not found for ID: ${transactionId}`);
       return res.status(404).json({ error: 'Transaction non trouvée' });
     }
 

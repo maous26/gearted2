@@ -431,5 +431,182 @@ router.post('/dimensions/:transactionId', async (req, res) => {
         });
     }
 });
+router.post('/address/:transactionId', async (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+    const { transactionId } = req.params;
+    const { name, street1, street2, city, state, zip, country, phone, email, saveAddress } = req.body;
+    console.log(`[Shipping/Address] START - transactionId: ${transactionId}, user: ${req.user.userId}`);
+    console.log(`[Shipping/Address] Received address:`, { name, street1, city, zip, country, saveAddress });
+    if (!name || !street1 || !city || !zip || !country || !phone || !email) {
+        console.log(`[Shipping/Address] VALIDATION FAILED - missing required fields`);
+        return res.status(400).json({
+            error: 'Tous les champs requis doivent être remplis'
+        });
+    }
+    try {
+        let transaction = await prisma.transaction.findUnique({
+            where: { id: transactionId },
+            include: { product: true }
+        });
+        if (!transaction) {
+            transaction = await prisma.transaction.findUnique({
+                where: { paymentIntentId: transactionId },
+                include: { product: true }
+            });
+        }
+        if (!transaction) {
+            console.log(`[Shipping/Address] Transaction not found for ID: ${transactionId}`);
+            return res.status(404).json({ error: 'Transaction non trouvée' });
+        }
+        if (transaction.buyerId !== req.user.userId) {
+            console.log(`[Shipping/Address] FORBIDDEN - user ${req.user.userId} is not the buyer`);
+            return res.status(403).json({
+                error: 'Vous n\'êtes pas autorisé à modifier cette transaction'
+            });
+        }
+        const addressData = {
+            name,
+            street1,
+            street2: street2 || '',
+            city,
+            state: state || '',
+            zip,
+            country,
+            phone,
+            email
+        };
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id: transaction.id },
+            data: {
+                shippingAddress: addressData
+            }
+        });
+        console.log(`[Shipping/Address] Transaction ${transaction.id} updated with shipping address`);
+        if (saveAddress) {
+            try {
+                const existingAddresses = await prisma.shippingAddress.findMany({
+                    where: { userId: req.user.userId }
+                });
+                await prisma.shippingAddress.create({
+                    data: {
+                        userId: req.user.userId,
+                        ...addressData,
+                        isDefault: existingAddresses.length === 0
+                    }
+                });
+                console.log(`[Shipping/Address] Address saved to user profile`);
+            }
+            catch (saveError) {
+                console.error(`[Shipping/Address] Failed to save address to profile:`, saveError);
+            }
+        }
+        console.log(`[Shipping/Address] SUCCESS`);
+        return res.json({
+            success: true,
+            transaction: updatedTransaction,
+            message: 'Adresse de livraison enregistrée'
+        });
+    }
+    catch (error) {
+        console.error('[Shipping/Address] Error saving address:', error);
+        return res.status(500).json({
+            error: 'Erreur lors de l\'enregistrement de l\'adresse'
+        });
+    }
+});
+router.get('/addresses', async (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+    try {
+        const addresses = await prisma.shippingAddress.findMany({
+            where: { userId: req.user.userId },
+            orderBy: [
+                { isDefault: 'desc' },
+                { createdAt: 'desc' }
+            ]
+        });
+        return res.json({
+            success: true,
+            addresses
+        });
+    }
+    catch (error) {
+        console.error('[Shipping/Addresses] Error fetching addresses:', error);
+        return res.status(500).json({
+            error: 'Erreur lors de la récupération des adresses'
+        });
+    }
+});
+router.put('/addresses/:addressId/default', async (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+    const { addressId } = req.params;
+    try {
+        const address = await prisma.shippingAddress.findFirst({
+            where: {
+                id: addressId,
+                userId: req.user.userId
+            }
+        });
+        if (!address) {
+            return res.status(404).json({ error: 'Adresse non trouvée' });
+        }
+        await prisma.shippingAddress.updateMany({
+            where: {
+                userId: req.user.userId,
+                isDefault: true
+            },
+            data: { isDefault: false }
+        });
+        const updatedAddress = await prisma.shippingAddress.update({
+            where: { id: addressId },
+            data: { isDefault: true }
+        });
+        return res.json({
+            success: true,
+            address: updatedAddress
+        });
+    }
+    catch (error) {
+        console.error('[Shipping/Address] Error setting default:', error);
+        return res.status(500).json({
+            error: 'Erreur lors de la mise à jour de l\'adresse'
+        });
+    }
+});
+router.delete('/addresses/:addressId', async (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+    const { addressId } = req.params;
+    try {
+        const address = await prisma.shippingAddress.findFirst({
+            where: {
+                id: addressId,
+                userId: req.user.userId
+            }
+        });
+        if (!address) {
+            return res.status(404).json({ error: 'Adresse non trouvée' });
+        }
+        await prisma.shippingAddress.delete({
+            where: { id: addressId }
+        });
+        return res.json({
+            success: true,
+            message: 'Adresse supprimée'
+        });
+    }
+    catch (error) {
+        console.error('[Shipping/Address] Error deleting address:', error);
+        return res.status(500).json({
+            error: 'Erreur lors de la suppression de l\'adresse'
+        });
+    }
+});
 exports.default = router;
 //# sourceMappingURL=shipping.js.map

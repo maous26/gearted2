@@ -192,9 +192,15 @@ router.get('/', async (req, res) => {
         const now = new Date();
         const dbProductsRaw = await prisma.product.findMany({
             where: {
-                OR: [
-                    { deletionScheduledAt: null },
-                    { deletionScheduledAt: { gt: now } }
+                AND: [
+                    { status: 'ACTIVE' },
+                    { paymentCompleted: false },
+                    {
+                        OR: [
+                            { deletionScheduledAt: null },
+                            { deletionScheduledAt: { gt: now } }
+                        ]
+                    }
                 ]
             },
             include: {
