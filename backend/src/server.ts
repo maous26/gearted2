@@ -89,6 +89,68 @@ app.get('/diagnostic', (_req, res) => {
   });
 });
 
+// Admin database cleanup endpoint (direct, no middleware)
+app.delete('/admin-clean-db', async (req, res): Promise<any> => {
+  const adminSecret = req.headers['x-admin-secret'];
+  const expectedSecret = process.env.ADMIN_SECRET_KEY || 'gearted-admin-2025';
+
+  if (!adminSecret || adminSecret !== expectedSecret) {
+    return res.status(403).json({ error: 'Invalid or missing admin secret key' });
+  }
+
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+
+    console.log('[Admin] Starting database cleanup...');
+
+    // Get users to keep
+    const usersToKeep = await prisma.user.findMany({
+      where: {
+        OR: [
+          { username: 'iswael0552617' },
+          { username: 'tata' },
+          { email: { contains: 'iswael' } },
+          { email: { contains: 'tata' } }
+        ]
+      }
+    });
+
+    const userIdsToKeep = usersToKeep.map((u: any) => u.id);
+    console.log(`[Admin] Found ${usersToKeep.length} users to keep:`, usersToKeep.map((u: any) => u.username));
+
+    // Delete in order (respecting foreign keys)
+    const results = {
+      notifications: (await prisma.notification.deleteMany({})).count,
+      messages: (await prisma.message.deleteMany({})).count,
+      conversations: (await prisma.conversation.deleteMany({})).count,
+      transactions: (await prisma.transaction.deleteMany({})).count,
+      shippingAddresses: (await prisma.shippingAddress.deleteMany({})).count,
+      favorites: (await prisma.favorite.deleteMany({})).count,
+      products: (await prisma.product.deleteMany({})).count,
+      parcelDimensions: (await prisma.parcelDimensions.deleteMany({})).count,
+      users: (await prisma.user.deleteMany({ where: { id: { notIn: userIdsToKeep } } })).count,
+    };
+
+    console.log('[Admin] Database cleanup complete:', results);
+    await prisma.$disconnect();
+
+    return res.json({
+      success: true,
+      message: 'Database cleaned successfully',
+      keptUsers: usersToKeep.map((u: any) => ({ username: u.username, email: u.email })),
+      deleted: results
+    });
+
+  } catch (error) {
+    console.error('[Admin] Error during cleanup:', error);
+    return res.status(500).json({
+      error: 'Error during database cleanup',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
