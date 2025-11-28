@@ -74,8 +74,9 @@ class ApiService {
             console.log('[API] Access token expired, attempting refresh...');
             const refreshToken = await TokenManager.getRefreshToken();
             if (!refreshToken) {
-              console.log('[API] No refresh token available');
-              throw new Error('No refresh token');
+              console.log('[API] No refresh token available, logging out');
+              await TokenManager.clearTokens();
+              return Promise.reject(new Error('Session expired'));
             }
 
             console.log('[API] Calling refresh token endpoint...');
@@ -125,7 +126,13 @@ class ApiService {
             return this.api(originalRequest);
           } catch (refreshError: any) {
             // Refresh failed, logout user
-            console.error('[API] Refresh failed:', refreshError.response?.status, refreshError.message);
+            // Don't log 401 errors as they are expected when refresh token is expired
+            if (refreshError.response?.status !== 401) {
+              console.error('[API] Refresh failed:', refreshError.response?.status, refreshError.message);
+            } else {
+              console.log('[API] Session expired (refresh token invalid)');
+            }
+
             await TokenManager.clearTokens();
             return Promise.reject(refreshError);
           }
