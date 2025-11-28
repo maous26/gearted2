@@ -1,4 +1,4 @@
-# 🚀 Prochaines étapes - Déploiement Backend
+# 🚀 Statut - Système de Notifications et Mondial Relay
 
 ## ✅ Ce qui est prêt
 
@@ -7,30 +7,54 @@ Tout le code est prêt et fonctionnel :
 - ✅ Error handling amélioré
 - ✅ Bouton livraison grisé sans dimensions
 - ✅ Auto-refresh après validation dimensions
+- ✅ Système de notifications complet (backend + frontend)
+- ✅ Badge de notifications sur l'icône messages
+- ✅ Migration Prisma pour table Notification créée
+- ✅ Paramètres Mondial Relay mis à jour
 - ✅ Code pushé sur GitHub (branch `cleanV0`)
 
-## ⏳ Ce qui manque
+## 📦 Paramètres Mondial Relay (Test)
 
-Railway n'a pas encore redéployé le backend avec les nouveaux endpoints.
+**URL de l'API:** https://api.mondialrelay.com/WebService.asmx
+- **Code Enseigne:** TTMRSDBX
+- **Clé privée:** 9ytnxVCC
+- **Code Marque:** TT
 
-## 🎯 Actions requises
+Ces paramètres ont été configurés dans Railway et dans le fichier `.env` du backend.
 
-### Option A: Dashboard Railway (Recommandé - 2 min)
+## ⚠️ PROBLÈME CRITIQUE: Configuration Railway
 
-1. **Allez sur Railway:**
+**Problème identifié:** Railway ne trouve pas l'endpoint `/api/notifications` car il ne compile probablement pas depuis le bon répertoire.
+
+Le fichier `backend/src/routes/notifications.ts` existe et compile correctement, mais Railway doit être configuré pour utiliser le sous-dossier `backend/` comme racine.
+
+## 🎯 ACTION REQUISE: Configurer le Root Directory Railway
+
+### ⚡ URGENT: Configuration Dashboard Railway (2 min)
+
+1. **Ouvrez le Dashboard Railway:**
    - https://railway.app/dashboard
-   - Sélectionnez le projet `empowering-truth`
+   - Sélectionnez le projet/service `empowering-truth`
 
-2. **Vérifiez la branche:**
-   - Service → Settings → Source
+2. **Configurez le Root Directory:**
+   - Cliquez sur le service backend
+   - Allez dans **Settings** (⚙️)
+   - Cherchez la section **Source** ou **Build**
+   - Trouvez le champ **Root Directory** (ou **Working Directory**)
+   - Entrez: `backend`
+   - Cliquez sur **Save** ou **Update**
+
+3. **Vérifiez la branche:**
+   - Dans Settings → Source
    - Branche doit être `cleanV0` (pas `main`)
-   - Si ce n'est pas le cas, changez et sauvegardez
+   - Si ce n'est pas le cas, changez-la
 
-3. **Redéployez:**
-   - Deployments → Deploy → "Deploy Latest Commit"
-   - Ou cliquez sur "Redeploy" sur le dernier déploiement
+4. **Redéployez:**
+   - Allez dans **Deployments**
+   - Cliquez sur "Deploy" → "Redeploy"
+   - Ou cliquez sur les 3 points (...) → "Redeploy"
 
-4. **Attendez 2-3 min** que le build termine
+5. **Attendez 2-3 min** que le build termine
 
 ### Option B: Via Railway CLI
 
