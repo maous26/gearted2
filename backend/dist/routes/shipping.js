@@ -256,7 +256,9 @@ router.post('/label/:transactionId', async (req, res) => {
     }
     const { transactionId } = req.params;
     const { rateId } = req.body;
+    console.log(`[Shipping/Label] START - transactionId: ${transactionId}, user: ${req.user.userId}, rateId: ${rateId}`);
     if (!rateId) {
+        console.log(`[Shipping/Label] VALIDATION FAILED - missing rateId`);
         return res.status(400).json({ error: 'Le tarif de livraison est requis' });
     }
     try {
@@ -273,19 +275,24 @@ router.post('/label/:transactionId', async (req, res) => {
             }
         });
         if (!transaction) {
+            console.log(`[Shipping/Label] Transaction ${transactionId} NOT FOUND`);
             return res.status(404).json({ error: 'Transaction non trouvée' });
         }
+        console.log(`[Shipping/Label] Transaction found - buyerId: ${transaction.buyerId}, currentTrackingNumber: ${transaction.trackingNumber}`);
         if (transaction.buyerId !== req.user.userId) {
+            console.log(`[Shipping/Label] FORBIDDEN - user ${req.user.userId} is not the buyer ${transaction.buyerId}`);
             return res.status(403).json({
                 error: 'Vous n\'êtes pas autorisé à accéder à cette transaction'
             });
         }
         if (transaction.trackingNumber) {
+            console.log(`[Shipping/Label] Label already exists - trackingNumber: ${transaction.trackingNumber}`);
             return res.status(400).json({
                 error: 'Une étiquette a déjà été créée pour cette transaction'
             });
         }
         const trackingNumber = `${rateId.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+        console.log(`[Shipping/Label] Generated trackingNumber: ${trackingNumber}`);
         const updatedTransaction = await prisma.transaction.update({
             where: { id: transactionId },
             data: {
@@ -297,7 +304,9 @@ router.post('/label/:transactionId', async (req, res) => {
                 buyer: true
             }
         });
+        console.log(`[Shipping/Label] Transaction updated - status: ${updatedTransaction.status}`);
         const labelUrl = `https://example.com/labels/${trackingNumber}.pdf`;
+        console.log(`[Shipping/Label] SUCCESS - Label created for transaction ${transactionId}`);
         return res.json({
             success: true,
             label: {
@@ -321,7 +330,10 @@ router.post('/dimensions/:transactionId', async (req, res) => {
     }
     const { transactionId } = req.params;
     const { length, width, height, weight } = req.body;
+    console.log(`[Shipping/Dimensions] START - transactionId: ${transactionId}, user: ${req.user.userId}`);
+    console.log(`[Shipping/Dimensions] Received dimensions:`, { length, width, height, weight });
     if (!length || !width || !height || !weight) {
+        console.log(`[Shipping/Dimensions] VALIDATION FAILED - missing dimensions`);
         return res.status(400).json({
             error: 'Toutes les dimensions sont requises'
         });
@@ -358,20 +370,24 @@ router.post('/dimensions/:transactionId', async (req, res) => {
         }
         let parcelDimensions;
         if (transaction.product.parcelDimensionsId) {
+            console.log(`[Shipping/Dimensions] UPDATING existing dimensions ID: ${transaction.product.parcelDimensionsId}`);
             parcelDimensions = await prisma.parcelDimensions.update({
                 where: { id: transaction.product.parcelDimensionsId },
                 data: dimensions
             });
         }
         else {
+            console.log(`[Shipping/Dimensions] CREATING new dimensions for product ${transaction.product.id}`);
             parcelDimensions = await prisma.parcelDimensions.create({
                 data: dimensions
             });
+            console.log(`[Shipping/Dimensions] LINKING dimensions ${parcelDimensions.id} to product ${transaction.product.id}`);
             await prisma.product.update({
                 where: { id: transaction.product.id },
                 data: { parcelDimensionsId: parcelDimensions.id }
             });
         }
+        console.log(`[Shipping/Dimensions] Dimensions saved:`, parcelDimensions);
         const updateData = {};
         if (transaction.product.paymentCompleted && transaction.product.status !== 'SOLD') {
             updateData.status = 'SOLD';
@@ -380,8 +396,28 @@ router.post('/dimensions/:transactionId', async (req, res) => {
                 where: { id: transaction.product.id },
                 data: updateData
             });
-            console.log(`[Shipping] Produit ${transaction.product.id} marqué comme SOLD`);
+            console.log(`[Shipping/Dimensions] Produit ${transaction.product.id} marqué comme SOLD`);
         }
+        try {
+            await prisma.notification.create({
+                data: {
+                    userId: transaction.buyerId,
+                    title: '📦 Dimensions du colis enregistrées',
+                    message: `Les dimensions du colis pour "${transaction.product.title}" ont été renseignées. Vous pouvez maintenant générer votre étiquette d'expédition !`,
+                    type: 'SHIPPING_UPDATE',
+                    data: {
+                        transactionId: transaction.id,
+                        productId: transaction.product.id,
+                        productTitle: transaction.product.title,
+                    },
+                },
+            });
+            console.log(`[Shipping/Dimensions] Notification created for buyer ${transaction.buyerId}`);
+        }
+        catch (notifError) {
+            console.error(`[Shipping/Dimensions] Failed to create notification:`, notifError);
+        }
+        console.log(`[Shipping/Dimensions] SUCCESS - dimensions saved for transaction ${transactionId}`);
         return res.json({
             success: true,
             parcelDimensions,

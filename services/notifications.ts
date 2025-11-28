@@ -34,7 +34,11 @@ class NotificationService {
       };
     } catch (error: any) {
       console.error('[Notifications] Failed to get notifications:', error);
-      throw new Error(error.message || 'Erreur lors de la récupération des notifications');
+      // Return empty result instead of throwing to prevent app crash
+      return {
+        notifications: [],
+        unreadCount: 0,
+      };
     }
   }
 

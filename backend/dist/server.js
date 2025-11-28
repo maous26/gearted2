@@ -34,6 +34,7 @@ const webhook_1 = __importDefault(require("./routes/webhook"));
 const transactions_1 = __importDefault(require("./routes/transactions"));
 const shippoAdmin_routes_1 = __importDefault(require("./routes/shippoAdmin.routes"));
 const mondialrelay_routes_1 = __importDefault(require("./routes/mondialrelay.routes"));
+const notifications_1 = __importDefault(require("./routes/notifications"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const server = (0, http_1.createServer)(app);
@@ -51,6 +52,31 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         environment: process.env.NODE_ENV || 'production'
+    });
+});
+app.get('/diagnostic', (_req, res) => {
+    const routes = [];
+    app._router.stack.forEach((middleware) => {
+        if (middleware.route) {
+            routes.push(`${Object.keys(middleware.route.methods).join(',').toUpperCase()} ${middleware.route.path}`);
+        }
+        else if (middleware.name === 'router') {
+            middleware.handle.stack.forEach((handler) => {
+                if (handler.route) {
+                    const path = middleware.regexp.source
+                        .replace('\\/?', '')
+                        .replace('(?=\\/|$)', '')
+                        .replace(/\\\//g, '/');
+                    routes.push(`${Object.keys(handler.route.methods).join(',').toUpperCase()} ${path}${handler.route.path}`);
+                }
+            });
+        }
+    });
+    res.status(200).json({
+        status: 'ok',
+        routes: routes.sort(),
+        totalRoutes: routes.length,
+        notificationsRouteExists: routes.some(r => r.includes('/api/notifications'))
     });
 });
 app.use((0, helmet_1.default)({
@@ -124,6 +150,7 @@ app.use('/api/uploads', uploads_1.default);
 app.use('/api/stripe', stripe_1.default);
 app.use('/api/shipping', shipping_1.default);
 app.use('/api/transactions', transactions_1.default);
+app.use('/api/notifications', notifications_1.default);
 app.use('/api/admin/shippo', shippoAdmin_routes_1.default);
 app.use('/api/mondialrelay', mondialrelay_routes_1.default);
 app.use('/uploads', express_1.default.static('uploads'));
