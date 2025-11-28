@@ -9,9 +9,9 @@ ADMIN_SECRET="gearted-admin-2025"
 echo "🧹 Starting database cleanup..."
 echo ""
 
-# Call the admin cleanup endpoint (direct route, no middleware)
+# Call the admin cleanup endpoint
 response=$(curl -s -X DELETE \
-  "${API_URL}/admin-clean-db" \
+  "${API_URL}/api/admin/clean-database" \
   -H "X-Admin-Secret: ${ADMIN_SECRET}" \
   -H "Content-Type: application/json")
 
