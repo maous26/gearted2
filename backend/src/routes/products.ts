@@ -213,13 +213,19 @@ router.get('/', async (req, res) => {
       | undefined;
 
     // 1) Récupérer les produits persistés en base
-    // Exclure les produits dont deletionScheduledAt est dépassée (vendus depuis > 3 jours)
+    // Exclure les produits SOLD et ceux avec paiement en cours
     const now = new Date();
     const dbProductsRaw = await prisma.product.findMany({
       where: {
-        OR: [
-          { deletionScheduledAt: null }, // Produits non vendus
-          { deletionScheduledAt: { gt: now } } // Produits vendus mais encore dans la période de 3 jours
+        AND: [
+          { status: 'ACTIVE' }, // Seulement les produits actifs
+          { paymentCompleted: false }, // Pas de paiement en cours
+          {
+            OR: [
+              { deletionScheduledAt: null }, // Produits non vendus
+              { deletionScheduledAt: { gt: now } } // Produits vendus mais encore dans la période de 3 jours
+            ]
+          }
         ]
       },
       include: {
