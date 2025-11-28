@@ -236,8 +236,8 @@ router.get('/', async (req, res) => {
     });
     const dbProducts = dbProductsRaw.map(mapDbProductToListingShape);
 
-    // 2) Fusionner avec les mocks pour conserver le catalogue de démo
-    let products = [...dbProducts, ...MOCK_PRODUCTS];
+    // 2) Utiliser uniquement les produits de la base de données (pas de mock)
+    let products = [...dbProducts];
 
     // 3) Filtre texte
     if (search) {
@@ -305,12 +305,8 @@ router.get('/:id', async (req, res) => {
       return res.json(mapDbProductToListingShape(dbProduct));
     }
 
-    const mockProduct = MOCK_PRODUCTS.find((p) => p.id === id);
-    if (!mockProduct) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
-
-    return res.json(mockProduct);
+    // Pas de données mock - retourner 404 si produit non trouvé
+    return res.status(404).json({ error: 'Product not found' });
   } catch (error) {
     console.error('[products] Failed to get product by id', error);
     return res.status(500).json({ error: 'Failed to get product' });
@@ -318,11 +314,17 @@ router.get('/:id', async (req, res) => {
 });
 
 // Get category statistics (product count per category)
-router.get('/stats/categories', (req, res) => {
+router.get('/stats/categories', async (_req, res) => {
   const categoryCounts: Record<string, number> = {};
-  
-  MOCK_PRODUCTS.forEach(product => {
-    const cat = product.category || 'other';
+
+  // Compter les produits réels de la base de données
+  const products = await prisma.product.findMany({
+    where: { status: 'ACTIVE' },
+    include: { category: true }
+  });
+
+  products.forEach(product => {
+    const cat = product.category?.slug || 'other';
     categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
   });
 
