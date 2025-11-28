@@ -127,7 +127,7 @@ app.delete('/admin-clean-db', async (req, res): Promise<any> => {
       transactions: (await prisma.transaction.deleteMany({})).count,
       shippingAddresses: (await prisma.shippingAddress.deleteMany({})).count,
       favorites: (await prisma.favorite.deleteMany({})).count,
-      products: (await prisma.product.deleteMany({})).count,
+      products: (await prisma.product.deleteMany({})).count,  // Delete ALL products
       parcelDimensions: (await prisma.parcelDimensions.deleteMany({})).count,
       users: (await prisma.user.deleteMany({ where: { id: { notIn: userIdsToKeep } } })).count,
     };

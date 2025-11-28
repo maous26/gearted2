@@ -49,31 +49,31 @@ router.delete('/clean-database', async (req: Request, res: Response): Promise<an
       users: 0,
     };
 
-    // Delete notifications
+    // Delete ALL notifications
     results.notifications = (await prisma.notification.deleteMany({})).count;
 
-    // Delete all messages first
+    // Delete ALL messages
     results.messages = (await prisma.message.deleteMany({})).count;
 
-    // Then delete conversations
+    // Delete ALL conversations
     results.conversations = (await prisma.conversation.deleteMany({})).count;
 
-    // Delete transactions
+    // Delete ALL transactions
     results.transactions = (await prisma.transaction.deleteMany({})).count;
 
-    // Delete shipping addresses
+    // Delete ALL shipping addresses
     results.shippingAddresses = (await prisma.shippingAddress.deleteMany({})).count;
 
-    // Delete all favorites
+    // Delete ALL favorites
     results.favorites = (await prisma.favorite.deleteMany({})).count;
 
-    // Delete all products
+    // Delete ALL products (including those from kept users)
     results.products = (await prisma.product.deleteMany({})).count;
 
-    // Delete orphaned parcel dimensions
+    // Delete ALL orphaned parcel dimensions
     results.parcelDimensions = (await prisma.parcelDimensions.deleteMany({})).count;
 
-    // Delete users not in keep list
+    // Delete ONLY users not in keep list
     results.users = (await prisma.user.deleteMany({
       where: { id: { notIn: userIdsToKeep } }
     })).count;
