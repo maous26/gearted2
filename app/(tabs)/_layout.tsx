@@ -19,23 +19,22 @@ function TabBarIcon(props: {
 function MessagesIcon({ color }: { color: string }) {
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // TODO: Re-enable notifications when backend route is implemented
-  // useEffect(() => {
-  //   // Fetch notifications count
-  //   const fetchNotifications = async () => {
-  //     try {
-  //       const { unreadCount } = await notificationService.getNotifications();
-  //       setUnreadCount(unreadCount);
-  //     } catch (error) {
-  //       console.error('Failed to fetch notifications:', error);
-  //     }
-  //   };
+  useEffect(() => {
+    // Fetch notifications count
+    const fetchNotifications = async () => {
+      try {
+        const { unreadCount } = await notificationService.getNotifications();
+        setUnreadCount(unreadCount);
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+      }
+    };
 
-  //   fetchNotifications();
-  //   // Refresh every 30 seconds
-  //   const interval = setInterval(fetchNotifications, 30000);
-  //   return () => clearInterval(interval);
-  // }, []);
+    fetchNotifications();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <View style={{ position: 'relative' }}>

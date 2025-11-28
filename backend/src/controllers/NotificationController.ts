@@ -9,7 +9,7 @@ export class NotificationController {
    */
   static async getNotifications(req: Request, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user?.userId;
 
       if (!userId) {
         return res.status(401).json({
@@ -50,7 +50,7 @@ export class NotificationController {
    */
   static async markAsRead(req: Request, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user?.userId;
       const { notificationId } = req.params;
 
       if (!userId) {
@@ -99,7 +99,7 @@ export class NotificationController {
    */
   static async markAllAsRead(req: Request, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user?.userId;
 
       if (!userId) {
         return res.status(401).json({
@@ -135,7 +135,7 @@ export class NotificationController {
    */
   static async deleteNotification(req: Request, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user?.userId;
       const { notificationId } = req.params;
 
       if (!userId) {
