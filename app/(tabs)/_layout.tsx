@@ -1,12 +1,14 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { View, Text } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { useTheme } from '../../components/ThemeProvider';
 import { useClientOnlyValue } from '../../components/useClientOnlyValue';
-import { THEMES } from '../../themes';
 import notificationService from '../../services/notifications';
+import { THEMES } from '../../themes';
+
+import { useUser } from '../../components/UserProvider';
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
@@ -17,16 +19,22 @@ function TabBarIcon(props: {
 }
 
 function MessagesIcon({ color }: { color: string }) {
+  const { user } = useUser();
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
+    if (!user) {
+      setUnreadCount(0);
+      return;
+    }
+
     // Fetch notifications count
     const fetchNotifications = async () => {
       try {
         const { unreadCount } = await notificationService.getNotifications();
         setUnreadCount(unreadCount);
       } catch (error) {
-        console.error('Failed to fetch notifications:', error);
+        // Silent error
       }
     };
 
@@ -34,7 +42,7 @@ function MessagesIcon({ color }: { color: string }) {
     // Refresh every 30 seconds
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   return (
     <View style={{ position: 'relative' }}>

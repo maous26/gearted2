@@ -33,7 +33,11 @@ class NotificationService {
         unreadCount: response.unreadCount || 0,
       };
     } catch (error: any) {
-      console.error('[Notifications] Failed to get notifications:', error);
+      // Don't log 401 errors (unauthorized) as they are expected when user is not logged in
+      if (error.response?.status !== 401) {
+        console.error('[Notifications] Failed to get notifications:', error);
+      }
+
       // Return empty result instead of throwing to prevent app crash
       return {
         notifications: [],
