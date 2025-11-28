@@ -62,6 +62,32 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Diagnostic endpoint to check if routes are loaded
+app.get('/diagnostic', (_req, res) => {
+  const routes: string[] = [];
+  app._router.stack.forEach((middleware: any) => {
+    if (middleware.route) {
+      routes.push(`${Object.keys(middleware.route.methods).join(',').toUpperCase()} ${middleware.route.path}`);
+    } else if (middleware.name === 'router') {
+      middleware.handle.stack.forEach((handler: any) => {
+        if (handler.route) {
+          const path = middleware.regexp.source
+            .replace('\\/?', '')
+            .replace('(?=\\/|$)', '')
+            .replace(/\\\//g, '/');
+          routes.push(`${Object.keys(handler.route.methods).join(',').toUpperCase()} ${path}${handler.route.path}`);
+        }
+      });
+    }
+  });
+  res.status(200).json({
+    status: 'ok',
+    routes: routes.sort(),
+    totalRoutes: routes.length,
+    notificationsRouteExists: routes.some(r => r.includes('/api/notifications'))
+  });
+});
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
