@@ -275,6 +275,30 @@ router.post('/rates/:transactionId', async (req: Request, res: Response): Promis
 
     const rates = [
       {
+        rateId: 'mondial-relay-standard',
+        provider: 'Mondial Relay',
+        servicelevel: {
+          name: 'Point Relais',
+          token: 'mondial-relay-pr'
+        },
+        servicelevelName: 'Point Relais',
+        amount: (basePrice * 0.75).toFixed(2),
+        currency: 'EUR',
+        estimatedDays: 3
+      },
+      {
+        rateId: 'mondial-relay-express',
+        provider: 'Mondial Relay',
+        servicelevel: {
+          name: 'Domicile',
+          token: 'mondial-relay-dom'
+        },
+        servicelevelName: 'Domicile',
+        amount: (basePrice * 0.9).toFixed(2),
+        currency: 'EUR',
+        estimatedDays: 2
+      },
+      {
         rateId: 'colissimo-standard',
         provider: 'Colissimo',
         servicelevel: {
