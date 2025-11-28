@@ -1,101 +1,97 @@
 import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-async function cleanDatabase() {
-  try {
-    console.log('🧹 Starting database cleanup...\n');
+async function main() {
+  console.log('🧹 Starting database cleanup...');
 
-    // Get users to keep
-    const usersToKeep = await prisma.user.findMany({
-      where: {
-        OR: [
-          { username: 'iswael0552617' },
-          { username: 'tata' },
-          { email: { contains: 'iswael' } },
-          { email: { contains: 'tata' } }
-        ]
-      }
-    });
+  // 1. Supprimer tous les produits (et leurs relations en cascade)
+  console.log('🗑️  Deleting all products...');
+  await prisma.product.deleteMany({});
 
-    const userIdsToKeep = usersToKeep.map(u => u.id);
-    console.log(`✅ Found ${usersToKeep.length} users to keep:`);
-    usersToKeep.forEach(u => console.log(`   - ${u.username} (${u.email})`));
-    console.log('');
+  // 2. Supprimer tous les messages
+  console.log('🗑️  Deleting all messages...');
+  await prisma.message.deleteMany({});
 
-    // Delete notifications
-    const deletedNotifications = await prisma.notification.deleteMany({
-      where: { userId: { notIn: userIdsToKeep } }
-    });
-    console.log(`🗑️  Deleted ${deletedNotifications.count} notifications from other users`);
+  // 3. Supprimer toutes les conversations
+  console.log('🗑️  Deleting all conversations...');
+  await prisma.conversation.deleteMany({});
 
-    // Delete messages and conversations
-    const deletedMessages = await prisma.message.deleteMany({
-      where: {
-        OR: [
-          { senderId: { notIn: userIdsToKeep } },
-          { conversation: { participants: { none: { id: { in: userIdsToKeep } } } } }
-        ]
-      }
-    });
-    console.log(`🗑️  Deleted ${deletedMessages.count} messages`);
+  // 4. Supprimer toutes les notifications
+  console.log('🗑️  Deleting all notifications...');
+  await prisma.notification.deleteMany({});
 
-    const deletedConversations = await prisma.conversation.deleteMany({
-      where: {
-        participants: { none: { id: { in: userIdsToKeep } } }
-      }
-    });
-    console.log(`🗑️  Deleted ${deletedConversations.count} conversations`);
+  // 5. Supprimer toutes les adresses de livraison
+  console.log('🗑️  Deleting all shipping addresses...');
+  await prisma.shippingAddress.deleteMany({});
 
-    // Delete transactions
-    const deletedTransactions = await prisma.transaction.deleteMany({});
-    console.log(`🗑️  Deleted ${deletedTransactions.count} transactions`);
+  // 6. Supprimer tous les utilisateurs SAUF Iswael et Tata
+  console.log('🗑️  Deleting all users except Iswael and Tata...');
+  await prisma.user.deleteMany({
+    where: {
+      AND: [
+        { username: { not: 'iswael' } },
+        { username: { not: 'tata' } },
+      ],
+    },
+  });
 
-    // Delete shipping addresses
-    const deletedShippingAddresses = await prisma.shippingAddress.deleteMany({});
-    console.log(`🗑️  Deleted ${deletedShippingAddresses.count} shipping addresses`);
+  // 7. Vérifier/créer les comptes Iswael et Tata
+  console.log('👤 Ensuring Iswael and Tata accounts exist...');
 
-    // Delete favorites
-    const deletedFavorites = await prisma.favorite.deleteMany({
-      where: { userId: { notIn: userIdsToKeep } }
-    });
-    console.log(`🗑️  Deleted ${deletedFavorites.count} favorites`);
+  const hashedPassword = await bcrypt.hash('password123', 10);
 
-    // Delete products
-    const deletedProducts = await prisma.product.deleteMany({
-      where: { sellerId: { notIn: userIdsToKeep } }
-    });
-    console.log(`🗑️  Deleted ${deletedProducts.count} products`);
+  // Compte Iswael
+  await prisma.user.upsert({
+    where: { username: 'iswael' },
+    update: {},
+    create: {
+      id: 'iswael-user-id',
+      username: 'iswael',
+      email: 'iswael@gearted.com',
+      password: hashedPassword,
+      bio: 'Compte test Iswael',
+      location: 'Paris, France',
+    },
+  });
 
-    // Delete parcel dimensions (orphaned)
-    const deletedDimensions = await prisma.parcelDimensions.deleteMany({
-      where: { products: { none: {} } }
-    });
-    console.log(`🗑️  Deleted ${deletedDimensions.count} orphaned parcel dimensions`);
+  // Compte Tata
+  await prisma.user.upsert({
+    where: { username: 'tata' },
+    update: {},
+    create: {
+      id: 'tata-user-id',
+      username: 'tata',
+      email: 'tata@gearted.com',
+      password: hashedPassword,
+      bio: 'Compte test Tata',
+      location: 'Lyon, France',
+    },
+  });
 
-    // Delete users not in keep list
-    const deletedUsers = await prisma.user.deleteMany({
-      where: { id: { notIn: userIdsToKeep } }
-    });
-    console.log(`🗑️  Deleted ${deletedUsers.count} users\n`);
+  // 8. Statistiques finales
+  const userCount = await prisma.user.count();
+  const productCount = await prisma.product.count();
+  const messageCount = await prisma.message.count();
+  const conversationCount = await prisma.conversation.count();
 
-    console.log('✨ Database cleanup complete!');
-    console.log(`\n📊 Kept ${usersToKeep.length} users: ${usersToKeep.map(u => u.username).join(', ')}`);
-
-  } catch (error) {
-    console.error('❌ Error during cleanup:', error);
-    throw error;
-  } finally {
-    await prisma.$disconnect();
-  }
+  console.log('\n✅ Database cleaned successfully!');
+  console.log('📊 Final statistics:');
+  console.log(`   - Users: ${userCount} (Iswael + Tata)`);
+  console.log(`   - Products: ${productCount}`);
+  console.log(`   - Messages: ${messageCount}`);
+  console.log(`   - Conversations: ${conversationCount}`);
+  console.log('\n🔐 Login credentials:');
+  console.log('   Username: iswael | Password: password123');
+  console.log('   Username: tata   | Password: password123');
 }
 
-cleanDatabase()
-  .then(() => {
-    console.log('\n✅ Script completed successfully');
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error('\n❌ Script failed:', error);
+main()
+  .catch((e) => {
+    console.error('❌ Error cleaning database:', e);
     process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
   });
