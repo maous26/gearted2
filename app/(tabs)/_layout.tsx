@@ -1,10 +1,12 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { View, Text } from 'react-native';
 
 import { useTheme } from '../../components/ThemeProvider';
 import { useClientOnlyValue } from '../../components/useClientOnlyValue';
 import { THEMES } from '../../themes';
+import notificationService from '../../services/notifications';
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
@@ -12,6 +14,53 @@ function TabBarIcon(props: {
   color: string;
 }) {
   return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
+}
+
+function MessagesIcon({ color }: { color: string }) {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    // Fetch notifications count
+    const fetchNotifications = async () => {
+      try {
+        const { unreadCount } = await notificationService.getNotifications();
+        setUnreadCount(unreadCount);
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+      }
+    };
+
+    fetchNotifications();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <View style={{ position: 'relative' }}>
+      <TabBarIcon name="comments" color={color} />
+      {unreadCount > 0 && (
+        <View
+          style={{
+            position: 'absolute',
+            right: -6,
+            top: -3,
+            backgroundColor: '#EF4444',
+            borderRadius: 10,
+            minWidth: 18,
+            height: 18,
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 4,
+          }}
+        >
+          <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
 }
 
 export default function TabLayout() {
@@ -59,7 +108,7 @@ export default function TabLayout() {
         name="messages"
         options={{
           title: 'Messages',
-          tabBarIcon: ({ color }) => <TabBarIcon name="comments" color={color} />,
+          tabBarIcon: ({ color }) => <MessagesIcon color={color} />,
           headerShown: false,
         }}
       />
