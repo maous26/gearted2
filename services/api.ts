@@ -65,7 +65,9 @@ class ApiService {
         } catch { }
 
         // Si 401 et pas déjà retry, tenter refresh token
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // Ne pas tenter de refresh si la requête échouée EST déjà le refresh endpoint
+        const isRefreshEndpoint = originalRequest.url?.includes('/refresh-token');
+        if (error.response?.status === 401 && !originalRequest._retry && !isRefreshEndpoint) {
           originalRequest._retry = true;
 
           try {
@@ -74,8 +76,8 @@ class ApiService {
               throw new Error('No refresh token');
             }
 
-            // Correct refresh endpoint (server mounts /api/auth and route is /refresh-token)
-            const response = await this.api.post('/api/auth/refresh-token', { refreshToken });
+            // Créer une nouvelle instance axios sans intercepteurs pour éviter la récursion
+            const response = await axios.post(`${API_URL}/api/auth/refresh-token`, { refreshToken });
 
             // Extraire proprement les tokens du payload
             // Le backend peut retourner plusieurs structures:
