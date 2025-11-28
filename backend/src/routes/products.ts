@@ -1,13 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient, ProductCondition } from '@prisma/client';
-import { authenticate, optionalAuth } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 import { sanitizeFields } from '../middleware/sanitize';
 
 const router = Router();
 const prisma = new PrismaClient();
 
+// MOCK DATA DISABLED - Using only real database products
 // Base mock product data (fixtures pour remplir la grille si la base est vide)
-const BASE_PRODUCTS = [
+const BASE_PRODUCTS_DISABLED = [
   {
     id: "1",
     title: "AK-74 Kalashnikov Réplique",
@@ -90,8 +91,8 @@ const BASE_PRODUCTS = [
   }
 ];
 
-// Expand mock products to a larger catalog
-const extraProducts = Array.from({ length: 40 }).map((_, i) => {
+// Expand mock products to a larger catalog (DISABLED)
+const extraProducts_DISABLED = Array.from({ length: 40 }).map((_, i) => {
   const id = (i + 10).toString();
   const categories = ['repliques', 'optiques', 'equipements', 'pieces', 'munitions'];
   const conds = ['Neuf', 'Excellent', 'Très bon', 'Bon'];
@@ -139,7 +140,8 @@ const extraProducts = Array.from({ length: 40 }).map((_, i) => {
   };
 });
 
-let MOCK_PRODUCTS = [...BASE_PRODUCTS, ...extraProducts];
+// Mock products disabled - not used anymore
+// let MOCK_PRODUCTS = [...BASE_PRODUCTS_DISABLED, ...extraProducts];
 
 // Track category views/searches for popularity
 const categorySearchCounts: Record<string, number> = {};
@@ -237,6 +239,7 @@ router.get('/', async (req, res) => {
     const dbProducts = dbProductsRaw.map(mapDbProductToListingShape);
 
     // 2) Utiliser uniquement les produits de la base de données (pas de mock)
+    console.log(`[Products] Returning ${dbProducts.length} real products from database (no mocks)`);
     let products = [...dbProducts];
 
     // 3) Filtre texte
