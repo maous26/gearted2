@@ -71,13 +71,17 @@ class ApiService {
           originalRequest._retry = true;
 
           try {
+            console.log('[API] Access token expired, attempting refresh...');
             const refreshToken = await TokenManager.getRefreshToken();
             if (!refreshToken) {
+              console.log('[API] No refresh token available');
               throw new Error('No refresh token');
             }
 
+            console.log('[API] Calling refresh token endpoint...');
             // Créer une nouvelle instance axios sans intercepteurs pour éviter la récursion
             const response = await axios.post(`${API_URL}/api/auth/refresh-token`, { refreshToken });
+            console.log('[API] Refresh response received:', response.status);
 
             // Extraire proprement les tokens du payload
             // Le backend peut retourner plusieurs structures:
@@ -88,6 +92,8 @@ class ApiService {
             const tokensObj = payload?.data?.tokens ?? payload?.tokens ?? payload;
             const accessToken = tokensObj?.accessToken ?? null;
             const newRefreshToken = tokensObj?.refreshToken ?? null;
+
+            console.log('[API] Extracted tokens - hasAccess:', !!accessToken, 'hasRefresh:', !!newRefreshToken);
 
             // Valider les tokens avant de tenter de les sauvegarder
             if (typeof accessToken !== 'string' || typeof newRefreshToken !== 'string' || !accessToken || !newRefreshToken) {
@@ -102,8 +108,11 @@ class ApiService {
               throw new Error('Session expirée');
             }
 
+            console.log('[API] Tokens validated successfully');
+
             try {
               await TokenManager.saveTokens(accessToken, newRefreshToken);
+              console.log('[API] Tokens saved, retrying original request');
             } catch (saveError) {
               console.error('[API] Error saving refreshed tokens:', saveError);
               // Si on ne peut pas sauvegarder les tokens, on les efface pour éviter incohérences
@@ -114,8 +123,9 @@ class ApiService {
             originalRequest.headers = originalRequest.headers || {};
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
             return this.api(originalRequest);
-          } catch (refreshError) {
+          } catch (refreshError: any) {
             // Refresh failed, logout user
+            console.error('[API] Refresh failed:', refreshError.response?.status, refreshError.message);
             await TokenManager.clearTokens();
             return Promise.reject(refreshError);
           }
