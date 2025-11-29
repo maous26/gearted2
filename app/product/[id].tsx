@@ -1,4 +1,4 @@
-import { useStripe, PaymentSheet } from "@stripe/stripe-react-native";
+import { PaymentSheet, useStripe } from "@stripe/stripe-react-native";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
@@ -6,7 +6,6 @@ import { Alert, Dimensions, ScrollView, StatusBar, Text, TouchableOpacity, View 
 import { SafeAreaView } from "react-native-safe-area-context";
 import RatingModal from "../../components/RatingModal";
 import { useTheme } from "../../components/ThemeProvider";
-import { UserBadge } from "../../components/UserBadge";
 import { useProduct } from "../../hooks/useProducts";
 import stripeService from "../../services/stripe";
 import { THEMES } from "../../themes";
@@ -25,6 +24,12 @@ export default function ProductDetailScreen() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+
+  const purchaseSummary = useMemo(() => {
+    if (!product) return null;
+    return stripeService.calculateTotalWithFees(product.price);
+  }, [product]);
 
   const images = useMemo(() => {
     const arr = product?.images || [];
@@ -34,9 +39,14 @@ export default function ProductDetailScreen() {
   /**
    * Gérer l'achat du produit avec Stripe Payment Sheet
    */
-  const handleBuyNow = async () => {
+  const handleBuyPress = () => {
     if (!product) return;
+    setShowPurchaseModal(true);
+  };
 
+  const processPayment = async () => {
+    if (!product) return;
+    setShowPurchaseModal(false);
     setIsProcessingPayment(true);
 
     try {
@@ -52,7 +62,6 @@ export default function ProductDetailScreen() {
         paymentIntentClientSecret: paymentData.clientSecret,
         merchantDisplayName: 'Gearted',
         returnURL: 'gearted://payment-success',
-        // Désactiver complètement la collecte d'adresse de billing
         billingDetailsCollectionConfiguration: {
           name: PaymentSheet.CollectionMode.NEVER,
           email: PaymentSheet.CollectionMode.NEVER,
@@ -60,7 +69,6 @@ export default function ProductDetailScreen() {
           address: PaymentSheet.AddressCollectionMode.NEVER,
           attachDefaultsToPaymentMethod: true,
         },
-        // Fournir des valeurs par défaut (obligatoire avec NEVER)
         defaultBillingDetails: {
           address: {
             country: 'FR',
@@ -93,7 +101,6 @@ export default function ProductDetailScreen() {
       const { error: presentError } = await presentPaymentSheet();
 
       if (presentError) {
-        // L'utilisateur a annulé ou une erreur s'est produite
         if (presentError.code !== 'Canceled') {
           Alert.alert('Erreur de paiement', presentError.message);
         }
@@ -105,7 +112,7 @@ export default function ProductDetailScreen() {
 
       Alert.alert(
         'Achat confirmé ! 🎉',
-        `Votre achat de "${product.title}" a été confirmé.\n\nVous avez payé ${paymentData.totalCharge.toFixed(2)} € (dont ${paymentData.buyerFee.toFixed(2)} € de frais de service).\n\nVeuillez maintenant entrer votre adresse de livraison.`,
+        `Votre achat de "${product.title}" a été confirmé.\n\nVous avez payé ${paymentData.totalCharge.toFixed(2)} €.\n\nVeuillez maintenant entrer votre adresse de livraison.`,
         [
           {
             text: 'Entrer mon adresse',
@@ -308,6 +315,38 @@ export default function ProductDetailScreen() {
                 {`${Number(product.price).toFixed(2)} €`}
               </Text>
 
+              {/* Protection Acheteur Badge */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: t.cardBg,
+                padding: 12,
+                borderRadius: 12,
+                marginBottom: 24,
+                borderWidth: 1,
+                borderColor: '#4CAF50' + '40'
+              }}>
+                <View style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: '#4CAF50' + '20',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 12
+                }}>
+                  <Text style={{ fontSize: 16 }}>🛡️</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: t.heading }}>
+                    Protection Acheteur incluse
+                  </Text>
+                  <Text style={{ fontSize: 12, color: t.muted }}>
+                    Remboursement garanti si l'article n'est pas conforme.
+                  </Text>
+                </View>
+              </View>
+
               {/* Infos localisation et date */}
               <View style={{
                 flexDirection: 'row',
@@ -508,7 +547,7 @@ export default function ProductDetailScreen() {
                 shadowRadius: 8,
                 opacity: (isProcessingPayment || product.status === 'SOLD') ? 0.6 : 1
               }}
-              onPress={handleBuyNow}
+              onPress={handleBuyPress}
               disabled={isProcessingPayment || hasPurchased || product.status === 'SOLD'}
             >
               <Text style={{ fontSize: 15, fontWeight: '700', color: t.white }}>
@@ -522,9 +561,77 @@ export default function ProductDetailScreen() {
       <RatingModal
         visible={showRatingModal}
         onClose={() => setShowRatingModal(false)}
-        onSubmit={(r,c)=>{}}
+        onSubmit={(r, c) => { }}
         sellerName={product?.seller || 'Vendeur'}
       />
+
+      {/* Purchase Summary Modal */}
+      {showPurchaseModal && purchaseSummary && (
+        <View style={{
+          position: 'absolute',
+          top: 0, bottom: 0, left: 0, right: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'flex-end',
+          zIndex: 1000
+        }}>
+          <View style={{
+            backgroundColor: t.cardBg,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            padding: 24,
+            paddingBottom: 40,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.25,
+            shadowRadius: 16,
+            elevation: 24
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: t.heading }}>Résumé de la commande</Text>
+              <TouchableOpacity onPress={() => setShowPurchaseModal(false)}>
+                <Text style={{ fontSize: 24, color: t.muted }}>×</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ gap: 12, marginBottom: 24 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 16, color: t.muted }}>Produit</Text>
+                <Text style={{ fontSize: 16, color: t.heading, fontWeight: '600' }}>{purchaseSummary.productPrice.toFixed(2)} €</Text>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 16, color: t.muted }}>Protection acheteur & Frais</Text>
+                <Text style={{ fontSize: 16, color: t.heading, fontWeight: '600' }}>{purchaseSummary.buyerFee.toFixed(2)} €</Text>
+              </View>
+              <View style={{ height: 1, backgroundColor: t.border, marginVertical: 8 }} />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 18, color: t.heading, fontWeight: '800' }}>Total à payer</Text>
+                <Text style={{ fontSize: 24, color: t.primaryBtn, fontWeight: '800' }}>{purchaseSummary.total.toFixed(2)} €</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: t.primaryBtn,
+                paddingVertical: 16,
+                borderRadius: 14,
+                alignItems: 'center',
+                shadowColor: t.primaryBtn,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+              }}
+              onPress={processPayment}
+            >
+              <Text style={{ fontSize: 16, fontWeight: '700', color: t.white }}>
+                Payer {purchaseSummary.total.toFixed(2)} €
+              </Text>
+            </TouchableOpacity>
+            <Text style={{ textAlign: 'center', marginTop: 12, color: t.muted, fontSize: 12 }}>
+              Paiement sécurisé via Stripe
+            </Text>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }

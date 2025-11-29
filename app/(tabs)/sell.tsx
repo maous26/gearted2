@@ -5,14 +5,14 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-    Alert,
-    Image,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Image,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -47,12 +47,12 @@ const listingSchema = z.object({
 type ListingFormData = z.infer<typeof listingSchema>;
 
 // Stable components (defined outside SellScreen) to prevent remounts on keystroke
-function FormInputField({ 
+function FormInputField({
   t,
-  label, 
-  value, 
-  onChangeText, 
-  placeholder, 
+  label,
+  value,
+  onChangeText,
+  placeholder,
   multiline = false,
   keyboardType = "default" as any,
   error
@@ -109,12 +109,12 @@ function FormInputField({
   );
 }
 
-function FormSelectField({ 
+function FormSelectField({
   t,
-  label, 
-  value, 
-  options, 
-  onSelect, 
+  label,
+  value,
+  options,
+  onSelect,
   placeholder,
   error
 }: {
@@ -136,8 +136,8 @@ function FormSelectField({
       }}>
         {label} <Text style={{ color: '#FF6B6B' }}>*</Text>
       </Text>
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -177,7 +177,7 @@ function FormSelectField({
 
 const CONDITIONS = [
   "Neuf",
-  "Excellent", 
+  "Excellent",
   "Très bon",
   "Bon",
   "Correct",
@@ -190,7 +190,7 @@ const BRANDS = [
   "VFC",
   "WE Tech",
   "KWA",
-  "Krytac", 
+  "Krytac",
   "ASG",
   "Cyma",
   "LCT",
@@ -311,7 +311,7 @@ export default function SellScreen() {
     try {
       // Demander permission pour accéder à la galerie
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
+
       if (permissionResult.granted === false) {
         Alert.alert("Permission requise", "Veuillez autoriser l'accès à vos photos pour ajouter des images");
         return;
@@ -341,7 +341,7 @@ export default function SellScreen() {
     }
   };
 
-    const selectFromGallery = async () => {
+  const selectFromGallery = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
@@ -367,7 +367,7 @@ export default function SellScreen() {
   const takePicture = async () => {
     try {
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-      
+
       if (permissionResult.granted === false) {
         Alert.alert("Permission refusée", "L'accès à la caméra est nécessaire");
         return;
@@ -438,212 +438,264 @@ export default function SellScreen() {
       >
         {/* Form */}
         <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-          {/* Title */}
-          <Controller
-            control={control}
-            name="title"
-            render={({ field: { onChange, value } }) => (
-              <FormInputField 
-                t={t}
-                label="Titre de l'annonce"
-                value={value}
-                onChangeText={onChange}
-                placeholder="Ex: AK-74 Kalashnikov réplique"
-                error={errors.title?.message}
-              />
-            )}
-          />
 
-          {/* Description */}
-          <Controller
-            control={control}
-            name="description"
-            render={({ field: { onChange, value } }) => (
-              <FormInputField 
-                t={t}
-                label="Description"
-                value={value}
-                onChangeText={onChange}
-                placeholder="Décrivez votre matériel, son état, ses caractéristiques..."
-                multiline={true}
-                error={errors.description?.message}
-              />
-            )}
-          />
+          {/* Progress Steps (Visual only) */}
+          <View style={{ flexDirection: 'row', marginBottom: 24, paddingHorizontal: 8 }}>
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: t.primaryBtn, justifyContent: 'center', alignItems: 'center', marginBottom: 4 }}>
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>1</Text>
+              </View>
+              <Text style={{ fontSize: 12, color: t.heading, fontWeight: '600' }}>Détails</Text>
+            </View>
+            <View style={{ width: 40, height: 2, backgroundColor: t.border, marginTop: 15 }} />
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: images.length > 0 ? t.primaryBtn : t.cardBg, borderWidth: 1, borderColor: images.length > 0 ? t.primaryBtn : t.border, justifyContent: 'center', alignItems: 'center', marginBottom: 4 }}>
+                <Text style={{ color: images.length > 0 ? 'white' : t.muted, fontWeight: 'bold' }}>2</Text>
+              </View>
+              <Text style={{ fontSize: 12, color: images.length > 0 ? t.heading : t.muted, fontWeight: '600' }}>Photos</Text>
+            </View>
+            <View style={{ width: 40, height: 2, backgroundColor: t.border, marginTop: 15 }} />
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: t.cardBg, borderWidth: 1, borderColor: t.border, justifyContent: 'center', alignItems: 'center', marginBottom: 4 }}>
+                <Text style={{ color: t.muted, fontWeight: 'bold' }}>3</Text>
+              </View>
+              <Text style={{ fontSize: 12, color: t.muted, fontWeight: '600' }}>Prix</Text>
+            </View>
+          </View>
 
-          {/* Category */}
-          <Controller
-            control={control}
-            name="category"
-            render={({ field: { onChange, value } }) => (
-              <FormSelectField 
-                t={t}
-                label="Catégorie"
-                value={value}
-                options={CATEGORIES.map(cat => ({ label: cat.label, value: cat.slug }))}
-                onSelect={onChange}
-                placeholder="Sélectionnez une catégorie"
-                error={errors.category?.message}
-              />
-            )}
-          />
-
-          {/* Condition */}
-          <Controller
-            control={control}
-            name="condition"
-            render={({ field: { onChange, value } }) => (
-              <FormSelectField 
-                t={t}
-                label="État"
-                value={value}
-                options={CONDITIONS.map((cond: string) => ({ label: cond, value: cond }))}
-                onSelect={onChange}
-                placeholder="État du matériel"
-                error={errors.condition?.message}
-              />
-            )}
-          />
-
-          {/* Brand */}
-          <Controller
-            control={control}
-            name="brand"
-            render={({ field: { onChange, value } }) => (
-              <FormSelectField
-                t={t}
-                label="Marque"
-                value={value || ""}
-                options={BRANDS.map((b: string) => ({ label: b, value: b }))}
-                onSelect={onChange}
-                placeholder="Marque du produit"
-              />
-            )}
-          />
-
-          {/* Price */}
-          <Controller
-            control={control}
-            name="price"
-            render={({ field: { onChange, value } }) => (
-              <FormInputField
-                t={t}
-                label="Prix"
-                value={value}
-                onChangeText={onChange}
-                placeholder="Ex: 250.00"
-                keyboardType="numeric"
-                error={errors.price?.message}
-              />
-            )}
-          />
-
-          {/* Images Section */}
+          {/* Section 1: Détails */}
           <View style={{ marginBottom: 24 }}>
-            <Text style={{
-              fontSize: 16,
-              fontWeight: '600',
-              color: t.heading,
-              marginBottom: 8
-            }}>
-              Photos ({images.length}/5)
+            <Text style={{ fontSize: 18, fontWeight: '800', color: t.heading, marginBottom: 16 }}>
+              📝 Détails de l'annonce
             </Text>
-            
-            {/* Photos sélectionnées */}
-            {images.length > 0 && (
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                style={{ marginBottom: 12 }}
-                keyboardShouldPersistTaps="handled"
+            {/* Title */}
+            <Controller
+              control={control}
+              name="title"
+              render={({ field: { onChange, value } }) => (
+                <FormInputField
+                  t={t}
+                  label="Titre de l'annonce"
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="Ex: AK-74 Kalashnikov réplique"
+                  error={errors.title?.message}
+                />
+              )}
+            />
+
+            {/* Description */}
+            <Controller
+              control={control}
+              name="description"
+              render={({ field: { onChange, value } }) => (
+                <FormInputField
+                  t={t}
+                  label="Description"
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="Décrivez votre matériel, son état, ses caractéristiques..."
+                  multiline={true}
+                  error={errors.description?.message}
+                />
+              )}
+            />
+
+            {/* Category */}
+            <Controller
+              control={control}
+              name="category"
+              render={({ field: { onChange, value } }) => (
+                <FormSelectField
+                  t={t}
+                  label="Catégorie"
+                  value={value}
+                  options={CATEGORIES.map(cat => ({ label: cat.label, value: cat.slug }))}
+                  onSelect={onChange}
+                  placeholder="Sélectionnez une catégorie"
+                  error={errors.category?.message}
+                />
+              )}
+            />
+
+            {/* Condition */}
+            <Controller
+              control={control}
+              name="condition"
+              render={({ field: { onChange, value } }) => (
+                <FormSelectField
+                  t={t}
+                  label="État"
+                  value={value}
+                  options={CONDITIONS.map((cond: string) => ({ label: cond, value: cond }))}
+                  onSelect={onChange}
+                  placeholder="État du matériel"
+                  error={errors.condition?.message}
+                />
+              )}
+            />
+
+            {/* Brand */}
+            <Controller
+              control={control}
+              name="brand"
+              render={({ field: { onChange, value } }) => (
+                <FormSelectField
+                  t={t}
+                  label="Marque"
+                  value={value || ""}
+                  options={BRANDS.map((b: string) => ({ label: b, value: b }))}
+                  onSelect={onChange}
+                  placeholder="Marque du produit"
+                />
+              )}
+            />
+
+
+
+          </View>
+
+          {/* Section 2: Photos */}
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ fontSize: 18, fontWeight: '800', color: t.heading, marginBottom: 8 }}>
+              📸 Photos
+            </Text>
+            <View style={{ backgroundColor: t.primaryBtn + '10', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+              <Text style={{ color: t.primaryBtn, fontSize: 13 }}>
+                💡 Conseil : Ajoutez au moins 3 photos sous différents angles pour vendre 2x plus vite !
+              </Text>
+            </View>
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{
+                fontSize: 16,
+                fontWeight: '600',
+                color: t.heading,
+                marginBottom: 8
+              }}>
+                Photos ({images.length}/5)
+              </Text>
+
+              {/* Photos sélectionnées */}
+              {images.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={{ marginBottom: 12 }}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  <View style={{ flexDirection: 'row', gap: 8, paddingRight: 16 }}>
+                    {images.map((imageUri, index) => (
+                      <View key={index} style={{ position: 'relative' }}>
+                        <Image
+                          source={{ uri: imageUri }}
+                          style={{
+                            width: 80,
+                            height: 80,
+                            borderRadius: 8,
+                            backgroundColor: t.cardBg
+                          }}
+                        />
+                        <TouchableOpacity
+                          style={{
+                            position: 'absolute',
+                            top: -8,
+                            right: -8,
+                            backgroundColor: '#FF6B6B',
+                            borderRadius: 12,
+                            width: 24,
+                            height: 24,
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          onPress={() => removeImage(index)}
+                        >
+                          <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>×</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                </ScrollView>
+              )}
+
+              {/* Bouton d'ajout */}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: t.cardBg,
+                  borderRadius: 8,
+                  padding: 32,
+                  borderWidth: 2,
+                  borderColor: t.border,
+                  borderStyle: 'dashed',
+                  alignItems: 'center',
+                  opacity: images.length >= 5 ? 0.5 : 1
+                }}
+                onPress={pickImage}
+                disabled={images.length >= 5}
               >
-                <View style={{ flexDirection: 'row', gap: 8, paddingRight: 16 }}>
-                  {images.map((imageUri, index) => (
-                    <View key={index} style={{ position: 'relative' }}>
-                      <Image 
-                        source={{ uri: imageUri }}
-                        style={{
-                          width: 80,
-                          height: 80,
-                          borderRadius: 8,
-                          backgroundColor: t.cardBg
-                        }}
-                      />
-                      <TouchableOpacity
-                        style={{
-                          position: 'absolute',
-                          top: -8,
-                          right: -8,
-                          backgroundColor: '#FF6B6B',
-                          borderRadius: 12,
-                          width: 24,
-                          height: 24,
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                        onPress={() => removeImage(index)}
-                      >
-                        <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>×</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              </ScrollView>
-            )}
-            
-            {/* Bouton d'ajout */}
-            <TouchableOpacity 
+                <Text style={{ fontSize: 24, marginBottom: 8 }}>📷</Text>
+                <Text style={{ color: t.muted, textAlign: 'center' }}>
+                  {images.length >= 5 ? 'Limite de 5 photos atteinte' : 'Ajouter des photos'}
+                  {images.length < 5 && `\n(${5 - images.length} restantes)`}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+          </View>
+
+          {/* Section 3: Prix & Livraison */}
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ fontSize: 18, fontWeight: '800', color: t.heading, marginBottom: 16 }}>
+              💰 Prix & Livraison
+            </Text>
+
+            {/* Price */}
+            <Controller
+              control={control}
+              name="price"
+              render={({ field: { onChange, value } }) => (
+                <FormInputField
+                  t={t}
+                  label="Prix"
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="Ex: 250.00"
+                  keyboardType="numeric"
+                  error={errors.price?.message}
+                />
+              )}
+            />
+
+            {/* Remise en main propre */}
+            <Controller
+              control={control}
+              name="handDelivery"
+              render={({ field: { value, onChange } }) => (
+                <HandDeliveryToggle value={!!value} onChange={onChange} />
+              )}
+            />
+
+            {/* Submit Button */}
+            <TouchableOpacity
               style={{
-                backgroundColor: t.cardBg,
-                borderRadius: 8,
-                padding: 32,
-                borderWidth: 2,
-                borderColor: t.border,
-                borderStyle: 'dashed',
+                backgroundColor: t.primaryBtn,
+                paddingVertical: 16,
+                borderRadius: 12,
                 alignItems: 'center',
-                opacity: images.length >= 5 ? 0.5 : 1
+                marginBottom: 32,
+                opacity: submitting ? 0.6 : 1
               }}
-              onPress={pickImage}
-              disabled={images.length >= 5}
+              onPress={handleSubmit(onSubmit)}
+              disabled={submitting}
             >
-              <Text style={{ fontSize: 24, marginBottom: 8 }}>📷</Text>
-              <Text style={{ color: t.muted, textAlign: 'center' }}>
-                {images.length >= 5 ? 'Limite de 5 photos atteinte' : 'Ajouter des photos'}
-                {images.length < 5 && `\n(${5 - images.length} restantes)`}
+              <Text style={{
+                color: t.white,
+                fontWeight: 'bold',
+                fontSize: 18
+              }}>
+                {submitting ? 'Publication...' : "Publier l'annonce"}
               </Text>
             </TouchableOpacity>
           </View>
-
-          {/* Remise en main propre */}
-          <Controller
-            control={control}
-            name="handDelivery"
-            render={({ field: { value, onChange } }) => (
-              <HandDeliveryToggle value={!!value} onChange={onChange} />
-            )}
-          />
-
-          {/* Submit Button */}
-          <TouchableOpacity
-            style={{
-              backgroundColor: t.primaryBtn,
-              paddingVertical: 16,
-              borderRadius: 12,
-              alignItems: 'center',
-              marginBottom: 32,
-              opacity: submitting ? 0.6 : 1
-            }}
-            onPress={handleSubmit(onSubmit)}
-            disabled={submitting}
-          >
-            <Text style={{
-              color: t.white,
-              fontWeight: 'bold',
-              fontSize: 18
-            }}>
-              {submitting ? 'Publication...' : "Publier l'annonce"}
-            </Text>
-          </TouchableOpacity>
         </View>
       </KeyboardAwareScrollView>
     </SafeAreaView>

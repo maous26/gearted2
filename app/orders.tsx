@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../components/ThemeProvider';
 import { THEMES } from '../themes';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,6 +33,13 @@ export default function OrdersScreen() {
   useEffect(() => {
     loadOrders();
   }, [activeTab, statusFilter]);
+
+  // Recharger automatiquement quand on revient sur l'écran
+  useFocusEffect(
+    React.useCallback(() => {
+      loadOrders();
+    }, [activeTab, statusFilter])
+  );
 
   const loadOrders = async () => {
     try {
@@ -72,7 +80,7 @@ export default function OrdersScreen() {
         paddingVertical: 16,
       }}>
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
-          <Ionicons name="arrow-back" size={24} color={t.text} />
+          <Ionicons name="arrow-back" size={24} color={t.heading} />
         </TouchableOpacity>
         <Text style={{ fontSize: 20, fontWeight: '700', color: t.heading }}>
           Mes transactions
@@ -100,7 +108,7 @@ export default function OrdersScreen() {
           <Text style={{
             fontSize: 15,
             fontWeight: '600',
-            color: activeTab === 'sales' ? '#FFF' : t.text,
+            color: activeTab === 'sales' ? '#FFF' : t.heading,
           }}>
             📦 Mes ventes
           </Text>
@@ -120,7 +128,7 @@ export default function OrdersScreen() {
           <Text style={{
             fontSize: 15,
             fontWeight: '600',
-            color: activeTab === 'purchases' ? '#FFF' : t.text,
+            color: activeTab === 'purchases' ? '#FFF' : t.heading,
           }}>
             🛍️ Mes achats
           </Text>
@@ -138,7 +146,7 @@ export default function OrdersScreen() {
           style={{
             flex: 1,
             paddingVertical: 10,
-            backgroundColor: statusFilter === 'ongoing' ? t.accentBg : t.cardBg,
+            backgroundColor: statusFilter === 'ongoing' ? t.sectionLight : t.cardBg,
             borderRadius: 10,
             marginRight: 8,
             alignItems: 'center',
@@ -149,7 +157,7 @@ export default function OrdersScreen() {
           <Text style={{
             fontSize: 14,
             fontWeight: statusFilter === 'ongoing' ? '600' : '500',
-            color: statusFilter === 'ongoing' ? t.primaryBtn : t.text,
+            color: statusFilter === 'ongoing' ? t.primaryBtn : t.heading,
           }}>
             En cours
           </Text>
@@ -160,7 +168,7 @@ export default function OrdersScreen() {
           style={{
             flex: 1,
             paddingVertical: 10,
-            backgroundColor: statusFilter === 'completed' ? t.accentBg : t.cardBg,
+            backgroundColor: statusFilter === 'completed' ? t.sectionLight : t.cardBg,
             borderRadius: 10,
             marginLeft: 8,
             alignItems: 'center',
@@ -171,7 +179,7 @@ export default function OrdersScreen() {
           <Text style={{
             fontSize: 14,
             fontWeight: statusFilter === 'completed' ? '600' : '500',
-            color: statusFilter === 'completed' ? t.primaryBtn : t.text,
+            color: statusFilter === 'completed' ? t.primaryBtn : t.heading,
           }}>
             Terminées
           </Text>
@@ -220,7 +228,7 @@ export default function OrdersScreen() {
 
           <Text style={{
             fontSize: 14,
-            color: t.mutedText,
+            color: t.muted,
             marginBottom: 8,
           }}>
             {isSale ? `Acheteur: ${order.buyer?.username || 'Inconnu'}` : `Vendeur: ${order.seller?.username || 'Inconnu'}`}
@@ -252,7 +260,7 @@ export default function OrdersScreen() {
             </View>
           </View>
 
-          {/* Tracking info if available */}
+          {/* Tracking info with button to view label */}
           {order.trackingNumber && (
             <View style={{
               marginTop: 8,
@@ -260,14 +268,44 @@ export default function OrdersScreen() {
               borderTopWidth: 1,
               borderTopColor: t.border,
             }}>
-              <Text style={{ fontSize: 12, color: t.mutedText }}>
+              <Text style={{ fontSize: 12, color: t.muted, marginBottom: 8 }}>
                 📍 Suivi: {order.trackingNumber}
               </Text>
+
+              {/* Button to view shipping label */}
+              {!isSale && (
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: t.primaryBtn,
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    borderRadius: 8,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/shipping-label' as any,
+                      params: {
+                        trackingNumber: order.trackingNumber,
+                        productTitle: order.product?.title || 'Produit',
+                        carrier: order.trackingNumber?.split('-')[0] || 'Transporteur',
+                      },
+                    });
+                  }}
+                >
+                  <Ionicons name="print-outline" size={16} color="#FFF" style={{ marginRight: 6 }} />
+                  <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 13 }}>
+                    Voir l'étiquette
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
           {/* Action buttons for sellers - set dimensions */}
-          {isSale && !order.trackingNumber && order.shippingAddress && (
+          {isSale && !order.trackingNumber && !order.product?.parcelDimensionsId && (
             <TouchableOpacity
               style={{
                 marginTop: 12,
@@ -278,6 +316,7 @@ export default function OrdersScreen() {
                 alignItems: 'center',
               }}
               onPress={() => {
+                console.log('[Orders] Opening dimensions screen for transaction:', order.id);
                 router.push({
                   pathname: '/seller-set-dimensions' as any,
                   params: {
@@ -293,34 +332,119 @@ export default function OrdersScreen() {
               </Text>
             </TouchableOpacity>
           )}
-
-          {/* Action buttons for buyers - choose shipping */}
-          {!isSale && !order.trackingNumber && order.shippingAddress && (
-            <TouchableOpacity
+          
+          {/* Show dimensions already set for seller */}
+          {isSale && order.product?.parcelDimensionsId && (
+            <View
               style={{
                 marginTop: 12,
-                backgroundColor: t.primaryBtn,
+                backgroundColor: '#4CAF50' + '20',
                 paddingVertical: 10,
                 paddingHorizontal: 16,
                 borderRadius: 10,
                 alignItems: 'center',
-              }}
-              onPress={() => {
-                router.push({
-                  pathname: '/buyer-choose-shipping' as any,
-                  params: {
-                    transactionId: order.id,
-                    productTitle: order.product?.title || 'Produit',
-                    sellerName: order.seller?.username || 'Inconnu',
-                  },
-                });
+                borderWidth: 1,
+                borderColor: '#4CAF50',
               }}
             >
-              <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>
-                📮 Choisir le mode de livraison
+              <Text style={{ color: '#4CAF50', fontWeight: '600', fontSize: 14 }}>
+                ✅ Dimensions du colis enregistrées
               </Text>
-            </TouchableOpacity>
+              <Text style={{ color: t.muted, fontSize: 11, marginTop: 4 }}>
+                L'acheteur peut maintenant générer son étiquette
+              </Text>
+            </View>
           )}
+
+          {/* Action buttons for buyers - choose shipping */}
+          {!isSale && !order.trackingNumber && (() => {
+            const hasDimensions = !!order.product?.parcelDimensionsId;
+            const hasAddress = !!order.shippingAddress;
+            console.log(`[Orders/Button] Transaction ${order.id}: hasDimensions = ${hasDimensions}, hasAddress = ${hasAddress}`);
+
+            // Si pas d'adresse, demander d'abord l'adresse
+            if (!hasAddress) {
+              return (
+                <TouchableOpacity
+                  style={{
+                    marginTop: 12,
+                    backgroundColor: '#FF9800',
+                    paddingVertical: 10,
+                    paddingHorizontal: 16,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                  }}
+                  onPress={() => {
+                    console.log('[Orders] Opening address screen for transaction:', order.id);
+                    router.push({
+                      pathname: '/shipping-address' as any,
+                      params: {
+                        transactionId: order.id,
+                        paymentIntentId: order.paymentIntentId,
+                        productTitle: order.product?.title || 'Produit',
+                      },
+                    });
+                  }}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>
+                    📍 Renseigner l'adresse de livraison
+                  </Text>
+                </TouchableOpacity>
+              );
+            }
+
+            // Si adresse OK mais pas de dimensions
+            if (!hasDimensions) {
+              return (
+                <View
+                  style={{
+                    marginTop: 12,
+                    backgroundColor: t.muted + '40',
+                    paddingVertical: 10,
+                    paddingHorizontal: 16,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ color: t.muted, fontWeight: '600', fontSize: 14 }}>
+                    ⏳ En attente des dimensions du colis
+                  </Text>
+                  <Text style={{ color: t.muted, fontSize: 11, marginTop: 4 }}>
+                    Le vendeur doit renseigner les dimensions
+                  </Text>
+                </View>
+              );
+            }
+
+            // Si tout est OK, permettre de générer l'étiquette
+            return (
+              <TouchableOpacity
+                style={{
+                  marginTop: 12,
+                  backgroundColor: t.primaryBtn,
+                  paddingVertical: 10,
+                  paddingHorizontal: 16,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                }}
+                onPress={() => {
+                  console.log('[Orders] Opening shipping choice for transaction:', order.id);
+                  router.push({
+                    pathname: '/buyer-choose-shipping' as any,
+                    params: {
+                      transactionId: order.id,
+                      productTitle: order.product?.title || 'Produit',
+                      sellerName: order.seller?.username || 'Inconnu',
+                    },
+                  });
+                }}
+              >
+                <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>
+                  📮 Générer l'étiquette d'expédition
+                </Text>
+              </TouchableOpacity>
+            );
+          })()}
         </View>
       </View>
     </TouchableOpacity>
@@ -331,7 +455,7 @@ export default function OrdersScreen() {
       return (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 60 }}>
           <ActivityIndicator size="large" color={t.primaryBtn} />
-          <Text style={{ color: t.mutedText, marginTop: 16 }}>
+          <Text style={{ color: t.muted, marginTop: 16 }}>
             Chargement...
           </Text>
         </View>
@@ -365,7 +489,7 @@ export default function OrdersScreen() {
           </Text>
           <Text style={{
             fontSize: 14,
-            color: t.mutedText,
+            color: t.muted,
             marginTop: 8,
             textAlign: 'center',
             paddingHorizontal: 40,

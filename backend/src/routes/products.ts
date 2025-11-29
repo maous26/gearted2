@@ -1,13 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient, ProductCondition } from '@prisma/client';
-import { authenticate, optionalAuth } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 import { sanitizeFields } from '../middleware/sanitize';
 
 const router = Router();
 const prisma = new PrismaClient();
 
+// MOCK DATA DISABLED - Using only real database products
 // Base mock product data (fixtures pour remplir la grille si la base est vide)
-const BASE_PRODUCTS = [
+const BASE_PRODUCTS_DISABLED = [
   {
     id: "1",
     title: "AK-74 Kalashnikov Réplique",
@@ -90,8 +91,8 @@ const BASE_PRODUCTS = [
   }
 ];
 
-// Expand mock products to a larger catalog
-const extraProducts = Array.from({ length: 40 }).map((_, i) => {
+// Expand mock products to a larger catalog (DISABLED)
+const extraProducts_DISABLED = Array.from({ length: 40 }).map((_, i) => {
   const id = (i + 10).toString();
   const categories = ['repliques', 'optiques', 'equipements', 'pieces', 'munitions'];
   const conds = ['Neuf', 'Excellent', 'Très bon', 'Bon'];
@@ -139,7 +140,8 @@ const extraProducts = Array.from({ length: 40 }).map((_, i) => {
   };
 });
 
-let MOCK_PRODUCTS = [...BASE_PRODUCTS, ...extraProducts];
+// Mock products disabled - not used anymore
+// let MOCK_PRODUCTS = [...BASE_PRODUCTS_DISABLED, ...extraProducts];
 
 // Track category views/searches for popularity
 const categorySearchCounts: Record<string, number> = {};
@@ -213,7 +215,21 @@ router.get('/', async (req, res) => {
       | undefined;
 
     // 1) Récupérer les produits persistés en base
+    // Exclure les produits SOLD et ceux avec paiement en cours
+    const now = new Date();
     const dbProductsRaw = await prisma.product.findMany({
+      where: {
+        AND: [
+          { status: 'ACTIVE' }, // Seulement les produits actifs
+          { paymentCompleted: false }, // Pas de paiement en cours
+          {
+            OR: [
+              { deletionScheduledAt: null }, // Produits non vendus
+              { deletionScheduledAt: { gt: now } } // Produits vendus mais encore dans la période de 3 jours
+            ]
+          }
+        ]
+      },
       include: {
         images: true,
         category: true,
@@ -222,8 +238,9 @@ router.get('/', async (req, res) => {
     });
     const dbProducts = dbProductsRaw.map(mapDbProductToListingShape);
 
-    // 2) Fusionner avec les mocks pour conserver le catalogue de démo
-    let products = [...dbProducts, ...MOCK_PRODUCTS];
+    // 2) Utiliser uniquement les produits de la base de données (pas de mock)
+    console.log(`[Products] Returning ${dbProducts.length} real products from database (no mocks)`);
+    let products = [...dbProducts];
 
     // 3) Filtre texte
     if (search) {
@@ -291,12 +308,8 @@ router.get('/:id', async (req, res) => {
       return res.json(mapDbProductToListingShape(dbProduct));
     }
 
-    const mockProduct = MOCK_PRODUCTS.find((p) => p.id === id);
-    if (!mockProduct) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
-
-    return res.json(mockProduct);
+    // Pas de données mock - retourner 404 si produit non trouvé
+    return res.status(404).json({ error: 'Product not found' });
   } catch (error) {
     console.error('[products] Failed to get product by id', error);
     return res.status(500).json({ error: 'Failed to get product' });
@@ -304,11 +317,17 @@ router.get('/:id', async (req, res) => {
 });
 
 // Get category statistics (product count per category)
-router.get('/stats/categories', (req, res) => {
+router.get('/stats/categories', async (_req, res) => {
   const categoryCounts: Record<string, number> = {};
-  
-  MOCK_PRODUCTS.forEach(product => {
-    const cat = product.category || 'other';
+
+  // Compter les produits réels de la base de données
+  const products = await prisma.product.findMany({
+    where: { status: 'ACTIVE' },
+    include: { category: true }
+  });
+
+  products.forEach(product => {
+    const cat = product.category?.slug || 'other';
     categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
   });
 

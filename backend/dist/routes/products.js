@@ -189,7 +189,20 @@ router.get('/', async (req, res) => {
         const search = req.query.search;
         const category = req.query.category;
         const sortBy = req.query.sortBy;
+        const now = new Date();
         const dbProductsRaw = await prisma.product.findMany({
+            where: {
+                AND: [
+                    { status: 'ACTIVE' },
+                    { paymentCompleted: false },
+                    {
+                        OR: [
+                            { deletionScheduledAt: null },
+                            { deletionScheduledAt: { gt: now } }
+                        ]
+                    }
+                ]
+            },
             include: {
                 images: true,
                 category: true,

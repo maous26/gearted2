@@ -1,13 +1,13 @@
 import { compatibilityApi, SearchItem } from '@/services/compatibility';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
+    ActivityIndicator,
   ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 interface ItemSearchProps {

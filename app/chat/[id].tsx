@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../components/ThemeProvider";
 import { useUser } from "../../components/UserProvider";
 import api from "../../services/api";
+import notificationService from "../../services/notifications";
 import { THEMES } from "../../themes";
 import { filterMessageContent, getBlockedContentWarning } from "../../utils/contentFilter";
 
@@ -66,7 +67,29 @@ export default function ChatScreen() {
       }
     };
 
+    const markNotificationsAsRead = async () => {
+      try {
+        // Get all notifications for this conversation
+        const { notifications } = await notificationService.getNotifications();
+        
+        // Find MESSAGE notifications related to this conversation
+        const conversationNotifications = notifications.filter(
+          (n) => n.type === 'MESSAGE' && 
+                 n.data?.conversationId === conversationId &&
+                 !n.isRead
+        );
+
+        // Mark each as read
+        for (const notification of conversationNotifications) {
+          await notificationService.markAsRead(notification.id);
+        }
+      } catch (error) {
+        console.error("[chat] Failed to mark notifications as read", error);
+      }
+    };
+
     fetchMessages();
+    markNotificationsAsRead();
   }, [conversationId, user?.id]);
 
   const sendMessage = async () => {

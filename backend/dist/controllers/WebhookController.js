@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebhookController = void 0;
 const client_1 = require("@prisma/client");
 const stripe_1 = __importDefault(require("stripe"));
+const NotificationController_1 = require("./NotificationController");
 const prisma = new client_1.PrismaClient();
 const stripe = new stripe_1.default(process.env.STRIPE_SECRET_KEY || '', {
     apiVersion: '2025-10-29.clover',
@@ -56,7 +57,14 @@ class WebhookController {
         try {
             const transaction = await prisma.transaction.findUnique({
                 where: { paymentIntentId: paymentIntent.id },
-                include: { product: true }
+                include: {
+                    product: {
+                        include: {
+                            seller: true
+                        }
+                    },
+                    buyer: true
+                }
             });
             if (!transaction) {
                 console.error(`[Webhook] Transaction not found for PaymentIntent: ${paymentIntent.id}`);
@@ -68,14 +76,60 @@ class WebhookController {
                     status: 'SUCCEEDED',
                 }
             });
+            const soldAt = new Date();
+            const deletionScheduledAt = new Date(soldAt.getTime() + (3 * 24 * 60 * 60 * 1000));
             await prisma.product.update({
                 where: { id: transaction.productId },
                 data: {
-                    status: 'SOLD'
+                    paymentCompleted: true,
+                    paymentCompletedAt: soldAt,
+                    deletionScheduledAt: deletionScheduledAt,
+                    ...(transaction.product.parcelDimensionsId ? {
+                        status: 'SOLD',
+                        soldAt: soldAt
+                    } : {})
                 }
             });
-            console.log(`[Webhook] ✅ Product ${transaction.productId} marked as SOLD`);
+            console.log(`[Webhook] ✅ Payment completed for product ${transaction.productId}`);
+            console.log(`[Webhook] ✅ Product will be deleted on ${deletionScheduledAt.toISOString()}`);
             console.log(`[Webhook] ✅ Transaction ${transaction.id} marked as SUCCEEDED`);
+            try {
+                await NotificationController_1.NotificationController.createNotification({
+                    userId: transaction.buyerId,
+                    title: '🎉 Félicitations !',
+                    message: `Vous venez d'acquérir "${transaction.product.title}". Après validation du vendeur, vous pourrez générer l'étiquette d'envoi.`,
+                    type: 'PAYMENT_UPDATE',
+                    data: {
+                        transactionId: transaction.id,
+                        productId: transaction.productId,
+                        productTitle: transaction.product.title,
+                        amount: transaction.amount.toString()
+                    }
+                });
+                console.log(`[Webhook] 🔔 Notification sent to buyer ${transaction.buyerId}`);
+            }
+            catch (notifError) {
+                console.error(`[Webhook] Failed to send buyer notification:`, notifError);
+            }
+            try {
+                await NotificationController_1.NotificationController.createNotification({
+                    userId: transaction.product.sellerId,
+                    title: '📦 Gearted - Votre article a été vendu',
+                    message: `Félicitations ! Votre article "${transaction.product.title}" a été vendu. Veuillez saisir les dimensions du colis pour permettre à l'acheteur de générer son étiquette d'expédition.`,
+                    type: 'PAYMENT_UPDATE',
+                    data: {
+                        transactionId: transaction.id,
+                        productId: transaction.productId,
+                        productTitle: transaction.product.title,
+                        amount: transaction.amount.toString(),
+                        buyerName: transaction.buyer.username
+                    }
+                });
+                console.log(`[Webhook] 🔔 Notification sent to seller ${transaction.product.sellerId}`);
+            }
+            catch (notifError) {
+                console.error(`[Webhook] Failed to send seller notification:`, notifError);
+            }
         }
         catch (error) {
             console.error('[Webhook] Error handling payment success:', error);

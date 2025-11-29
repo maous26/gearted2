@@ -24,6 +24,7 @@ export default function ShippingAddressScreen() {
 
   const [loading, setLoading] = useState(false);
   const [gdprConsent, setGdprConsent] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [address, setAddress] = useState<ShippingAddress>({
     name: '',
     street1: '',
@@ -36,10 +37,105 @@ export default function ShippingAddressScreen() {
     email: '',
   });
 
+  // Validation functions
+  const validateName = (name: string): string | null => {
+    if (!name.trim()) return 'Le nom complet est requis';
+    if (name.trim().length < 2) return 'Le nom doit contenir au moins 2 caractères';
+    if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(name)) return 'Le nom ne peut contenir que des lettres';
+    return null;
+  };
+
+  const validateStreet = (street: string): string | null => {
+    if (!street.trim()) return 'L\'adresse est requise';
+    if (street.trim().length < 5) return 'L\'adresse doit contenir au moins 5 caractères';
+    return null;
+  };
+
+  const validateCity = (city: string): string | null => {
+    if (!city.trim()) return 'La ville est requise';
+    if (city.trim().length < 2) return 'Le nom de la ville doit contenir au moins 2 caractères';
+    if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(city)) return 'Le nom de la ville ne peut contenir que des lettres';
+    return null;
+  };
+
+  const validateZip = (zip: string): string | null => {
+    if (!zip.trim()) return 'Le code postal est requis';
+    // French postal code format
+    if (!/^[0-9]{5}$/.test(zip.trim())) return 'Le code postal doit contenir 5 chiffres';
+    return null;
+  };
+
+  const validatePhone = (phone: string): string | null => {
+    if (!phone.trim()) return 'Le téléphone est requis';
+    // Remove all non-digit characters for validation
+    const digitsOnly = phone.replace(/\D/g, '');
+    if (digitsOnly.length < 10) return 'Le numéro de téléphone doit contenir au moins 10 chiffres';
+    return null;
+  };
+
+  const validateEmail = (email: string): string | null => {
+    if (!email.trim()) return 'L\'email est requis';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'L\'email n\'est pas valide';
+    return null;
+  };
+
+  // Format functions
+  const formatZip = (text: string) => {
+    // Only allow digits, max 5
+    return text.replace(/\D/g, '').slice(0, 5);
+  };
+
+  const formatPhone = (text: string) => {
+    // Remove all non-digit characters
+    const digitsOnly = text.replace(/\D/g, '');
+    // Format as French phone number: 06 12 34 56 78
+    if (digitsOnly.length <= 2) return digitsOnly;
+    if (digitsOnly.length <= 4) return `${digitsOnly.slice(0, 2)} ${digitsOnly.slice(2)}`;
+    if (digitsOnly.length <= 6) return `${digitsOnly.slice(0, 2)} ${digitsOnly.slice(2, 4)} ${digitsOnly.slice(4)}`;
+    if (digitsOnly.length <= 8) return `${digitsOnly.slice(0, 2)} ${digitsOnly.slice(2, 4)} ${digitsOnly.slice(4, 6)} ${digitsOnly.slice(6)}`;
+    return `${digitsOnly.slice(0, 2)} ${digitsOnly.slice(2, 4)} ${digitsOnly.slice(4, 6)} ${digitsOnly.slice(6, 8)} ${digitsOnly.slice(8, 10)}`;
+  };
+
+  const formatName = (text: string) => {
+    // Capitalize first letter of each word
+    return text.split(' ').map(word =>
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+  };
+
+  const formatCity = (text: string) => {
+    // Capitalize first letter of each word
+    return text.split(' ').map(word =>
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+  };
+
   const handleSubmit = async () => {
-    // Validation
-    if (!address.name || !address.street1 || !address.city || !address.zip) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
+    // Validate all fields
+    const newErrors: Record<string, string> = {};
+
+    const nameError = validateName(address.name);
+    if (nameError) newErrors.name = nameError;
+
+    const street1Error = validateStreet(address.street1);
+    if (street1Error) newErrors.street1 = street1Error;
+
+    const cityError = validateCity(address.city);
+    if (cityError) newErrors.city = cityError;
+
+    const zipError = validateZip(address.zip);
+    if (zipError) newErrors.zip = zipError;
+
+    const phoneError = validatePhone(address.phone);
+    if (phoneError) newErrors.phone = phoneError;
+
+    const emailError = validateEmail(address.email);
+    if (emailError) newErrors.email = emailError;
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      Alert.alert('Erreur de validation', 'Veuillez corriger les erreurs dans le formulaire');
       return;
     }
 
@@ -96,18 +192,33 @@ export default function ShippingAddressScreen() {
       <TextInput
         style={{
           backgroundColor: t.cardBg,
-          borderColor: t.border,
+          borderColor: errors.name ? '#EF4444' : t.border,
           borderWidth: 1,
           borderRadius: 8,
           padding: 12,
           color: t.text,
-          marginBottom: 15,
+          marginBottom: errors.name ? 5 : 15,
         }}
         placeholder="Jean Dupont"
         placeholderTextColor={t.mutedText}
         value={address.name}
-        onChangeText={(text) => setAddress({ ...address, name: text })}
+        onChangeText={(text) => {
+          setAddress({ ...address, name: formatName(text) });
+          if (errors.name) {
+            const error = validateName(formatName(text));
+            setErrors({ ...errors, name: error || '' });
+          }
+        }}
+        onBlur={() => {
+          const error = validateName(address.name);
+          if (error) setErrors({ ...errors, name: error });
+        }}
       />
+      {errors.name && (
+        <Text style={{ color: '#EF4444', fontSize: 12, marginBottom: 10 }}>
+          {errors.name}
+        </Text>
+      )}
 
       {/* Adresse ligne 1 */}
       <Text style={{ color: t.text, marginBottom: 5, fontWeight: '600' }}>
@@ -176,62 +287,111 @@ export default function ShippingAddressScreen() {
       <TextInput
         style={{
           backgroundColor: t.cardBg,
-          borderColor: t.border,
+          borderColor: errors.zip ? '#EF4444' : t.border,
           borderWidth: 1,
           borderRadius: 8,
           padding: 12,
           color: t.text,
-          marginBottom: 15,
+          marginBottom: errors.zip ? 5 : 15,
         }}
         placeholder="75001"
         placeholderTextColor={t.mutedText}
         value={address.zip}
-        onChangeText={(text) => setAddress({ ...address, zip: text })}
+        onChangeText={(text) => {
+          const formatted = formatZip(text);
+          setAddress({ ...address, zip: formatted });
+          if (errors.zip) {
+            const error = validateZip(formatted);
+            setErrors({ ...errors, zip: error || '' });
+          }
+        }}
+        onBlur={() => {
+          const error = validateZip(address.zip);
+          if (error) setErrors({ ...errors, zip: error });
+        }}
         keyboardType="numeric"
+        maxLength={5}
       />
+      {errors.zip && (
+        <Text style={{ color: '#EF4444', fontSize: 12, marginBottom: 10 }}>
+          {errors.zip}
+        </Text>
+      )}
 
       {/* Téléphone */}
       <Text style={{ color: t.text, marginBottom: 5, fontWeight: '600' }}>
-        Téléphone
+        Téléphone *
       </Text>
       <TextInput
         style={{
           backgroundColor: t.cardBg,
-          borderColor: t.border,
+          borderColor: errors.phone ? '#EF4444' : t.border,
           borderWidth: 1,
           borderRadius: 8,
           padding: 12,
           color: t.text,
-          marginBottom: 15,
+          marginBottom: errors.phone ? 5 : 15,
         }}
-        placeholder="+33 6 12 34 56 78"
+        placeholder="06 12 34 56 78"
         placeholderTextColor={t.mutedText}
         value={address.phone}
-        onChangeText={(text) => setAddress({ ...address, phone: text })}
+        onChangeText={(text) => {
+          const formatted = formatPhone(text);
+          setAddress({ ...address, phone: formatted });
+          if (errors.phone) {
+            const error = validatePhone(formatted);
+            setErrors({ ...errors, phone: error || '' });
+          }
+        }}
+        onBlur={() => {
+          const error = validatePhone(address.phone);
+          if (error) setErrors({ ...errors, phone: error });
+        }}
         keyboardType="phone-pad"
+        maxLength={14}
       />
+      {errors.phone && (
+        <Text style={{ color: '#EF4444', fontSize: 12, marginBottom: 10 }}>
+          {errors.phone}
+        </Text>
+      )}
 
       {/* Email */}
       <Text style={{ color: t.text, marginBottom: 5, fontWeight: '600' }}>
-        Email
+        Email *
       </Text>
       <TextInput
         style={{
           backgroundColor: t.cardBg,
-          borderColor: t.border,
+          borderColor: errors.email ? '#EF4444' : t.border,
           borderWidth: 1,
           borderRadius: 8,
           padding: 12,
           color: t.text,
-          marginBottom: 30,
+          marginBottom: errors.email ? 5 : 30,
         }}
         placeholder="jean.dupont@example.com"
         placeholderTextColor={t.mutedText}
         value={address.email}
-        onChangeText={(text) => setAddress({ ...address, email: text })}
+        onChangeText={(text) => {
+          setAddress({ ...address, email: text.toLowerCase().trim() });
+          if (errors.email) {
+            const error = validateEmail(text.toLowerCase().trim());
+            setErrors({ ...errors, email: error || '' });
+          }
+        }}
+        onBlur={() => {
+          const error = validateEmail(address.email);
+          if (error) setErrors({ ...errors, email: error });
+        }}
         keyboardType="email-address"
         autoCapitalize="none"
       />
+      {errors.email && (
+        <Text style={{ color: '#EF4444', fontSize: 12, marginBottom: 20 }}>
+          {errors.email}
+        </Text>
+      )}
 
       {/* RGPD - Consentement */}
       <View style={{

@@ -143,7 +143,6 @@ class ShippingController {
                 return res.status(401).json({ error: 'Authentication required' });
             }
             const { transactionId } = req.params;
-            const { length, width, height, weight } = req.body;
             const transaction = await prisma.transaction.findUnique({
                 where: { id: transactionId },
                 include: {
@@ -162,6 +161,17 @@ class ShippingController {
             }
             if (!transaction.shippingAddress) {
                 return res.status(400).json({ error: 'Shipping address not provided yet' });
+            }
+            const bodyDimensions = req.body || {};
+            const metadataDimensions = transaction.metadata?.parcelDimensions || {};
+            const length = bodyDimensions.length || metadataDimensions.length;
+            const width = bodyDimensions.width || metadataDimensions.width;
+            const height = bodyDimensions.height || metadataDimensions.height;
+            const weight = bodyDimensions.weight || metadataDimensions.weight;
+            if (!length || !width || !height || !weight) {
+                return res.status(400).json({
+                    error: 'Parcel dimensions not provided. The seller must set dimensions first.'
+                });
             }
             const fromAddress = {
                 name: transaction.product.seller.username,

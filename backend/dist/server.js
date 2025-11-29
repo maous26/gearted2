@@ -34,6 +34,8 @@ const webhook_1 = __importDefault(require("./routes/webhook"));
 const transactions_1 = __importDefault(require("./routes/transactions"));
 const shippoAdmin_routes_1 = __importDefault(require("./routes/shippoAdmin.routes"));
 const mondialrelay_routes_1 = __importDefault(require("./routes/mondialrelay.routes"));
+const notifications_1 = __importDefault(require("./routes/notifications"));
+const admin_1 = __importDefault(require("./routes/admin"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const server = (0, http_1.createServer)(app);
@@ -51,6 +53,31 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         environment: process.env.NODE_ENV || 'production'
+    });
+});
+app.get('/diagnostic', (_req, res) => {
+    const routes = [];
+    app._router.stack.forEach((middleware) => {
+        if (middleware.route) {
+            routes.push(`${Object.keys(middleware.route.methods).join(',').toUpperCase()} ${middleware.route.path}`);
+        }
+        else if (middleware.name === 'router') {
+            middleware.handle.stack.forEach((handler) => {
+                if (handler.route) {
+                    const path = middleware.regexp.source
+                        .replace('\\/?', '')
+                        .replace('(?=\\/|$)', '')
+                        .replace(/\\\//g, '/');
+                    routes.push(`${Object.keys(handler.route.methods).join(',').toUpperCase()} ${path}${handler.route.path}`);
+                }
+            });
+        }
+    });
+    res.status(200).json({
+        status: 'ok',
+        routes: routes.sort(),
+        totalRoutes: routes.length,
+        notificationsRouteExists: routes.some(r => r.includes('/api/notifications'))
     });
 });
 app.use((0, helmet_1.default)({
@@ -82,18 +109,21 @@ const corsOptions = {
 app.use((0, cors_1.default)(corsOptions));
 const limiter = (0, express_rate_limit_1.default)({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
-    max: parseInt(process.env.RATE_LIMIT_REQUESTS || '100'),
+    max: parseInt(process.env.RATE_LIMIT_REQUESTS || '500'),
     message: {
         error: 'Too many requests from this IP, please try again later.',
         retryAfter: Math.ceil(parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000') / 1000)
     },
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => {
+        return req.path.startsWith('/webhook');
+    }
 });
 const speedLimiter = (0, express_slow_down_1.default)({
     windowMs: 15 * 60 * 1000,
-    delayAfter: 50,
-    delayMs: () => 500,
+    delayAfter: 200,
+    delayMs: () => 100,
     validate: { delayMs: false }
 });
 app.use(limiter);
@@ -124,8 +154,10 @@ app.use('/api/uploads', uploads_1.default);
 app.use('/api/stripe', stripe_1.default);
 app.use('/api/shipping', shipping_1.default);
 app.use('/api/transactions', transactions_1.default);
+app.use('/api/notifications', notifications_1.default);
 app.use('/api/admin/shippo', shippoAdmin_routes_1.default);
 app.use('/api/mondialrelay', mondialrelay_routes_1.default);
+app.use('/api/admin', admin_1.default);
 app.use('/uploads', express_1.default.static('uploads'));
 io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);

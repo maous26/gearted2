@@ -32,6 +32,8 @@ import webhookRoutes from './routes/webhook';
 import transactionRoutes from './routes/transactions';
 import shippoAdminRoutes from './routes/shippoAdmin.routes';
 import mondialrelayRoutes from './routes/mondialrelay.routes';
+import notificationRoutes from './routes/notifications';
+import adminRoutes from './routes/admin';
 
 // Load environment variables
 dotenv.config();
@@ -57,8 +59,98 @@ app.get('/health', (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'production'
+    environment: process.env.NODE_ENV || 'production',
+    version: '2.0.0-no-mocks',
+    buildTime: new Date().toISOString()
   });
+});
+
+// Diagnostic endpoint to check if routes are loaded
+app.get('/diagnostic', (_req, res) => {
+  const routes: string[] = [];
+  app._router.stack.forEach((middleware: any) => {
+    if (middleware.route) {
+      routes.push(`${Object.keys(middleware.route.methods).join(',').toUpperCase()} ${middleware.route.path}`);
+    } else if (middleware.name === 'router') {
+      middleware.handle.stack.forEach((handler: any) => {
+        if (handler.route) {
+          const path = middleware.regexp.source
+            .replace('\\/?', '')
+            .replace('(?=\\/|$)', '')
+            .replace(/\\\//g, '/');
+          routes.push(`${Object.keys(handler.route.methods).join(',').toUpperCase()} ${path}${handler.route.path}`);
+        }
+      });
+    }
+  });
+  res.status(200).json({
+    status: 'ok',
+    routes: routes.sort(),
+    totalRoutes: routes.length,
+    notificationsRouteExists: routes.some(r => r.includes('/api/notifications'))
+  });
+});
+
+// Admin database cleanup endpoint (direct, no middleware)
+app.delete('/admin-clean-db', async (req, res): Promise<any> => {
+  const adminSecret = req.headers['x-admin-secret'];
+  const expectedSecret = process.env.ADMIN_SECRET_KEY || 'gearted-admin-2025';
+
+  if (!adminSecret || adminSecret !== expectedSecret) {
+    return res.status(403).json({ error: 'Invalid or missing admin secret key' });
+  }
+
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+
+    console.log('[Admin] Starting database cleanup...');
+
+    // Get users to keep
+    const usersToKeep = await prisma.user.findMany({
+      where: {
+        OR: [
+          { username: 'iswael0552617' },
+          { username: 'tata' },
+          { email: { contains: 'iswael' } },
+          { email: { contains: 'tata' } }
+        ]
+      }
+    });
+
+    const userIdsToKeep = usersToKeep.map((u: any) => u.id);
+    console.log(`[Admin] Found ${usersToKeep.length} users to keep:`, usersToKeep.map((u: any) => u.username));
+
+    // Delete in order (respecting foreign keys)
+    const results = {
+      notifications: (await prisma.notification.deleteMany({})).count,
+      messages: (await prisma.message.deleteMany({})).count,
+      conversations: (await prisma.conversation.deleteMany({})).count,
+      transactions: (await prisma.transaction.deleteMany({})).count,
+      shippingAddresses: (await prisma.shippingAddress.deleteMany({})).count,
+      favorites: (await prisma.favorite.deleteMany({})).count,
+      products: (await prisma.product.deleteMany({})).count,  // Delete ALL products
+      parcelDimensions: (await prisma.parcelDimensions.deleteMany({})).count,
+      users: (await prisma.user.deleteMany({ where: { id: { notIn: userIdsToKeep } } })).count,
+    };
+
+    console.log('[Admin] Database cleanup complete:', results);
+    await prisma.$disconnect();
+
+    return res.json({
+      success: true,
+      message: 'Database cleaned successfully',
+      keptUsers: usersToKeep.map((u: any) => ({ username: u.username, email: u.email })),
+      deleted: results
+    });
+
+  } catch (error) {
+    console.error('[Admin] Error during cleanup:', error);
+    return res.status(500).json({
+      error: 'Error during database cleanup',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 });
 
 // Security middleware
@@ -94,23 +186,27 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Rate limiting
+// Rate limiting - Assouplir pour les apps mobiles
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_REQUESTS || '100'), // limit each IP to 100 requests per windowMs
+  max: parseInt(process.env.RATE_LIMIT_REQUESTS || '500'), // 500 requêtes par 15 min (au lieu de 100)
   message: {
     error: 'Too many requests from this IP, please try again later.',
     retryAfter: Math.ceil(parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000') / 1000)
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Ne pas limiter les webhooks Stripe
+    return req.path.startsWith('/webhook');
+  }
 });
 
-// Speed limiter for repeated requests
+// Speed limiter for repeated requests - Assouplir
 const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  delayAfter: 50, // allow 50 requests per 15 minutes at full speed
-  delayMs: () => 500, // 500ms delay per request after delayAfter
+  delayAfter: 200, // 200 requêtes avant ralentissement (au lieu de 50)
+  delayMs: () => 100, // 100ms delay (au lieu de 500ms)
   validate: { delayMs: false } // Disable deprecation warning
 });
 
@@ -151,8 +247,10 @@ app.use('/api/uploads', uploadRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/shipping', shippingRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin/shippo', shippoAdminRoutes);
 app.use('/api/mondialrelay', mondialrelayRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Serve static files (uploads)
 app.use('/uploads', express.static('uploads'));

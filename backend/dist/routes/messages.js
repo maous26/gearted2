@@ -4,6 +4,7 @@ const client_1 = require("@prisma/client");
 const express_1 = require("express");
 const auth_1 = require("../middleware/auth");
 const sanitize_1 = require("../middleware/sanitize");
+const NotificationController_1 = require("../controllers/NotificationController");
 const router = (0, express_1.Router)();
 const prisma = new client_1.PrismaClient();
 router.use(auth_1.authenticate);
@@ -126,6 +127,31 @@ router.post('/conversations/:conversationId/messages', (0, sanitize_1.sanitizeFi
             },
             include: { sender: true }
         });
+        const conversationWithParticipants = await prisma.conversation.findUnique({
+            where: { id: conversationId },
+            include: { participants: true }
+        });
+        if (conversationWithParticipants) {
+            const otherParticipants = conversationWithParticipants.participants.filter((p) => p.id !== req.user.userId);
+            for (const participant of otherParticipants) {
+                try {
+                    await NotificationController_1.NotificationController.createNotification({
+                        userId: participant.id,
+                        title: 'Nouveau message',
+                        message: `${message.sender.username} vous a envoyé un message`,
+                        type: 'MESSAGE',
+                        data: {
+                            conversationId,
+                            senderId: req.user.userId,
+                            senderName: message.sender.username,
+                        },
+                    });
+                }
+                catch (error) {
+                    console.error('[messages] Failed to create notification', error);
+                }
+            }
+        }
         return res.json(message);
     }
     catch (error) {

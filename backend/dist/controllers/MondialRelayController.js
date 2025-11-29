@@ -88,10 +88,12 @@ class MondialRelayController {
                     error: 'Transaction not found'
                 });
             }
-            if (transaction.product.sellerId !== userId) {
+            const isSeller = transaction.product.sellerId === userId;
+            const isBuyer = transaction.buyerId === userId;
+            if (!isSeller && !isBuyer) {
                 return res.status(403).json({
                     success: false,
-                    error: 'Only the seller can create shipping labels'
+                    error: 'Access denied'
                 });
             }
             if (!transaction.shippingAddress) {

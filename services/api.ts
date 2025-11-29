@@ -33,6 +33,13 @@ class ApiService {
     // Request interceptor - Ajouter le token
     this.api.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
+        // Skip adding token if Authorization header already exists (from retry logic)
+        const hasAuthHeader = config.headers?.Authorization;
+        if (hasAuthHeader) {
+          console.log('[API Request] Using existing Authorization header');
+          return config;
+        }
+
         const token = await TokenManager.getAccessToken();
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -65,58 +72,76 @@ class ApiService {
         } catch { }
 
         // Si 401 et pas déjà retry, tenter refresh token
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // Ne pas tenter de refresh si la requête échouée EST déjà le refresh endpoint
+        const isRefreshEndpoint = originalRequest.url?.includes('/refresh-token');
+
+        // Si c'est déjà un retry qui échoue, on déconnecte l'utilisateur
+        if (error.response?.status === 401 && originalRequest._retry) {
+          console.log('[API] Retry failed with 401, clearing tokens');
+          await TokenManager.clearTokens();
+          return Promise.reject(new Error('Session expired after refresh'));
+        }
+
+        if (error.response?.status === 401 && !isRefreshEndpoint) {
           originalRequest._retry = true;
 
-          try {
-            const refreshToken = await TokenManager.getRefreshToken();
-            if (!refreshToken) {
-              throw new Error('No refresh token');
-            }
+          console.log('[API] Access token expired, attempting refresh...');
+          const refreshToken = await TokenManager.getRefreshToken();
+          if (!refreshToken) {
+            console.log('[API] No refresh token available, logging out');
+            await TokenManager.clearTokens();
+            return Promise.reject(new Error('Session expired'));
+          }
 
-            // Correct refresh endpoint (server mounts /api/auth and route is /refresh-token)
-            const response = await this.api.post('/api/auth/refresh-token', { refreshToken });
+          console.log('[API] Calling refresh token endpoint...');
+
+          // Wrap ONLY the refresh request in try-catch
+          let accessToken: string;
+          let newRefreshToken: string;
+          try {
+            // Créer une nouvelle instance axios sans intercepteurs pour éviter la récursion
+            const response = await axios.post(`${API_URL}/api/auth/refresh-token`, { refreshToken });
+            console.log('[API] Refresh response received:', response.status);
 
             // Extraire proprement les tokens du payload
-            // Le backend peut retourner plusieurs structures:
-            // 1. {accessToken, refreshToken}
-            // 2. {tokens: {accessToken, refreshToken}}
-            // 3. {data: {tokens: {accessToken, refreshToken}}}
             const payload = (response as any).data ?? response;
             const tokensObj = payload?.data?.tokens ?? payload?.tokens ?? payload;
-            const accessToken = tokensObj?.accessToken ?? null;
-            const newRefreshToken = tokensObj?.refreshToken ?? null;
+            accessToken = tokensObj?.accessToken ?? null;
+            newRefreshToken = tokensObj?.refreshToken ?? null;
+
+            console.log('[API] Extracted tokens - hasAccess:', !!accessToken, 'hasRefresh:', !!newRefreshToken);
 
             // Valider les tokens avant de tenter de les sauvegarder
             if (typeof accessToken !== 'string' || typeof newRefreshToken !== 'string' || !accessToken || !newRefreshToken) {
-              console.error('[API] Invalid tokens received from refresh endpoint:', {
-                accessToken,
-                newRefreshToken,
-                tokensObj,
-                payload
-              });
-              // Nettoyer les tokens existants et forcer la sortie
-              await TokenManager.clearTokens();
-              throw new Error('Session expirée');
+              console.error('[API] Invalid tokens received from refresh endpoint');
+              throw new Error('Invalid tokens from refresh endpoint');
             }
 
-            try {
-              await TokenManager.saveTokens(accessToken, newRefreshToken);
-            } catch (saveError) {
-              console.error('[API] Error saving refreshed tokens:', saveError);
-              // Si on ne peut pas sauvegarder les tokens, on les efface pour éviter incohérences
-              await TokenManager.clearTokens();
-              throw saveError;
-            }
-
-            originalRequest.headers = originalRequest.headers || {};
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-            return this.api(originalRequest);
-          } catch (refreshError) {
-            // Refresh failed, logout user
+            console.log('[API] Tokens validated successfully');
+          } catch (refreshError: any) {
+            // Refresh token request itself failed
+            console.error('[API] Refresh token request failed:', refreshError.response?.status, refreshError.message);
             await TokenManager.clearTokens();
-            return Promise.reject(refreshError);
+            return Promise.reject(new Error('Session expired - please log in again'));
           }
+
+          // Save tokens (outside try-catch so errors propagate)
+          await TokenManager.saveTokens(accessToken, newRefreshToken);
+          console.log('[API] Tokens saved, retrying original request');
+
+          // Update the Authorization header with the new token
+          if (!originalRequest.headers) {
+            originalRequest.headers = {} as any;
+          }
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+
+          // Log token info for debugging
+          const tokenPreview = accessToken.substring(0, 20) + '...' + accessToken.substring(accessToken.length - 10);
+          console.log('[API] Retrying request with new token:', originalRequest.method?.toUpperCase(), originalRequest.url);
+          console.log('[API] Token preview:', tokenPreview);
+
+          // Retry the original request - let any errors propagate to outer handler
+          return this.api(originalRequest);
         }
 
         return Promise.reject(error);

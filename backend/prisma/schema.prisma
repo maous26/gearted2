@@ -45,11 +45,12 @@ model User {
   updatedAt DateTime @updatedAt
   
   // Relations
-  products       Product[]
-  sentMessages   Message[]
-  conversations  Conversation[] @relation("ConversationParticipants")
-  stripeAccount  StripeAccount?
-  transactions   Transaction[]
+  products         Product[]
+  sentMessages     Message[]
+  conversations    Conversation[] @relation("ConversationParticipants")
+  stripeAccount    StripeAccount?
+  transactions     Transaction[]
+  shippingAddresses ShippingAddress[]
 
   @@map("users")
 }
@@ -93,6 +94,29 @@ model Message {
   sentAt         DateTime     @default(now())
 
   @@map("messages")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   // Utilisateur qui reçoit la notification
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  isRead    Boolean  @default(false)
+  data      Json?    // Données additionnelles (transactionId, productId, etc.)
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  SHIPPING_UPDATE
+  PAYMENT_UPDATE
+  MESSAGE
 }
 
 model Brand {
@@ -238,21 +262,30 @@ model Product {
   // Product status
   status   ProductStatus @default(DRAFT)
   isActive Boolean       @default(true)
-  
+  soldAt   DateTime?     // Date when product was marked as sold (payment succeeded)
+  deletionScheduledAt DateTime? // Auto-delete 3 days after soldAt
+
   // Location and shipping
   location         String?
   shippingIncluded Boolean  @default(false)
   shippingCost     Decimal?
+  parcelDimensionsId String? // Lien vers les dimensions du colis
+  parcelDimensions ParcelDimensions? @relation(fields: [parcelDimensionsId], references: [id])
   
+  // Payment tracking
+  paymentCompleted Boolean   @default(false) // Paiement réussi
+  paymentCompletedAt DateTime? // Date du paiement
+
   // Analytics
   views Int @default(0)
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
   // Relations
   images       ProductImage[]
   transactions Transaction[]
+  shipments    Shipment[]
 
   @@map("products")
 }
@@ -412,4 +445,108 @@ enum TransactionStatus {
   FAILED
   REFUNDED
   CANCELLED
+}
+
+// Dimensions du colis (renseignées par le vendeur)
+model ParcelDimensions {
+  id        String @id @default(cuid())
+  
+  // Dimensions en cm
+  length Float // Longueur
+  width  Float // Largeur  
+  height Float // Hauteur
+  weight Float // Poids en kg
+  
+  // Optionnel: lien vers catalogue prédéfini
+  weaponModelId    String?
+  manufacturerId   String?
+  name             String? // Ex: "Boîte Tokyo Marui M4"
+  isFromCatalog    Boolean @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  products  Product[]
+  shipments Shipment[]
+  
+  @@map("parcel_dimensions")
+}
+
+// Expéditions
+model Shipment {
+  id String @id @default(cuid())
+  
+  // Produit et utilisateurs
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  buyerId   String
+  sellerId  String
+  
+  // Numéro de commande
+  orderNumber String @unique
+  
+  // Shippo tracking
+  shippoObjectId String?
+  trackingNumber String?
+  labelUrl       String?
+  trackingStatus String? @default("UNKNOWN")
+  
+  // Adresses
+  fromAddress Json // Adresse vendeur
+  toAddress   Json // Adresse acheteur
+  
+  // Dimensions du colis
+  parcelId String?
+  parcel   ParcelDimensions? @relation(fields: [parcelId], references: [id])
+  
+  // Transporteur
+  carrier           String?
+  serviceLevelToken String?
+  estimatedDays     Int?
+  
+  // Montant
+  amount   Decimal
+  currency String  @default("EUR")
+  
+  // Statut
+  status String @default("PENDING") // PENDING, LABEL_CREATED, SHIPPED, DELIVERED, CANCELLED
+  isPaid Boolean @default(false)
+  
+  // Métadonnées
+  metadata Json?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  shippedAt   DateTime?
+  deliveredAt DateTime?
+  
+  @@map("shipments")
+}
+
+// Adresses de livraison sauvegardées par utilisateur
+model ShippingAddress {
+  id String @id @default(cuid())
+  
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Informations d'adresse
+  name     String
+  street1  String
+  street2  String?
+  city     String
+  state    String?
+  zip      String
+  country  String
+  phone    String
+  email    String
+  
+  // Adresse par défaut
+  isDefault Boolean @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("shipping_addresses")
 }
