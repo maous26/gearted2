@@ -59,7 +59,9 @@ app.get('/health', (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'production'
+    environment: process.env.NODE_ENV || 'production',
+    version: '2.0.0-no-mocks',
+    buildTime: new Date().toISOString()
   });
 });
 
