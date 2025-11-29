@@ -6,8 +6,8 @@ import { sanitizeFields } from '../middleware/sanitize';
 const router = Router();
 const prisma = new PrismaClient();
 
-// MOCK DATA DISABLED - Using only real database products
-// Base mock product data (fixtures pour remplir la grille si la base est vide)
+// ALL MOCK DATA REMOVED - Production mode with real database only
+/*
 const BASE_PRODUCTS_DISABLED = [
   {
     id: "1",
@@ -139,9 +139,7 @@ const extraProducts_DISABLED = Array.from({ length: 40 }).map((_, i) => {
     description: `${title} en ${condition}. Parfait pour compléter ton setup.`,
   };
 });
-
-// Mock products disabled - not used anymore
-// let MOCK_PRODUCTS = [...BASE_PRODUCTS_DISABLED, ...extraProducts];
+*/
 
 // Track category views/searches for popularity
 const categorySearchCounts: Record<string, number> = {};
