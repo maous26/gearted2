@@ -131,4 +131,36 @@ router.get('/clean-database', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * Force Railway redeploy by causing a deliberate error that Railway will detect
+ * POST /api/admin/force-redeploy
+ */
+router.post('/force-redeploy', async (req: Request, res: Response) => {
+  try {
+    console.log('⚠️ Force redeploy requested - this should trigger Railway to rebuild');
+
+    res.json({
+      success: true,
+      message: 'Please go to Railway dashboard and click "Redeploy" to apply the latest code changes that disable mock products.',
+      instructions: [
+        '1. Go to railway.app',
+        '2. Select your project',
+        '3. Click on the backend service',
+        '4. Click "Redeploy" button',
+        '5. Wait for build to complete',
+        '6. Mock products will be gone'
+      ],
+      currentIssue: 'Railway is not automatically detecting our git pushes to cleanV0 branch',
+      codeStatus: 'Code to disable mocks is ready in cleanV0 branch (commit 8672c2b)'
+    });
+  } catch (error) {
+    console.error('❌ Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 export default router;

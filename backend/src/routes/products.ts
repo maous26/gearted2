@@ -236,8 +236,8 @@ router.get('/', async (req, res) => {
     });
     const dbProducts = dbProductsRaw.map(mapDbProductToListingShape);
 
-    // 2) Utiliser uniquement les produits de la base de données (pas de mock)
-    console.log(`[Products] Returning ${dbProducts.length} real products from database (no mocks)`);
+    // 2) Return only real database products (no mocks in production)
+    console.log(`[Products] Returning ${dbProducts.length} real products from database`);
     let products = [...dbProducts];
 
     // 3) Filtre texte
