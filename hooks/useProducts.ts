@@ -10,106 +10,14 @@ interface ProductsResponse {
   hasMore: boolean;
 }
 
-// Mock data fallback when backend is unavailable
-const MOCK_PRODUCTS: Product[] = [
-  {
-    id: "1",
-    title: "AK-74 Kalashnikov Réplique",
-    price: 289.99,
-    condition: "Excellent",
-    location: "Paris, 75001",
-    seller: "AirsoftPro92",
-    sellerId: "mock-user-1",
-    rating: 4.8,
-    images: ["https://via.placeholder.com/200x150/4B5D3A/FFFFFF?text=AK-74"],
-    category: "repliques",
-    featured: true,
-    description: "Réplique AEG en excellent état, peu utilisée",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "2", 
-    title: "Red Dot Sight - EOTech 552",
-    price: 45.50,
-    condition: "Très bon",
-    location: "Lyon, 69000",
-    seller: "TacticalGear",
-    sellerId: "mock-user-2",
-    rating: 4.9,
-    images: ["https://via.placeholder.com/200x150/8B4513/FFFFFF?text=Red+Dot"],
-    category: "optiques",
-    featured: false,
-    description: "Viseur holographique réplique EOTech",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "3",
-    title: "Gilet Tactique MultiCam",
-    price: 120.00,
-    condition: "Neuf",
-    location: "Marseille, 13000", 
-    seller: "MilSimStore",
-    sellerId: "mock-user-3",
-    rating: 4.7,
-    images: ["https://via.placeholder.com/200x150/556B2F/FFFFFF?text=Gilet"],
-    category: "equipement",
-    featured: true,
-    description: "Gilet plate carrier MultiCam neuf, jamais utilisé",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "4",
-    title: "Billes 0.25g Bio (5000pcs)",
-    price: 18.99,
-    condition: "Neuf",
-    location: "Toulouse, 31000",
-    seller: "BioBB_Shop",
-    sellerId: "mock-user-4",
-    rating: 4.6,
-    images: ["https://via.placeholder.com/200x150/2F4F4F/FFFFFF?text=Billes"],
-    category: "munitions",
-    featured: false,
-    description: "Billes biodégradables 0.25g, sachet de 5000",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "5",
-    title: "M4A1 Custom Build",
-    price: 450.00,
-    condition: "Excellent",
-    location: "Nice, 06000",
-    seller: "CustomBuilds",
-    sellerId: "mock-user-5",
-    rating: 5.0,
-    images: ["https://via.placeholder.com/200x150/4B5D3A/FFFFFF?text=M4A1"],
-    category: "repliques", 
-    featured: true,
-    description: "M4A1 custom avec upgrades internes",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "6",
-    title: "Chargeur M4 120 billes",
-    price: 12.50,
-    condition: "Bon",
-    location: "Bordeaux, 33000",
-    seller: "PartsPro",
-    sellerId: "mock-user-6",
-    rating: 4.4,
-    images: ["https://via.placeholder.com/200x150/696969/FFFFFF?text=Chargeur"],
-    category: "pieces",
-    featured: false,
-    description: "Chargeur mid-cap 120 billes pour M4",
-    createdAt: new Date().toISOString()
-  }
-];
+
 
 // Hook pour récupérer les produits
 export const useProducts = (filters?: ProductFilters) => {
   return useQuery({
     queryKey: ['products', filters],
     queryFn: async () => {
-  const response = await api.get<ProductsResponse>('/api/products', filters);
+      const response = await api.get<ProductsResponse>('/api/products', filters);
       return response;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -121,40 +29,12 @@ export const useInfiniteProducts = (filters?: ProductFilters) => {
   return useInfiniteQuery({
     queryKey: ['products-infinite', filters],
     queryFn: async ({ pageParam = 1 }) => {
-      try {
-        const response = await api.get<ProductsResponse>('/api/products', {
-          ...filters,
-          page: pageParam,
-          limit: 20,
-        });
-        return response;
-      } catch (error) {
-        // Fallback to mock data when backend is unavailable
-        console.log('[useInfiniteProducts] Backend unavailable, using mock data');
-        let filteredProducts = [...MOCK_PRODUCTS];
-        
-        // Apply category filter
-        if (filters?.category) {
-          filteredProducts = filteredProducts.filter(p => p.category === filters.category);
-        }
-        
-        // Apply search filter
-        if (filters?.search) {
-          const searchLower = filters.search.toLowerCase();
-          filteredProducts = filteredProducts.filter(p => 
-            p.title.toLowerCase().includes(searchLower) ||
-            p.description.toLowerCase().includes(searchLower)
-          );
-        }
-        
-        return {
-          products: filteredProducts,
-          total: filteredProducts.length,
-          page: pageParam,
-          limit: 20,
-          hasMore: false
-        };
-      }
+      const response = await api.get<ProductsResponse>('/api/products', {
+        ...filters,
+        page: pageParam,
+        limit: 20,
+      });
+      return response;
     },
     getNextPageParam: (lastPage) =>
       lastPage.hasMore ? lastPage.page + 1 : undefined,
@@ -167,7 +47,7 @@ export const useProduct = (productId: string) => {
   return useQuery({
     queryKey: ['product', productId],
     queryFn: async () => {
-  const response = await api.get<Product>(`/api/products/${productId}`);
+      const response = await api.get<Product>(`/api/products/${productId}`);
       return response;
     },
     enabled: !!productId,
@@ -180,7 +60,7 @@ export const useCreateProduct = () => {
 
   return useMutation({
     mutationFn: async (productData: FormData) => {
-  const response = await api.upload<Product>('/api/products', productData);
+      const response = await api.upload<Product>('/api/products', productData);
       return response;
     },
     onSuccess: () => {
@@ -202,7 +82,7 @@ export const useUpdateProduct = () => {
       id: string;
       data: Partial<Product>;
     }) => {
-  const response = await api.put<Product>(`/api/products/${id}`, data);
+      const response = await api.put<Product>(`/api/products/${id}`, data);
       return response;
     },
     onSuccess: (data) => {
@@ -218,7 +98,7 @@ export const useDeleteProduct = () => {
 
   return useMutation({
     mutationFn: async (productId: string) => {
-  await api.delete(`/api/products/${productId}`);
+      await api.delete(`/api/products/${productId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -248,7 +128,7 @@ export const useToggleFavorite = () => {
 
   return useMutation({
     mutationFn: async (productId: string) => {
-  await api.post(`/api/favorites/${productId}/toggle`);
+      await api.post(`/api/favorites/${productId}/toggle`);
     },
     onMutate: async (productId) => {
       // Cancel outgoing refetches

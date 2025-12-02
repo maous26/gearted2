@@ -1,165 +1,138 @@
-import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcryptjs';
+import { Router } from 'express';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
 
-/**
- * Nettoyer TOUTE la base de données sauf Iswael et Tata
- * GET /api/admin/clean-database
- */
-router.get('/clean-database', async (req: Request, res: Response) => {
+// Seeded product identifiers
+const SEEDED_PRODUCT_SLUGS = [
+  'ak-74-kalashnikov-replique',
+  'red-dot-sight-eotech-552',
+  'gilet-tactique-multicam',
+  'billes-0-25g-bio-5000pcs',
+  'm4a1-custom-build',
+  'chargeur-m4-120-billes'
+];
+
+const SEEDED_USER_EMAILS = [
+  'vendeur@gearted.com',
+  'tactical@gearted.com',
+  'milsim@gearted.com'
+];
+
+// GET /api/admin/products/analyze - Analyze products in database
+router.get('/products/analyze', authenticate, async (req, res) => {
   try {
-    console.log('🧹 Starting COMPLETE database cleanup from API...');
+    // Only allow admins
+    if (req.user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
 
-    // 1. Supprimer toutes les compatibilités
-    await prisma.partCompatibility.deleteMany({});
-    console.log('✅ Deleted part compatibilities');
-
-    // 2. Supprimer tous les parts
-    await prisma.part.deleteMany({});
-    console.log('✅ Deleted parts');
-
-    // 3. Supprimer tous les produits
-    await prisma.product.deleteMany({});
-    console.log('✅ Deleted products');
-
-    // 4. Supprimer tous les modèles d'armes
-    await prisma.weaponModel.deleteMany({});
-    console.log('✅ Deleted weapon models');
-
-    // 5. Supprimer tous les manufacturers
-    await prisma.manufacturer.deleteMany({});
-    console.log('✅ Deleted manufacturers');
-
-    // 6. Supprimer tous les messages
-    await prisma.message.deleteMany({});
-    console.log('✅ Deleted messages');
-
-    // 7. Supprimer toutes les conversations
-    await prisma.conversation.deleteMany({});
-    console.log('✅ Deleted conversations');
-
-    // 8. Supprimer toutes les notifications
-    await prisma.notification.deleteMany({});
-    console.log('✅ Deleted notifications');
-
-    // 9. Supprimer toutes les adresses de livraison
-    await prisma.shippingAddress.deleteMany({});
-    console.log('✅ Deleted shipping addresses');
-
-    // 10. Supprimer tous les utilisateurs SAUF Iswael et Tata
-    await prisma.user.deleteMany({
-      where: {
-        AND: [
-          { username: { not: 'iswael' } },
-          { username: { not: 'tata' } },
-        ],
+    const allProducts = await prisma.product.findMany({
+      include: {
+        seller: {
+          select: {
+            email: true,
+            username: true
+          }
+        }
       },
-    });
-    console.log('✅ Deleted all users except Iswael and Tata');
-
-    // 11. Créer/mettre à jour les comptes Iswael et Tata
-    const hashedPassword = await bcrypt.hash('password123', 10);
-
-    const iswael = await prisma.user.upsert({
-      where: { username: 'iswael' },
-      update: {
-        email: 'iswael@gearted.com',
-        password: hashedPassword,
-        bio: 'Compte test Iswael',
-        location: 'Paris, France',
-      },
-      create: {
-        username: 'iswael',
-        email: 'iswael@gearted.com',
-        password: hashedPassword,
-        bio: 'Compte test Iswael',
-        location: 'Paris, France',
-      },
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
 
-    const tata = await prisma.user.upsert({
-      where: { username: 'tata' },
-      update: {
-        email: 'tata@gearted.com',
-        password: hashedPassword,
-        bio: 'Compte test Tata',
-        location: 'Lyon, France',
-      },
-      create: {
-        username: 'tata',
-        email: 'tata@gearted.com',
-        password: hashedPassword,
-        bio: 'Compte test Tata',
-        location: 'Lyon, France',
-      },
-    });
+    const seededProducts = allProducts.filter(p =>
+      SEEDED_PRODUCT_SLUGS.includes(p.slug) ||
+      SEEDED_USER_EMAILS.includes(p.seller.email)
+    );
 
-    // Statistiques finales
-    const stats = {
-      users: await prisma.user.count(),
-      products: await prisma.product.count(),
-      messages: await prisma.message.count(),
-      conversations: await prisma.conversation.count(),
-      manufacturers: await prisma.manufacturer.count(),
-      weaponModels: await prisma.weaponModel.count(),
-      parts: await prisma.part.count(),
-      notifications: await prisma.notification.count(),
-      shippingAddresses: await prisma.shippingAddress.count(),
-    };
-
-    console.log('✅ Database cleaned successfully!', stats);
+    const realProducts = allProducts.filter(p =>
+      !SEEDED_PRODUCT_SLUGS.includes(p.slug) &&
+      !SEEDED_USER_EMAILS.includes(p.seller.email)
+    );
 
     res.json({
-      success: true,
-      message: 'Database cleaned successfully!',
-      stats,
-      accounts: [
-        { username: 'iswael', id: iswael.id, password: 'password123' },
-        { username: 'tata', id: tata.id, password: 'password123' },
-      ],
+      total: allProducts.length,
+      seeded: {
+        count: seededProducts.length,
+        products: seededProducts.map(p => ({
+          id: p.id,
+          title: p.title,
+          slug: p.slug,
+          seller: p.seller.username,
+          sellerEmail: p.seller.email,
+          createdAt: p.createdAt
+        }))
+      },
+      real: {
+        count: realProducts.length,
+        products: realProducts.slice(0, 10).map(p => ({
+          id: p.id,
+          title: p.title,
+          seller: p.seller.username,
+          createdAt: p.createdAt
+        }))
+      }
     });
   } catch (error) {
-    console.error('❌ Error cleaning database:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to clean database',
-      details: error instanceof Error ? error.message : 'Unknown error',
-    });
+    console.error('[admin] Failed to analyze products', error);
+    res.status(500).json({ error: 'Failed to analyze products' });
   }
 });
 
-/**
- * Force Railway redeploy by causing a deliberate error that Railway will detect
- * POST /api/admin/force-redeploy
- */
-router.post('/force-redeploy', async (req: Request, res: Response) => {
+// DELETE /api/admin/products/cleanup - Delete seeded products
+router.delete('/products/cleanup', authenticate, async (req, res) => {
   try {
-    console.log('⚠️ Force redeploy requested - this should trigger Railway to rebuild');
+    // Only allow admins
+    if (req.user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    // Delete products by seeded users
+    const deletedByUser = await prisma.product.deleteMany({
+      where: {
+        seller: {
+          email: {
+            in: SEEDED_USER_EMAILS
+          }
+        }
+      }
+    });
+
+    // Delete products by slug (in case they were created by different users)
+    const deletedBySlug = await prisma.product.deleteMany({
+      where: {
+        slug: {
+          in: SEEDED_PRODUCT_SLUGS
+        }
+      }
+    });
+
+    // Optionally delete the seeded users
+    const deletedUsers = await prisma.user.deleteMany({
+      where: {
+        email: {
+          in: SEEDED_USER_EMAILS
+        }
+      }
+    });
+
+    const remainingProducts = await prisma.product.count();
 
     res.json({
       success: true,
-      message: 'Please go to Railway dashboard and click "Redeploy" to apply the latest code changes that disable mock products.',
-      instructions: [
-        '1. Go to railway.app',
-        '2. Select your project',
-        '3. Click on the backend service',
-        '4. Click "Redeploy" button',
-        '5. Wait for build to complete',
-        '6. Mock products will be gone'
-      ],
-      currentIssue: 'Railway is not automatically detecting our git pushes to cleanV0 branch',
-      codeStatus: 'Code to disable mocks is ready in cleanV0 branch (commit 8672c2b)'
+      deleted: {
+        productsByUser: deletedByUser.count,
+        productsBySlug: deletedBySlug.count,
+        users: deletedUsers.count
+      },
+      remainingProducts
     });
   } catch (error) {
-    console.error('❌ Error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error',
-      details: error instanceof Error ? error.message : 'Unknown error',
-    });
+    console.error('[admin] Failed to cleanup products', error);
+    res.status(500).json({ error: 'Failed to cleanup products' });
   }
 });
 

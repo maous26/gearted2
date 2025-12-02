@@ -38,29 +38,16 @@ export default function AuthenticatedHome() {
   // Use real products from the database for featured listings
   const featuredListings = React.useMemo(() => {
     if (!productsData?.products) return [];
-    // Filtrer les produits mis en avant, sinon prendre les 3 plus récents
+    // Filter featured products, otherwise take the 3 most recent
     const featured = productsData.products.filter((p: any) => p.featured).slice(0, 3);
     if (featured.length > 0) return featured;
     return productsData.products.slice(0, 3);
   }, [productsData]);
 
-  // Prioriser les vraies annonces (DB) dans "Dernières annonces"
+  // Get recent listings from the database
   const recentListings = React.useMemo(() => {
     const all = productsData?.products ?? [];
-    if (!all.length) return [];
-
-    // Heuristique simple : les IDs Prisma (cuid) sont beaucoup plus longs que les IDs mock ("1", "10", ...)
-    const real = all.filter((p: any) => typeof p.id === 'string' && p.id.length > 10);
-    const realRecent = real.slice(0, 5);
-
-    // Compléter avec des mocks si moins de 5 vraies annonces
-    if (realRecent.length >= 5) return realRecent;
-
-    const realIds = new Set(realRecent.map((p: any) => p.id));
-    const mocks = all.filter((p: any) => !realIds.has(p.id));
-    const mockRecent = mocks.slice(0, 5 - realRecent.length);
-
-    return [...realRecent, ...mockRecent];
+    return all.slice(0, 5);
   }, [productsData]);
 
   const popularCategories = React.useMemo(() => {
