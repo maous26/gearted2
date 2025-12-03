@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -52,7 +85,9 @@ app.get('/health', (req, res) => {
         status: 'ok',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'production'
+        environment: process.env.NODE_ENV || 'production',
+        version: '2.0.0-no-mocks',
+        buildTime: new Date().toISOString()
     });
 });
 app.get('/diagnostic', (_req, res) => {
@@ -79,6 +114,56 @@ app.get('/diagnostic', (_req, res) => {
         totalRoutes: routes.length,
         notificationsRouteExists: routes.some(r => r.includes('/api/notifications'))
     });
+});
+app.delete('/admin-clean-db', async (req, res) => {
+    const adminSecret = req.headers['x-admin-secret'];
+    const expectedSecret = process.env.ADMIN_SECRET_KEY || 'gearted-admin-2025';
+    if (!adminSecret || adminSecret !== expectedSecret) {
+        return res.status(403).json({ error: 'Invalid or missing admin secret key' });
+    }
+    try {
+        const { PrismaClient } = await Promise.resolve().then(() => __importStar(require('@prisma/client')));
+        const prisma = new PrismaClient();
+        console.log('[Admin] Starting database cleanup...');
+        const usersToKeep = await prisma.user.findMany({
+            where: {
+                OR: [
+                    { username: 'iswael0552617' },
+                    { username: 'tata' },
+                    { email: { contains: 'iswael' } },
+                    { email: { contains: 'tata' } }
+                ]
+            }
+        });
+        const userIdsToKeep = usersToKeep.map((u) => u.id);
+        console.log(`[Admin] Found ${usersToKeep.length} users to keep:`, usersToKeep.map((u) => u.username));
+        const results = {
+            notifications: (await prisma.notification.deleteMany({})).count,
+            messages: (await prisma.message.deleteMany({})).count,
+            conversations: (await prisma.conversation.deleteMany({})).count,
+            transactions: (await prisma.transaction.deleteMany({})).count,
+            shippingAddresses: (await prisma.shippingAddress.deleteMany({})).count,
+            favorites: (await prisma.favorite.deleteMany({})).count,
+            products: (await prisma.product.deleteMany({})).count,
+            parcelDimensions: (await prisma.parcelDimensions.deleteMany({})).count,
+            users: (await prisma.user.deleteMany({ where: { id: { notIn: userIdsToKeep } } })).count,
+        };
+        console.log('[Admin] Database cleanup complete:', results);
+        await prisma.$disconnect();
+        return res.json({
+            success: true,
+            message: 'Database cleaned successfully',
+            keptUsers: usersToKeep.map((u) => ({ username: u.username, email: u.email })),
+            deleted: results
+        });
+    }
+    catch (error) {
+        console.error('[Admin] Error during cleanup:', error);
+        return res.status(500).json({
+            error: 'Error during database cleanup',
+            details: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
 });
 app.use((0, helmet_1.default)({
     contentSecurityPolicy: {

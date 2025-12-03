@@ -53,7 +53,7 @@ router.get('/products/analyze', authenticate, async (req, res) => {
       !SEEDED_USER_EMAILS.includes(p.seller.email)
     );
 
-    res.json({
+    return res.json({
       total: allProducts.length,
       seeded: {
         count: seededProducts.length,
@@ -78,7 +78,7 @@ router.get('/products/analyze', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('[admin] Failed to analyze products', error);
-    res.status(500).json({ error: 'Failed to analyze products' });
+    return res.status(500).json({ error: 'Failed to analyze products' });
   }
 });
 
@@ -121,7 +121,7 @@ router.delete('/products/cleanup', authenticate, async (req, res) => {
 
     const remainingProducts = await prisma.product.count();
 
-    res.json({
+    return res.json({
       success: true,
       deleted: {
         productsByUser: deletedByUser.count,
@@ -132,7 +132,7 @@ router.delete('/products/cleanup', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('[admin] Failed to cleanup products', error);
-    res.status(500).json({ error: 'Failed to cleanup products' });
+    return res.status(500).json({ error: 'Failed to cleanup products' });
   }
 });
 
