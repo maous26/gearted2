@@ -4,113 +4,6 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Mock pickup points for fallback when API fails
-const getMockPickupPoints = (postalCode: string) => {
-  const basePoints = [
-    {
-      id: 'MR001',
-      name: 'Tabac Presse du Centre',
-      address: '12 Rue du Commerce',
-      city: 'Paris',
-      postalCode: postalCode,
-      country: 'FR',
-      latitude: '48.8566',
-      longitude: '2.3522',
-      distance: '250',
-      openingHours: {
-        monday: '09:00-19:00',
-        tuesday: '09:00-19:00',
-        wednesday: '09:00-19:00',
-        thursday: '09:00-19:00',
-        friday: '09:00-19:00',
-        saturday: '09:00-18:00',
-        sunday: 'Fermé'
-      }
-    },
-    {
-      id: 'MR002',
-      name: 'Carrefour City',
-      address: '45 Avenue de la République',
-      city: 'Paris',
-      postalCode: postalCode,
-      country: 'FR',
-      latitude: '48.8580',
-      longitude: '2.3550',
-      distance: '480',
-      openingHours: {
-        monday: '08:00-21:00',
-        tuesday: '08:00-21:00',
-        wednesday: '08:00-21:00',
-        thursday: '08:00-21:00',
-        friday: '08:00-21:00',
-        saturday: '08:00-21:00',
-        sunday: '09:00-13:00'
-      }
-    },
-    {
-      id: 'MR003',
-      name: 'Pressing Express',
-      address: '78 Boulevard Voltaire',
-      city: 'Paris',
-      postalCode: postalCode,
-      country: 'FR',
-      latitude: '48.8600',
-      longitude: '2.3600',
-      distance: '720',
-      openingHours: {
-        monday: '07:30-19:30',
-        tuesday: '07:30-19:30',
-        wednesday: '07:30-19:30',
-        thursday: '07:30-19:30',
-        friday: '07:30-19:30',
-        saturday: '08:00-18:00',
-        sunday: 'Fermé'
-      }
-    },
-    {
-      id: 'MR004',
-      name: 'Librairie Papeterie Martin',
-      address: '23 Rue des Écoles',
-      city: 'Paris',
-      postalCode: postalCode,
-      country: 'FR',
-      latitude: '48.8520',
-      longitude: '2.3480',
-      distance: '950',
-      openingHours: {
-        monday: '09:30-19:00',
-        tuesday: '09:30-19:00',
-        wednesday: '09:30-19:00',
-        thursday: '09:30-19:00',
-        friday: '09:30-19:00',
-        saturday: '10:00-18:00',
-        sunday: 'Fermé'
-      }
-    },
-    {
-      id: 'MR005',
-      name: 'Boulangerie Le Pain Doré',
-      address: '5 Place de la Bastille',
-      city: 'Paris',
-      postalCode: postalCode,
-      country: 'FR',
-      latitude: '48.8530',
-      longitude: '2.3690',
-      distance: '1200',
-      openingHours: {
-        monday: '06:30-20:00',
-        tuesday: '06:30-20:00',
-        wednesday: '06:30-20:00',
-        thursday: '06:30-20:00',
-        friday: '06:30-20:00',
-        saturday: '07:00-20:00',
-        sunday: '07:00-13:00'
-      }
-    }
-  ];
-  return basePoints;
-};
-
 export class MondialRelayController {
   /**
    * Search for nearby pickup points
@@ -130,10 +23,10 @@ export class MondialRelayController {
         });
       }
 
-      // Try real Mondial Relay API first
-      try {
-        console.log('[MondialRelay] Calling REAL API for postal code:', postalCode);
+      // Call the real Mondial Relay API
+      console.log('[MondialRelay] Calling REAL API for postal code:', postalCode);
 
+      try {
         const points = await MondialRelayService.searchPickupPoints(
           postalCode as string,
           country as string,
@@ -146,16 +39,79 @@ export class MondialRelayController {
           pickupPoints: points,
           count: points.length
         });
-      } catch (apiError: any) {
-        // If API fails, return mock data for development/testing
-        console.warn('[MondialRelay] API failed, returning mock data:', apiError.message);
-        
-        const mockPoints = getMockPickupPoints(postalCode as string);
+      } catch (soapError: any) {
+        // SOAP API failed - use fallback mock data for development
+        console.error('[MondialRelay] SOAP API Error:', soapError.message);
+        console.log('[MondialRelay] Falling back to mock data');
+
+        const mockPoints = [
+          {
+            id: '024892',
+            name: 'PARIS DAUMESNIL',
+            address: '184 RUE DE CHARENTON',
+            city: 'PARIS',
+            postalCode: postalCode as string,
+            country: country as string,
+            latitude: '48.8396',
+            longitude: '2.3866',
+            distance: '450',
+            openingHours: {
+              monday: '0900 1200 1400 1900',
+              tuesday: '0900 1200 1400 1900',
+              wednesday: '0900 1200 1400 1900',
+              thursday: '0900 1200 1400 1900',
+              friday: '0900 1200 1400 1900',
+              saturday: '0900 1300 0000 0000',
+              sunday: '0000 0000 0000 0000'
+            }
+          },
+          {
+            id: '024893',
+            name: 'PRESSING VICTOR HUGO',
+            address: '125 AVENUE VICTOR HUGO',
+            city: 'PARIS',
+            postalCode: postalCode as string,
+            country: country as string,
+            latitude: '48.8716',
+            longitude: '2.2858',
+            distance: '820',
+            openingHours: {
+              monday: '0830 1230 1430 1930',
+              tuesday: '0830 1230 1430 1930',
+              wednesday: '0830 1230 1430 1930',
+              thursday: '0830 1230 1430 1930',
+              friday: '0830 1230 1430 1930',
+              saturday: '0900 1300 0000 0000',
+              sunday: '0000 0000 0000 0000'
+            }
+          },
+          {
+            id: '024894',
+            name: 'TABAC DE LA GARE',
+            address: '12 RUE DU DEPART',
+            city: 'PARIS',
+            postalCode: postalCode as string,
+            country: country as string,
+            latitude: '48.8423',
+            longitude: '2.3214',
+            distance: '1200',
+            openingHours: {
+              monday: '0700 2200 0000 0000',
+              tuesday: '0700 2200 0000 0000',
+              wednesday: '0700 2200 0000 0000',
+              thursday: '0700 2200 0000 0000',
+              friday: '0700 2200 0000 0000',
+              saturday: '0800 2000 0000 0000',
+              sunday: '0900 1400 0000 0000'
+            }
+          }
+        ];
+
         return res.json({
           success: true,
           pickupPoints: mockPoints,
           count: mockPoints.length,
-          _mock: true // Flag to indicate this is mock data
+          note: 'Using fallback data - SOAP API connection failed'
         });
       }
     } catch (error: any) {
@@ -175,59 +131,31 @@ export class MondialRelayController {
     try {
       const { weight = '1000', country = 'FR' } = req.query;
 
-      // Try real Mondial Relay API for rates
-      try {
-        console.log('[MondialRelay] Getting REAL rates for weight:', weight);
+      // Call the real Mondial Relay API for rates
+      console.log('[MondialRelay] Getting REAL rates for weight:', weight);
 
-        const rates = await MondialRelayService.getShippingRates(
-          parseInt(weight as string),
-          country as string
-        );
+      const rates = await MondialRelayService.getShippingRates(
+        parseInt(weight as string),
+        country as string
+      );
 
-        return res.json({
-          success: true,
-          rates: {
-            standard: {
-              name: 'Mondial Relay - Point Relais',
-              price: rates.standard,
-              currency: 'EUR',
-              estimatedDays: 3
-            },
-            express: {
-              name: 'Mondial Relay - Domicile',
-              price: rates.express,
-              currency: 'EUR',
-              estimatedDays: 2
-            }
-          }
-        });
-      } catch (apiError: any) {
-        // If API fails, return mock rates for development/testing
-        console.warn('[MondialRelay] Rates API failed, returning mock rates:', apiError.message);
-        
-        const weightNum = parseInt(weight as string);
-        const mockStandard = weightNum <= 500 ? 3.99 : weightNum <= 1000 ? 4.99 : weightNum <= 3000 ? 6.99 : 9.99;
-        const mockExpress = mockStandard + 3.00;
-        
-        return res.json({
-          success: true,
-          rates: {
-            standard: {
-              name: 'Mondial Relay - Point Relais',
-              price: mockStandard,
-              currency: 'EUR',
-              estimatedDays: 3
-            },
-            express: {
-              name: 'Mondial Relay - Domicile',
-              price: mockExpress,
-              currency: 'EUR',
-              estimatedDays: 2
-            }
+      return res.json({
+        success: true,
+        rates: {
+          standard: {
+            name: 'Mondial Relay - Point Relais',
+            price: rates.standard,
+            currency: 'EUR',
+            estimatedDays: 3
           },
-          _mock: true
-        });
-      }
+          express: {
+            name: 'Mondial Relay - Domicile',
+            price: rates.express,
+            currency: 'EUR',
+            estimatedDays: 2
+          }
+        }
+      });
     } catch (error: any) {
       console.error('[MondialRelayController] Get rates error:', error);
       return res.status(500).json({
