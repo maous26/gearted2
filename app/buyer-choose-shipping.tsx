@@ -38,6 +38,7 @@ interface SelectedRelayPoint {
   postalCode: string;
 }
 
+// Mondial Relay only - No Colissimo/Chronopost - Force rebuild v2
 export default function BuyerChooseShippingScreen() {
   const { theme } = useTheme();
   const t = THEMES[theme];
