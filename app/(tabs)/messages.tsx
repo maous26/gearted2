@@ -87,7 +87,8 @@ export default function MessagesScreen() {
     loadFromStorage, 
     markAsRead, 
     deleteConversation: deleteFromStore,
-    hugoMessages
+    hugoMessages,
+    cleanDuplicates
   } = useMessagesStore();
   
   const [searchText, setSearchText] = useState("");
@@ -95,9 +96,13 @@ export default function MessagesScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Charger les données du store au démarrage
+  // Charger les données du store au démarrage et nettoyer les doublons
   useEffect(() => {
-    loadFromStorage();
+    const init = async () => {
+      await loadFromStorage();
+      await cleanDuplicates();
+    };
+    init();
   }, []);
 
   // Importer la fonction de génération de contenu

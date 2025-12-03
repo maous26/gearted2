@@ -88,6 +88,8 @@ interface MessagesStore {
   addHugoMessage: (message: HugoTransactionMessage) => Promise<void>;
   getHugoMessages: () => HugoTransactionMessage[];
   hasHugoMessage: (transactionId: string, type: HugoMessageType) => boolean;
+  cleanDuplicates: () => Promise<number>;
+  clearAllHugoMessages: () => Promise<void>;
 }
 
 export const useMessagesStore = create<MessagesStore>((set, get) => ({
@@ -219,13 +221,16 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
     const { hugoMessages } = get();
     
     // Vérifier si ce message existe déjà (même transaction + même type)
-    const msgId = `hugo-${message.type}-${message.transactionId}`;
-    if (hugoMessages.some((m: HugoTransactionMessage) => 
+    const exists = hugoMessages.some((m: HugoTransactionMessage) => 
       m.transactionId === message.transactionId && m.type === message.type
-    )) {
+    );
+    
+    if (exists) {
+      console.log(`[MessagesStore] Hugo message already exists: ${message.type} for ${message.transactionId}`);
       return;
     }
     
+    console.log(`[MessagesStore] Adding new Hugo message: ${message.type} for ${message.transactionId}`);
     const newMessages = [message, ...hugoMessages];
     set({ hugoMessages: newMessages });
     
@@ -246,9 +251,40 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
 
   hasHugoMessage: (transactionId: string, type: HugoMessageType) => {
     const { hugoMessages } = get();
-    return hugoMessages.some((m: HugoTransactionMessage) => 
+    const exists = hugoMessages.some((m: HugoTransactionMessage) => 
       m.transactionId === transactionId && m.type === type
     );
+    console.log(`[MessagesStore] hasHugoMessage check: ${type} for ${transactionId} = ${exists}`);
+    return exists;
+  },
+  
+  // Fonction pour nettoyer tous les doublons existants
+  cleanDuplicates: async () => {
+    const { hugoMessages } = get();
+    const seen = new Set<string>();
+    const cleanedMessages = hugoMessages.filter((msg: HugoTransactionMessage) => {
+      const key = `${msg.type}-${msg.transactionId}`;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+    
+    if (cleanedMessages.length !== hugoMessages.length) {
+      console.log(`[MessagesStore] Cleaned ${hugoMessages.length - cleanedMessages.length} duplicates`);
+      set({ hugoMessages: cleanedMessages });
+      await AsyncStorage.setItem(HUGO_MESSAGES_KEY, JSON.stringify(cleanedMessages));
+    }
+    
+    return cleanedMessages.length;
+  },
+  
+  // Fonction pour réinitialiser complètement les messages Hugo
+  clearAllHugoMessages: async () => {
+    set({ hugoMessages: [] });
+    await AsyncStorage.removeItem(HUGO_MESSAGES_KEY);
+    console.log('[MessagesStore] All Hugo messages cleared');
   }
 }));
 
