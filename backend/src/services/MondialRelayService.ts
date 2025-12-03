@@ -5,7 +5,7 @@ const MONDIAL_RELAY_WSDL = 'https://api.mondialrelay.com/Web_Services.asmx?WSDL'
 
 // Credentials from environment variables (using official Mondial Relay test credentials)
 const MR_ENSEIGNE = process.env.MONDIAL_RELAY_ENSEIGNE || 'BDTEST13';
-const MR_PRIVATE_KEY = process.env.MONDIAL_RELAY_PRIVATE_KEY || 'TestAPI1key';
+const MR_PRIVATE_KEY = process.env.MONDIAL_RELAY_PRIVATE_KEY || 'PrivateK';
 const MR_BRAND = process.env.MONDIAL_RELAY_BRAND || '11';
 
 interface PickupPoint {
@@ -83,6 +83,12 @@ export class MondialRelayService {
 
       const security = this.calculateSecurityHash(securityParams);
 
+      console.log('[MondialRelay] Debug - Credentials:', {
+        enseigne: MR_ENSEIGNE,
+        privateKey: MR_PRIVATE_KEY.substring(0, 3) + '***',
+        security: security.substring(0, 8) + '...'
+      });
+
       // Call SOAP method
       const [result] = await client.WSI4_PointRelais_RechercheAsync({
         Enseigne: MR_ENSEIGNE,
@@ -101,12 +107,22 @@ export class MondialRelayService {
         Security: security,
       });
 
+      console.log('[MondialRelay] Search result STAT:', result.STAT);
       console.log('[MondialRelay] Search result:', JSON.stringify(result, null, 2));
 
       // Check for errors
       if (result.STAT !== '0') {
-        console.error('[MondialRelay] Search error code:', result.STAT);
-        throw new Error(`Mondial Relay search failed with code: ${result.STAT}`);
+        const errorMessages: Record<string, string> = {
+          '1': 'Invalid Enseigne',
+          '10': 'Invalid security hash',
+          '16': 'Invalid country code',
+          '19': 'Invalid postal code',
+          '20': 'Invalid weight',
+          '99': 'System error'
+        };
+        const errorMsg = errorMessages[result.STAT] || `Unknown error code: ${result.STAT}`;
+        console.error('[MondialRelay] Search error:', errorMsg, 'STAT:', result.STAT);
+        throw new Error(`Mondial Relay: ${errorMsg} (code: ${result.STAT})`);
       }
 
       // Parse and return pickup points
