@@ -11,6 +11,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import RelayPointMap from '../components/RelayPointMap';
 import { useTheme } from '../components/ThemeProvider';
 import api from '../services/api';
 import { HugoTransactionMessage, useMessagesStore } from '../stores/messagesStore';
@@ -27,6 +28,14 @@ interface ShippingRate {
   amount: string;
   currency: string;
   estimatedDays: number;
+}
+
+interface SelectedRelayPoint {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  postalCode: string;
 }
 
 export default function BuyerChooseShippingScreen() {
@@ -50,6 +59,8 @@ export default function BuyerChooseShippingScreen() {
     height: number;
     weight: number;
   } | null>(null);
+  const [showRelayMap, setShowRelayMap] = useState(false);
+  const [selectedRelayPoint, setSelectedRelayPoint] = useState<SelectedRelayPoint | null>(null);
 
   useEffect(() => {
     fetchRates();
@@ -80,23 +91,11 @@ export default function BuyerChooseShippingScreen() {
 
     console.log('[BuyerShipping] START generateLabel - transactionId:', transactionId, 'rateId:', selectedRate);
 
-    const isMondialRelay = selectedRate.startsWith('mondial-relay-');
+    const isMondialRelayPointRelais = selectedRate === 'mondial-relay-standard';
 
-    if (isMondialRelay) {
-      // Pour Mondial Relay, il faut sélectionner un point relais
-      Alert.alert(
-        'Point Relais requis',
-        'Pour Mondial Relay, la sélection du point relais sera disponible prochainement.\n\nEn attendant, vous pouvez tester avec les credentials de test configurés (BDTEST13).',
-        [
-          { text: 'Annuler', style: 'cancel' },
-          {
-            text: 'Continuer quand même',
-            onPress: () => {
-              Alert.alert('Info', 'La fonctionnalité complète arrive bientôt!');
-            }
-          }
-        ]
-      );
+    if (isMondialRelayPointRelais && !selectedRelayPoint) {
+      // Pour Mondial Relay Point Relais, ouvrir la carte pour sélectionner un point
+      setShowRelayMap(true);
       return;
     }
 
@@ -110,6 +109,7 @@ export default function BuyerChooseShippingScreen() {
         transaction: any;
       }>(`/api/shipping/label/${transactionId}`, {
         rateId: selectedRate,
+        ...(selectedRelayPoint && { relayPointId: selectedRelayPoint.id }),
       });
 
       console.log('[BuyerShipping] Label created successfully:', response);
@@ -240,7 +240,13 @@ export default function BuyerChooseShippingScreen() {
             {rates.map((rate) => (
               <TouchableOpacity
                 key={rate.rateId}
-                onPress={() => setSelectedRate(rate.rateId)}
+                onPress={() => {
+                  setSelectedRate(rate.rateId);
+                  // Reset relay point si on change de mode
+                  if (rate.rateId !== 'mondial-relay-standard') {
+                    setSelectedRelayPoint(null);
+                  }
+                }}
                 style={{
                   backgroundColor: selectedRate === rate.rateId ? t.sectionLight : t.rootBg,
                   borderWidth: 2,
@@ -252,14 +258,22 @@ export default function BuyerChooseShippingScreen() {
               >
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
-                      {rate.provider}
-                    </Text>
-                    <Text style={{ fontSize: 14, color: t.muted, marginTop: 4 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Ionicons 
+                        name={rate.rateId === 'mondial-relay-standard' ? 'location' : 'home'} 
+                        size={18} 
+                        color={t.primaryBtn} 
+                        style={{ marginRight: 8 }}
+                      />
+                      <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
+                        {rate.provider}
+                      </Text>
+                    </View>
+                    <Text style={{ fontSize: 14, color: t.muted, marginTop: 4, marginLeft: 26 }}>
                       {rate.servicelevel?.name || rate.servicelevelName || 'Service standard'}
                     </Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                      <Ionicons name="car-outline" size={14} color={t.muted} style={{ marginRight: 4 }} />
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, marginLeft: 26 }}>
+                      <Ionicons name="time-outline" size={14} color={t.muted} style={{ marginRight: 4 }} />
                       <Text style={{ fontSize: 12, color: t.muted }}>
                         Livraison estimée: <Text style={{ fontWeight: '600' }}>{(() => {
                           const deliveryDate = new Date();
@@ -279,6 +293,43 @@ export default function BuyerChooseShippingScreen() {
               </TouchableOpacity>
             ))}
 
+            {/* Afficher le point relais sélectionné */}
+            {selectedRate === 'mondial-relay-standard' && selectedRelayPoint && (
+              <View
+                style={{
+                  backgroundColor: t.sectionLight,
+                  borderRadius: 12,
+                  padding: 16,
+                  marginBottom: 12,
+                  borderWidth: 1,
+                  borderColor: t.primaryBtn,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                  <Ionicons name="checkmark-circle" size={20} color={t.primaryBtn} style={{ marginRight: 8 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: t.heading }}>
+                      Point Relais sélectionné
+                    </Text>
+                    <Text style={{ fontSize: 14, color: t.heading, marginTop: 4 }}>
+                      {selectedRelayPoint.name}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: t.muted, marginTop: 2 }}>
+                      {selectedRelayPoint.address}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: t.muted }}>
+                      {selectedRelayPoint.postalCode} {selectedRelayPoint.city}
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setShowRelayMap(true)}>
+                    <Text style={{ fontSize: 12, color: t.primaryBtn, fontWeight: '600' }}>
+                      Changer
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
             <TouchableOpacity
               onPress={generateLabel}
               disabled={!selectedRate || creatingLabel}
@@ -288,14 +339,26 @@ export default function BuyerChooseShippingScreen() {
                 borderRadius: 12,
                 alignItems: 'center',
                 marginTop: 8,
+                flexDirection: 'row',
+                justifyContent: 'center',
               }}
             >
               {creatingLabel ? (
                 <ActivityIndicator size="small" color="#FFF" />
               ) : (
-                <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 16 }}>
-                  Générer l'étiquette
-                </Text>
+                <>
+                  <Ionicons 
+                    name={selectedRate === 'mondial-relay-standard' && !selectedRelayPoint ? 'map' : 'checkmark-circle'} 
+                    size={20} 
+                    color="#FFF" 
+                    style={{ marginRight: 8 }} 
+                  />
+                  <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 16 }}>
+                    {selectedRate === 'mondial-relay-standard' && !selectedRelayPoint 
+                      ? 'Choisir un point relais' 
+                      : 'Générer l\'étiquette'}
+                  </Text>
+                </>
               )}
             </TouchableOpacity>
           </View>
@@ -327,6 +390,22 @@ export default function BuyerChooseShippingScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Carte des points relais */}
+      <RelayPointMap
+        visible={showRelayMap}
+        onClose={() => setShowRelayMap(false)}
+        onSelectPoint={(point) => {
+          setSelectedRelayPoint({
+            id: point.id,
+            name: point.name,
+            address: point.address,
+            city: point.city,
+            postalCode: point.postalCode,
+          });
+          setShowRelayMap(false);
+        }}
+      />
     </SafeAreaView>
   );
 }

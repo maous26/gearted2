@@ -287,49 +287,16 @@ router.post('/rates/:transactionId', async (req: Request, res: Response): Promis
         estimatedDays: 3
       },
       {
-        rateId: 'mondial-relay-express',
+        rateId: 'mondial-relay-domicile',
         provider: 'Mondial Relay',
         servicelevel: {
           name: 'Domicile',
           token: 'mondial-relay-dom'
         },
-        servicelevelName: 'Domicile',
+        servicelevelName: 'Livraison à domicile',
         amount: (basePrice * 0.9).toFixed(2),
         currency: 'EUR',
         estimatedDays: 2
-      },
-      {
-        rateId: 'colissimo-standard',
-        provider: 'Colissimo',
-        servicelevel: {
-          name: 'Domicile',
-          token: 'colissimo-domicile'
-        },
-        amount: basePrice.toFixed(2),
-        currency: 'EUR',
-        estimatedDays: 2
-      },
-      {
-        rateId: 'colissimo-relais',
-        provider: 'Colissimo',
-        servicelevel: {
-          name: 'Point Relais',
-          token: 'colissimo-relais'
-        },
-        amount: (basePrice * 0.8).toFixed(2),
-        currency: 'EUR',
-        estimatedDays: 3
-      },
-      {
-        rateId: 'chronopost-express',
-        provider: 'Chronopost',
-        servicelevel: {
-          name: 'Express',
-          token: 'chronopost-express'
-        },
-        amount: (basePrice * 1.5).toFixed(2),
-        currency: 'EUR',
-        estimatedDays: 1
       }
     ];
 
