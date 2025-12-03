@@ -17,14 +17,27 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.gearted"
+      "bundleIdentifier": "com.anonymous.gearted",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Gearted a besoin de votre position pour trouver les points relais Mondial Relay à proximité.",
+        "NSLocationAlwaysUsageDescription": "Gearted a besoin de votre position pour trouver les points relais Mondial Relay à proximité."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.gearted.app"
+      "package": "com.gearted.app",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": ""
+        }
+      }
     },
     "web": {
       "bundler": "metro",
@@ -35,7 +48,13 @@
       "android"
     ],
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Gearted a besoin de votre position pour trouver les points relais Mondial Relay à proximité."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
