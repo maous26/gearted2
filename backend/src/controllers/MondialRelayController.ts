@@ -11,9 +11,12 @@ export class MondialRelayController {
    */
   static async searchPickupPoints(req: Request, res: Response) {
     try {
+      console.log('[MondialRelay] searchPickupPoints called with query:', req.query);
+      
       const { postalCode, country = 'FR', weight = '1000', radius = '20000' } = req.query;
 
       if (!postalCode) {
+        console.log('[MondialRelay] Missing postal code');
         return res.status(400).json({
           success: false,
           error: 'Postal code is required'
