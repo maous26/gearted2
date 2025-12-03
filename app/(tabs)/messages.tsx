@@ -37,6 +37,30 @@ type Conversation = {
   participants: User[];
   messages?: Message[];
   productTitle?: string;
+  isSystemMessage?: boolean;
+};
+
+// Message de bienvenue de Hugo de Gearted
+const WELCOME_MESSAGE: Conversation = {
+  id: 'gearted-welcome',
+  participants: [
+    {
+      id: 'hugo-gearted',
+      username: 'Hugo de Gearted',
+      avatar: 'https://ui-avatars.com/api/?name=Hugo+Gearted&background=4B5D3A&color=fff&size=100',
+      role: 'ADMIN',
+      badge: 'admin'
+    }
+  ],
+  messages: [
+    {
+      id: 'welcome-msg-1',
+      content: "Bienvenue sur Gearted ! 🎯 Je suis Hugo, fondateur de la plateforme. N'hésitez pas à me contacter si vous avez des questions. Bonnes ventes !",
+      sentAt: new Date().toISOString(),
+      senderId: 'hugo-gearted'
+    }
+  ],
+  isSystemMessage: true
 };
 
 function formatTimestamp(dateString: string): string {
@@ -57,32 +81,47 @@ export default function MessagesScreen() {
   const t = THEMES[theme];
   const { user } = useUser();
   const [searchText, setSearchText] = useState("");
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [conversations, setConversations] = useState<Conversation[]>([WELCOME_MESSAGE]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      // Même sans utilisateur, afficher le message de bienvenue
+      setConversations([WELCOME_MESSAGE]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     api
       .get<Conversation[]>('/api/messages/conversations')
       .then((data) => {
-        setConversations(Array.isArray(data) ? data : []);
+        const apiConversations = Array.isArray(data) ? data : [];
+        // Ajouter le message de bienvenue de Hugo en premier
+        setConversations([WELCOME_MESSAGE, ...apiConversations]);
         setError('');
       })
       .catch((err) => {
         console.warn('[MessagesScreen] Failed to load conversations:', err);
         if ((err as any)?.response?.status === 401) {
           setError("Vous devez être connecté pour voir vos messages.");
+          // Même en cas d'erreur d'auth, afficher le message de bienvenue
+          setConversations([WELCOME_MESSAGE]);
         } else {
           setError("Impossible de charger les conversations. Veuillez réessayer plus tard.");
+          setConversations([WELCOME_MESSAGE]);
         }
-        setConversations([]);
       })
       .finally(() => setLoading(false));
   }, [user?.id]);
 
   const filteredConversations = conversations.filter(conv => {
+    // Pour le message de bienvenue, toujours l'afficher
+    if (conv.isSystemMessage) {
+      return searchText === "" || 
+        conv.participants?.[0]?.username?.toLowerCase().includes(searchText.toLowerCase());
+    }
+    
     if (!user?.id) return false;
     const other = conv.participants?.find((u: User) => u.id !== user.id);
     return (
@@ -93,21 +132,31 @@ export default function MessagesScreen() {
   });
 
   const ConversationCard = ({ conversation }: { conversation: Conversation }) => {
-    if (!user?.id) return null;
-    const other = conversation.participants?.find((u: User) => u.id !== user.id);
+    // Pour les messages système, utiliser le premier participant
+    const isSystem = conversation.isSystemMessage;
+    const other = isSystem 
+      ? conversation.participants?.[0] 
+      : conversation.participants?.find((u: User) => u.id !== user?.id);
     const lastMsg = conversation.messages?.[0];
+    
     return (
       <View style={{
-        backgroundColor: t.cardBg,
+        backgroundColor: isSystem ? t.cardBg : t.cardBg,
         borderRadius: 12,
         padding: 12,
         marginBottom: 12,
         borderWidth: 1,
-        borderColor: t.border
+        borderColor: isSystem ? t.primaryBtn : t.border,
+        ...(isSystem && { borderWidth: 2 })
       }}>
         <TouchableOpacity
           style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}
           onPress={() => {
+            if (isSystem) {
+              // Pour Hugo, on peut ouvrir un chat spécial ou afficher une alerte
+              // Pour l'instant, affichons juste le message
+              return;
+            }
             router.push({ pathname: '/chat/[id]', params: { id: conversation.id } });
           }}
         >
