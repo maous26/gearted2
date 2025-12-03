@@ -14,6 +14,7 @@ import { useTheme } from '../components/ThemeProvider';
 import { THEMES } from '../themes';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
+import { useMessagesStore, HugoTransactionMessage } from '../stores/messagesStore';
 
 interface ShippingRate {
   rateId: string;
@@ -33,6 +34,7 @@ export default function BuyerChooseShippingScreen() {
   const t = THEMES[theme];
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { addHugoMessage, hasHugoMessage } = useMessagesStore();
 
   const transactionId = params.transactionId as string;
   const productTitle = params.productTitle as string;
@@ -111,6 +113,25 @@ export default function BuyerChooseShippingScreen() {
       });
 
       console.log('[BuyerShipping] Label created successfully:', response);
+
+      // Envoyer notification Hugo au vendeur (LABEL_GENERATED)
+      // Note: Le vendeur verra cette notif quand il ouvrira ses ventes
+      // La notification sera envoyée par orders.tsx lors du chargement
+
+      // Notification pour l'acheteur: Shipping Ready
+      if (!hasHugoMessage(transactionId, 'SHIPPING_READY')) {
+        const hugoMsg: HugoTransactionMessage = {
+          id: `hugo-SHIPPING_READY-${transactionId}`,
+          type: 'SHIPPING_READY',
+          transactionId,
+          productTitle: productTitle || 'Produit',
+          otherPartyName: sellerName || 'Vendeur',
+          trackingNumber: response.transaction?.trackingNumber || response.label?.tracking_number,
+          createdAt: new Date().toISOString(),
+          forRole: 'BUYER'
+        };
+        await addHugoMessage(hugoMsg);
+      }
 
       Alert.alert(
         'Succès',

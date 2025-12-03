@@ -218,54 +218,117 @@ export default function ChatScreen() {
     return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   };
 
-  const MessageBubble = ({ message }: { message: Message }) => (
-    <View style={{
-      flexDirection: message.isMine ? 'row-reverse' : 'row',
-      marginBottom: 12,
-      paddingHorizontal: 16,
-      alignItems: 'flex-end'
-    }}>
-      {!message.isMine && (
-        <View style={{
-          width: 32,
-          height: 32,
-          borderRadius: 16,
-          marginRight: 8,
-          overflow: 'hidden',
-          backgroundColor: t.primaryBtn
-        }}>
-          <Image
-            source={{ uri: sellerAvatar }}
-            style={{ width: '100%', height: '100%' }}
-          />
-        </View>
-      )}
-      
+  const MessageBubble = ({ message }: { message: Message }) => {
+    // Couleurs distinctes pour chaque type de message
+    const getBubbleStyle = () => {
+      if (message.isMine) {
+        // Messages envoyés par moi - vert/olive (couleur de la marque)
+        return {
+          backgroundColor: '#4B5D3A',
+          textColor: '#FFFFFF',
+          timeColor: 'rgba(255,255,255,0.7)',
+          borderColor: 'transparent',
+          borderWidth: 0
+        };
+      } else if (message.isSystem) {
+        // Messages système de Hugo - bleu
+        return {
+          backgroundColor: '#3B82F6',
+          textColor: '#FFFFFF',
+          timeColor: 'rgba(255,255,255,0.7)',
+          borderColor: 'transparent',
+          borderWidth: 0
+        };
+      } else {
+        // Messages reçus - gris clair avec bordure
+        return {
+          backgroundColor: theme === 'night' ? '#2D2D2D' : '#F3F4F6',
+          textColor: t.heading,
+          timeColor: t.muted,
+          borderColor: t.border,
+          borderWidth: 1
+        };
+      }
+    };
+
+    const bubbleStyle = getBubbleStyle();
+
+    return (
       <View style={{
-        maxWidth: '70%',
-        backgroundColor: message.isMine ? t.primaryBtn : t.cardBg,
-        borderRadius: 16,
-        padding: 12,
-        borderWidth: message.isMine ? 0 : 1,
-        borderColor: t.border
+        flexDirection: message.isMine ? 'row-reverse' : 'row',
+        marginBottom: 12,
+        paddingHorizontal: 16,
+        alignItems: 'flex-end'
       }}>
-        <Text style={{
-          fontSize: 16,
-          color: message.isMine ? '#FFFFFF' : t.heading,
-          marginBottom: 4
+        {!message.isMine && (
+          <View style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            marginRight: 8,
+            overflow: 'hidden',
+            backgroundColor: message.isSystem ? '#3B82F6' : t.primaryBtn
+          }}>
+            <Image
+              source={{ uri: sellerAvatar }}
+              style={{ width: '100%', height: '100%' }}
+            />
+          </View>
+        )}
+        
+        <View style={{
+          maxWidth: '70%',
+          backgroundColor: bubbleStyle.backgroundColor,
+          borderRadius: 16,
+          padding: 12,
+          borderWidth: bubbleStyle.borderWidth,
+          borderColor: bubbleStyle.borderColor,
+          // Ajouter un coin arrondi différent selon le sens
+          borderTopLeftRadius: message.isMine ? 16 : 4,
+          borderTopRightRadius: message.isMine ? 4 : 16,
         }}>
-          {message.text}
-        </Text>
-        <Text style={{
-          fontSize: 11,
-          color: message.isMine ? 'rgba(255,255,255,0.7)' : t.muted,
-          textAlign: 'right'
-        }}>
-          {formatTime(message.timestamp)}
-        </Text>
+          <Text style={{
+            fontSize: 16,
+            color: bubbleStyle.textColor,
+            marginBottom: 4
+          }}>
+            {message.text}
+          </Text>
+          <Text style={{
+            fontSize: 11,
+            color: bubbleStyle.timeColor,
+            textAlign: 'right'
+          }}>
+            {formatTime(message.timestamp)}
+          </Text>
+        </View>
+        
+        {/* Avatar pour mes messages */}
+        {message.isMine && (
+          <View style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            marginLeft: 8,
+            overflow: 'hidden',
+            backgroundColor: '#4B5D3A'
+          }}>
+            <View style={{
+              width: '100%',
+              height: '100%',
+              justifyContent: 'center',
+              alignItems: 'center',
+              backgroundColor: '#4B5D3A'
+            }}>
+              <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>
+                {(user?.username || 'M')[0].toUpperCase()}
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }} edges={['top']}>

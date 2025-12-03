@@ -86,7 +86,8 @@ export default function MessagesScreen() {
     deletedMessageIds, 
     loadFromStorage, 
     markAsRead, 
-    deleteConversation: deleteFromStore 
+    deleteConversation: deleteFromStore,
+    hugoMessages
   } = useMessagesStore();
   
   const [searchText, setSearchText] = useState("");
@@ -99,10 +100,39 @@ export default function MessagesScreen() {
     loadFromStorage();
   }, []);
 
+  // Importer la fonction de génération de contenu
+  const { getHugoMessageContent } = require('../../stores/messagesStore');
+
+  // Générer les conversations Hugo pour les transactions
+  const hugoTransactionConversations: Conversation[] = hugoMessages.map((msg: any) => {
+    const content = getHugoMessageContent(msg);
+    return {
+      id: `hugo-${msg.type}-${msg.transactionId}`,
+      participants: [
+        {
+          id: 'hugo-gearted',
+          username: 'Hugo de Gearted',
+          avatar: 'https://ui-avatars.com/api/?name=Hugo+Gearted&background=3B82F6&color=fff&size=100',
+          role: 'ADMIN',
+          badge: 'admin'
+        }
+      ],
+      messages: [
+        {
+          id: `msg-${msg.type}-${msg.transactionId}`,
+          content: `${content.emoji} ${content.title}\n\n${content.content}`,
+          sentAt: msg.createdAt,
+          senderId: 'hugo-gearted'
+        }
+      ],
+      isSystemMessage: true
+    };
+  });
+
   useEffect(() => {
     if (!user?.id) {
       // Même sans utilisateur, afficher le message de bienvenue (si non supprimé)
-      setConversations([WELCOME_MESSAGE]);
+      setConversations([WELCOME_MESSAGE, ...hugoTransactionConversations]);
       setLoading(false);
       return;
     }
@@ -111,8 +141,8 @@ export default function MessagesScreen() {
       .get<Conversation[]>('/api/messages/conversations')
       .then((data) => {
         const apiConversations = Array.isArray(data) ? data : [];
-        // Ajouter le message de bienvenue de Hugo en premier
-        setConversations([WELCOME_MESSAGE, ...apiConversations]);
+        // Ajouter le message de bienvenue de Hugo en premier, puis les notifications, puis les conversations API
+        setConversations([WELCOME_MESSAGE, ...hugoTransactionConversations, ...apiConversations]);
         setError('');
       })
       .catch((err) => {
@@ -120,14 +150,14 @@ export default function MessagesScreen() {
         if ((err as any)?.response?.status === 401) {
           setError("Vous devez être connecté pour voir vos messages.");
           // Même en cas d'erreur d'auth, afficher le message de bienvenue
-          setConversations([WELCOME_MESSAGE]);
+          setConversations([WELCOME_MESSAGE, ...hugoTransactionConversations]);
         } else {
           setError("Impossible de charger les conversations. Veuillez réessayer plus tard.");
-          setConversations([WELCOME_MESSAGE]);
+          setConversations([WELCOME_MESSAGE, ...hugoTransactionConversations]);
         }
       })
       .finally(() => setLoading(false));
-  }, [user?.id]);
+  }, [user?.id, hugoMessages]);
 
   // Supprimer une conversation (avec confirmation)
   const deleteConversation = (conversationId: string) => {

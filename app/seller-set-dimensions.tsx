@@ -15,12 +15,14 @@ import { useTheme } from '../components/ThemeProvider';
 import { THEMES } from '../themes';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
+import { useMessagesStore, HugoTransactionMessage } from '../stores/messagesStore';
 
 export default function SellerSetDimensionsScreen() {
   const { theme } = useTheme();
   const t = THEMES[theme];
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { addHugoMessage, hasHugoMessage } = useMessagesStore();
 
   const transactionId = params.transactionId as string;
   const productTitle = params.productTitle as string;
@@ -44,6 +46,10 @@ export default function SellerSetDimensionsScreen() {
         height: parseFloat(height),
         weight: parseFloat(weight),
       });
+
+      // Notification pour l'acheteur: Dimensions saisies
+      // Note: La notification sera créée dans orders.tsx lors du chargement des achats
+      // Cela permet d'avoir accès aux infos de l'acheteur
 
       Alert.alert(
         'Dimensions enregistrées ✓',

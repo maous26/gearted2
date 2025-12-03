@@ -17,11 +17,16 @@ import { useTheme } from '../components/ThemeProvider';
 import { THEMES } from '../themes';
 import { Ionicons } from '@expo/vector-icons';
 import transactionService, { Transaction } from '../services/transactions';
+import { useMessagesStore, HugoTransactionMessage, HugoMessageType } from '../stores/messagesStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const NOTIFIED_TRANSACTIONS_KEY = '@gearted_notified_transactions';
 
 export default function OrdersScreen() {
   const { theme } = useTheme();
   const t = THEMES[theme];
   const router = useRouter();
+  const { addHugoMessage, hasHugoMessage } = useMessagesStore();
 
   const [activeTab, setActiveTab] = useState<'sales' | 'purchases'>('sales');
   const [statusFilter, setStatusFilter] = useState<'ongoing' | 'completed'>('ongoing');
@@ -42,6 +47,75 @@ export default function OrdersScreen() {
     }, [activeTab, statusFilter])
   );
 
+  // Envoyer une notification Hugo pour une transaction
+  const sendHugoNotification = async (
+    transaction: Transaction,
+    type: HugoMessageType,
+    forRole: 'BUYER' | 'SELLER'
+  ) => {
+    // Vérifier si déjà notifié
+    if (hasHugoMessage(transaction.id, type)) {
+      return;
+    }
+
+    const message: HugoTransactionMessage = {
+      id: `hugo-${type}-${transaction.id}`,
+      type,
+      transactionId: transaction.id,
+      productTitle: transaction.product?.title || 'Produit',
+      productPrice: transaction.amount || transaction.product?.price,
+      otherPartyName: forRole === 'SELLER' 
+        ? (transaction.buyer?.username || 'Acheteur')
+        : (transaction.product?.seller?.username || 'Vendeur'),
+      trackingNumber: transaction.trackingNumber,
+      createdAt: new Date().toISOString(),
+      forRole
+    };
+
+    await addHugoMessage(message);
+    console.log(`[Orders] Hugo notification sent: ${type} for transaction ${transaction.id}`);
+  };
+
+  // Analyser les transactions et envoyer les notifications appropriées
+  const processTransactionNotifications = async (
+    transactions: Transaction[],
+    role: 'BUYER' | 'SELLER'
+  ) => {
+    for (const tx of transactions) {
+      // Vérifier le statut et les conditions
+      if (tx.status === 'SUCCEEDED') {
+        if (role === 'SELLER') {
+          // Notification: Vente effectuée
+          await sendHugoNotification(tx, 'SALE_COMPLETED', 'SELLER');
+          
+          // Si étiquette générée, notifier le vendeur
+          if (tx.trackingNumber) {
+            await sendHugoNotification(tx, 'LABEL_GENERATED', 'SELLER');
+          }
+        } else {
+          // BUYER
+          // Notification: Achat effectué
+          await sendHugoNotification(tx, 'PURCHASE_COMPLETED', 'BUYER');
+          
+          // Si dimensions saisies, notifier l'acheteur
+          if (tx.product?.parcelDimensionsId) {
+            await sendHugoNotification(tx, 'DIMENSIONS_SET', 'BUYER');
+          }
+          
+          // Si étiquette générée, notifier aussi
+          if (tx.trackingNumber) {
+            await sendHugoNotification(tx, 'SHIPPING_READY', 'BUYER');
+          }
+        }
+      }
+      
+      // Transaction annulée
+      if (tx.status === 'CANCELLED' || tx.status === 'REFUNDED') {
+        await sendHugoNotification(tx, 'TRANSACTION_CANCELLED', role);
+      }
+    }
+  };
+
   const loadOrders = async () => {
     try {
       setLoading(true);
@@ -50,10 +124,16 @@ export default function OrdersScreen() {
         const salesData = await transactionService.getMySales();
         console.log('[Orders] Sales data received:', JSON.stringify(salesData, null, 2));
         setSales(salesData);
+        
+        // Traiter les notifications pour les ventes
+        processTransactionNotifications(salesData, 'SELLER');
       } else {
         const purchasesData = await transactionService.getMyPurchases();
         console.log('[Orders] Purchases data received:', JSON.stringify(purchasesData, null, 2));
         setPurchases(purchasesData);
+        
+        // Traiter les notifications pour les achats
+        processTransactionNotifications(purchasesData, 'BUYER');
       }
 
       setLoading(false);
