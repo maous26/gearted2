@@ -5,7 +5,7 @@ import TokenManager from './storage';
 // Toggle between local and production
 const USE_LOCAL = false; // Set to false to use Railway (for Discord OAuth)
 const LOCAL_URL = 'http://192.168.1.22:3000';
-const RAILWAY_URL = 'https://empowering-truth-production.up.railway.app';
+const RAILWAY_URL = 'https://gearted2-production.up.railway.app';
 
 const API_URL = USE_LOCAL ? LOCAL_URL : RAILWAY_URL;
 const API_ENV = USE_LOCAL ? 'development' : 'production';
