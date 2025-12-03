@@ -128,8 +128,8 @@ export class WebhookController {
       try {
         await NotificationController.createNotification({
           userId: transaction.buyerId,
-          title: '🎉 Félicitations !',
-          message: `Vous venez d'acquérir "${transaction.product.title}". Après validation du vendeur, vous pourrez générer l'étiquette d'envoi.`,
+          title: 'Hugo de Gearted',
+          message: `🎉 Félicitations ! Vous venez d'acquérir "${transaction.product.title}". Après validation du vendeur, vous pourrez générer l'étiquette d'envoi.`,
           type: 'PAYMENT_UPDATE',
           data: {
             transactionId: transaction.id,
@@ -147,8 +147,8 @@ export class WebhookController {
       try {
         await NotificationController.createNotification({
           userId: transaction.product.sellerId,
-          title: '📦 Gearted - Votre article a été vendu',
-          message: `Félicitations ! Votre article "${transaction.product.title}" a été vendu. Veuillez saisir les dimensions du colis pour permettre à l'acheteur de générer son étiquette d'expédition.`,
+          title: 'Hugo de Gearted',
+          message: `📦 Félicitations ! Votre article "${transaction.product.title}" a été vendu pour ${(transaction.amount / 100).toFixed(2)}€. Veuillez saisir les dimensions du colis pour permettre à l'acheteur de générer son étiquette d'expédition.`,
           type: 'PAYMENT_UPDATE',
           data: {
             transactionId: transaction.id,
