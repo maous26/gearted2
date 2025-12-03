@@ -24,7 +24,7 @@ export default function ShippingLabelScreen() {
 
   const trackingNumber = params.trackingNumber as string;
   const productTitle = params.productTitle as string;
-  const carrier = params.carrier as string || 'Colissimo';
+  const carrier = params.carrier as string || 'Mondial Relay';
 
   const downloadLabel = () => {
     // TODO: Intégrer avec le vrai service de livraison pour obtenir le PDF
@@ -46,25 +46,12 @@ export default function ShippingLabelScreen() {
   };
 
   const trackPackage = () => {
-    // URL de suivi selon le transporteur
-    let trackingUrl = '';
-    const lowerCarrier = carrier.toLowerCase();
+    // URL de suivi Mondial Relay
+    const trackingUrl = `https://www.mondialrelay.fr/suivi-de-colis/?numeroExpedition=${trackingNumber}`;
 
-    if (lowerCarrier.includes('colissimo')) {
-      trackingUrl = `https://www.laposte.fr/outils/suivre-vos-envois?code=${trackingNumber}`;
-    } else if (lowerCarrier.includes('chronopost')) {
-      trackingUrl = `https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT=${trackingNumber}`;
-    } else if (lowerCarrier.includes('mondial') || lowerCarrier.includes('relay')) {
-      trackingUrl = `https://www.mondialrelay.fr/suivi-de-colis/?numeroExpedition=${trackingNumber}`;
-    }
-
-    if (trackingUrl) {
-      Linking.openURL(trackingUrl).catch(() =>
-        Alert.alert('Erreur', 'Impossible d\'ouvrir le lien de suivi')
-      );
-    } else {
-      Alert.alert('Info', `Numéro de suivi: ${trackingNumber}`);
-    }
+    Linking.openURL(trackingUrl).catch(() =>
+      Alert.alert('Erreur', 'Impossible d\'ouvrir le lien de suivi')
+    );
   };
 
   return (

@@ -214,8 +214,7 @@ export class ShippingController {
         )
       );
 
-      // Tarifs disponibles (uniquement Mondial Relay pour l'instant)
-      // TODO: Ajouter Colissimo direct, Chronopost, etc.
+      // Tarifs disponibles (Mondial Relay uniquement)
       const allRates = [
         {
           rateId: 'mondial-relay-standard',
