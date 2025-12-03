@@ -98,6 +98,39 @@ class TransactionService {
       throw new Error(errorMessage);
     }
   }
+
+  /**
+   * Annuler une transaction (avant génération d'étiquette)
+   * - Remboursement automatique
+   * - Le produit est remis en vente
+   */
+  async cancelTransaction(transactionId: string, reason?: string): Promise<{
+    success: boolean;
+    message: string;
+    refundStatus: 'completed' | 'manual_required';
+    cancelledBy: 'buyer' | 'seller';
+    productId?: string;
+    productTitle?: string;
+  }> {
+    try {
+      const response = await api.post<{
+        success: boolean;
+        message: string;
+        refundStatus: 'completed' | 'manual_required';
+        cancelledBy: 'buyer' | 'seller';
+        productId?: string;
+        productTitle?: string;
+      }>(`/api/transactions/${transactionId}/cancel`, { reason });
+      
+      return response;
+    } catch (error: any) {
+      console.error('[Transactions] Failed to cancel transaction:', error);
+      const errorMessage = typeof error.response?.data?.error === 'string'
+        ? error.response.data.error
+        : error.response?.data?.message || error.message || 'Erreur lors de l\'annulation de la transaction';
+      throw new Error(errorMessage);
+    }
+  }
 }
 
 export default new TransactionService();

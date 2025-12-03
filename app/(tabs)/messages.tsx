@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -18,9 +17,7 @@ import { THEMES } from "../../themes";
 
 import { useUser } from '../../components/UserProvider';
 import api from '../../services/api';
-
-const UNREAD_MESSAGES_KEY = '@gearted_unread_messages';
-const DELETED_MESSAGES_KEY = '@gearted_deleted_messages';
+import { useMessagesStore } from '../../stores/messagesStore';
 
 type User = {
   id: string;
@@ -85,25 +82,21 @@ export default function MessagesScreen() {
   const { theme } = useTheme();
   const t = THEMES[theme];
   const { user } = useUser();
+  const { 
+    deletedMessageIds, 
+    loadFromStorage, 
+    markAsRead, 
+    deleteConversation: deleteFromStore 
+  } = useMessagesStore();
+  
   const [searchText, setSearchText] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([WELCOME_MESSAGE]);
-  const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Charger les messages supprimés au démarrage
+  // Charger les données du store au démarrage
   useEffect(() => {
-    const loadDeletedMessages = async () => {
-      try {
-        const deleted = await AsyncStorage.getItem(DELETED_MESSAGES_KEY);
-        if (deleted) {
-          setDeletedIds(JSON.parse(deleted));
-        }
-      } catch (e) {
-        console.warn('Failed to load deleted messages', e);
-      }
-    };
-    loadDeletedMessages();
+    loadFromStorage();
   }, []);
 
   useEffect(() => {
@@ -136,22 +129,8 @@ export default function MessagesScreen() {
       .finally(() => setLoading(false));
   }, [user?.id]);
 
-  // Marquer une conversation comme lue
-  const markAsRead = async (conversationId: string) => {
-    try {
-      const readJson = await AsyncStorage.getItem(UNREAD_MESSAGES_KEY);
-      const readIds: string[] = readJson ? JSON.parse(readJson) : [];
-      if (!readIds.includes(conversationId)) {
-        readIds.push(conversationId);
-        await AsyncStorage.setItem(UNREAD_MESSAGES_KEY, JSON.stringify(readIds));
-      }
-    } catch (e) {
-      console.warn('Failed to mark as read', e);
-    }
-  };
-
-  // Supprimer une conversation (localement)
-  const deleteConversation = async (conversationId: string) => {
+  // Supprimer une conversation (avec confirmation)
+  const deleteConversation = (conversationId: string) => {
     Alert.alert(
       "Supprimer la conversation",
       "Voulez-vous vraiment supprimer cette conversation ?",
@@ -160,17 +139,8 @@ export default function MessagesScreen() {
         {
           text: "Supprimer",
           style: "destructive",
-          onPress: async () => {
-            try {
-              const newDeletedIds = [...deletedIds, conversationId];
-              setDeletedIds(newDeletedIds);
-              await AsyncStorage.setItem(DELETED_MESSAGES_KEY, JSON.stringify(newDeletedIds));
-              
-              // Aussi marquer comme lu pour ne pas fausser le compteur
-              await markAsRead(conversationId);
-            } catch (e) {
-              console.warn('Failed to delete conversation', e);
-            }
+          onPress: () => {
+            deleteFromStore(conversationId);
           }
         }
       ]
@@ -179,7 +149,7 @@ export default function MessagesScreen() {
 
   // Filtrer les conversations (exclure les supprimées)
   const filteredConversations = conversations
-    .filter(conv => !deletedIds.includes(conv.id))
+    .filter(conv => !deletedMessageIds.includes(conv.id))
     .filter(conv => {
       // Pour le message de bienvenue, toujours l'afficher
       if (conv.isSystemMessage) {

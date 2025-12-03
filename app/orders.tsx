@@ -27,6 +27,7 @@ export default function OrdersScreen() {
   const [statusFilter, setStatusFilter] = useState<'ongoing' | 'completed'>('ongoing');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [cancelling, setCancelling] = useState<string | null>(null);
   const [sales, setSales] = useState<Transaction[]>([]);
   const [purchases, setPurchases] = useState<Transaction[]>([]);
 
@@ -67,6 +68,46 @@ export default function OrdersScreen() {
     setRefreshing(true);
     await loadOrders();
     setRefreshing(false);
+  };
+
+  // Annuler une transaction
+  const handleCancelTransaction = (order: Transaction, isSale: boolean) => {
+    const roleText = isSale ? 'vente' : 'achat';
+    const actionText = isSale ? 'annuler cette vente' : 'annuler cet achat';
+    
+    Alert.alert(
+      `Annuler la ${roleText}`,
+      `Êtes-vous sûr de vouloir ${actionText} ?\n\n` +
+      `• L'acheteur sera remboursé automatiquement\n` +
+      `• Le produit sera remis en vente\n\n` +
+      `Cette action est irréversible.`,
+      [
+        { text: "Non, garder", style: "cancel" },
+        {
+          text: "Oui, annuler",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setCancelling(order.id);
+              const result = await transactionService.cancelTransaction(
+                order.id,
+                isSale ? 'seller_request' : 'buyer_request'
+              );
+              
+              Alert.alert(
+                'Transaction annulée',
+                result.message,
+                [{ text: 'OK', onPress: () => loadOrders() }]
+              );
+            } catch (error: any) {
+              Alert.alert('Erreur', error.message || 'Impossible d\'annuler la transaction');
+            } finally {
+              setCancelling(null);
+            }
+          }
+        }
+      ]
+    );
   };
 
   const renderHeader = () => (
@@ -445,6 +486,31 @@ export default function OrdersScreen() {
               </TouchableOpacity>
             );
           })()}
+
+          {/* Bouton Annuler - visible seulement si pas d'étiquette générée */}
+          {!order.trackingNumber && order.status === 'SUCCEEDED' && (
+            <TouchableOpacity
+              style={{
+                marginTop: 12,
+                backgroundColor: '#FF3B30',
+                paddingVertical: 10,
+                paddingHorizontal: 16,
+                borderRadius: 10,
+                alignItems: 'center',
+                opacity: cancelling === order.id ? 0.6 : 1,
+              }}
+              onPress={() => handleCancelTransaction(order, isSale)}
+              disabled={cancelling === order.id}
+            >
+              {cancelling === order.id ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : (
+                <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>
+                  ❌ Annuler {isSale ? 'la vente' : "l'achat"}
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </TouchableOpacity>

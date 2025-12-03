@@ -13,6 +13,9 @@ router.get('/my-sales', TransactionController.getMySales);
 // Récupérer mes achats (en tant qu'acheteur)
 router.get('/my-purchases', TransactionController.getMyPurchases);
 
+// Annuler une transaction (avant génération d'étiquette)
+router.post('/:transactionId/cancel', TransactionController.cancelTransaction);
+
 // Récupérer les détails d'une transaction
 router.get('/:transactionId', TransactionController.getTransactionDetails);
 
