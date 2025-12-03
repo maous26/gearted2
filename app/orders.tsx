@@ -435,7 +435,7 @@ export default function OrdersScreen() {
                       params: {
                         trackingNumber: order.trackingNumber,
                         productTitle: order.product?.title || 'Produit',
-                        carrier: order.trackingNumber?.split('-')[0] || 'Transporteur',
+                        carrier: 'Mondial Relay',
                       },
                     });
                   }}
