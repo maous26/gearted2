@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   Modal,
   Platform,
   ScrollView,
@@ -16,8 +15,6 @@ import {
 import { useTheme } from './ThemeProvider';
 import api from '../services/api';
 import { THEMES } from '../themes';
-
-const { width } = Dimensions.get('window');
 
 interface RelayPoint {
   id: string;
@@ -59,10 +56,7 @@ export default function RelayPointMap({
   const [loading, setLoading] = useState(true);
   const [relayPoints, setRelayPoints] = useState<RelayPoint[]>([]);
   const [selectedPoint, setSelectedPoint] = useState<RelayPoint | null>(null);
-  const [userLocation, setUserLocation] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
+  const [userPostalCode, setUserPostalCode] = useState<string>(postalCode || '75001');
   const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -81,12 +75,8 @@ export default function RelayPointMap({
       
       if (status !== 'granted') {
         setLocationError('Permission de géolocalisation refusée');
-        // Utiliser le code postal si fourni, sinon Paris
-        if (postalCode) {
-          await searchByPostalCode(postalCode);
-        } else {
-          await searchByPostalCode('75001');
-        }
+        // Utiliser le code postal fourni ou Paris par défaut
+        await searchByPostalCode(userPostalCode);
         return;
       }
 
@@ -96,24 +86,13 @@ export default function RelayPointMap({
       });
 
       const { latitude, longitude } = location.coords;
-      setUserLocation({ latitude, longitude });
-      setRegion({
-        latitude,
-        longitude,
-        latitudeDelta: LATITUDE_DELTA,
-        longitudeDelta: LONGITUDE_DELTA,
-      });
 
       // Rechercher les points relais à proximité
       await searchNearbyPoints(latitude, longitude);
     } catch (error: any) {
       console.error('[RelayPointMap] Location error:', error);
       setLocationError('Erreur de géolocalisation');
-      if (postalCode) {
-        await searchByPostalCode(postalCode);
-      } else {
-        await searchByPostalCode('75001');
-      }
+      await searchByPostalCode(userPostalCode);
     }
   };
 
@@ -121,16 +100,17 @@ export default function RelayPointMap({
     try {
       // Reverse geocoding pour obtenir le code postal
       const [address] = await Location.reverseGeocodeAsync({ latitude, longitude });
-      const cp = address?.postalCode || postalCode || '75001';
+      const cp = address?.postalCode || userPostalCode;
+      setUserPostalCode(cp);
 
-      await searchByPostalCode(cp, latitude, longitude);
+      await searchByPostalCode(cp);
     } catch (error) {
       console.error('[RelayPointMap] Reverse geocode error:', error);
-      await searchByPostalCode(postalCode || '75001');
+      await searchByPostalCode(userPostalCode);
     }
   };
 
-  const searchByPostalCode = async (cp: string, lat?: number, lng?: number) => {
+  const searchByPostalCode = async (cp: string) => {
     try {
       console.log('[RelayPointMap] Searching points for postal code:', cp);
 
@@ -141,22 +121,6 @@ export default function RelayPointMap({
 
       if (response.success && response.pickupPoints) {
         setRelayPoints(response.pickupPoints);
-
-        // Si on a des points, centrer sur le premier
-        if (response.pickupPoints.length > 0 && !lat) {
-          const firstPoint = response.pickupPoints[0];
-          const pointLat = parseFloat(firstPoint.latitude.replace(',', '.'));
-          const pointLng = parseFloat(firstPoint.longitude.replace(',', '.'));
-          
-          if (!isNaN(pointLat) && !isNaN(pointLng)) {
-            setRegion({
-              latitude: pointLat,
-              longitude: pointLng,
-              latitudeDelta: LATITUDE_DELTA,
-              longitudeDelta: LONGITUDE_DELTA,
-            });
-          }
-        }
       }
     } catch (error: any) {
       console.error('[RelayPointMap] Search error:', error);
@@ -164,10 +128,6 @@ export default function RelayPointMap({
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleMarkerPress = (point: RelayPoint) => {
-    setSelectedPoint(point);
   };
 
   const handleConfirmSelection = () => {
@@ -215,12 +175,6 @@ export default function RelayPointMap({
     return formatted.join(', ') || 'Fermé';
   };
 
-  const getCoordinates = (point: RelayPoint) => {
-    const lat = parseFloat(point.latitude.replace(',', '.'));
-    const lng = parseFloat(point.longitude.replace(',', '.'));
-    return { latitude: lat, longitude: lng };
-  };
-
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <View style={[styles.container, { backgroundColor: t.rootBg }]}>
@@ -244,35 +198,14 @@ export default function RelayPointMap({
           </View>
         ) : (
           <>
-            {/* Map */}
-            <MapView
-              ref={mapRef}
-              style={styles.map}
-              provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-              initialRegion={region}
-              region={region}
-              showsUserLocation={true}
-              showsMyLocationButton={true}
-              onRegionChangeComplete={setRegion}
-            >
-              {relayPoints.map((point) => {
-                const coords = getCoordinates(point);
-                if (isNaN(coords.latitude) || isNaN(coords.longitude)) return null;
+            {/* Location info banner */}
+            <View style={[styles.infoBanner, { backgroundColor: t.sectionLight }]}>
+              <Ionicons name="location" size={20} color={t.primaryBtn} />
+              <Text style={{ color: t.heading, marginLeft: 8, flex: 1 }}>
+                Recherche autour du code postal: {userPostalCode}
+              </Text>
+            </View>
 
-                return (
-                  <Marker
-                    key={point.id}
-                    coordinate={coords}
-                    title={point.name}
-                    description={point.address}
-                    onPress={() => handleMarkerPress(point)}
-                    pinColor={selectedPoint?.id === point.id ? '#FF6B35' : '#2196F3'}
-                  />
-                );
-              })}
-            </MapView>
-
-            {/* Location error banner */}
             {locationError && (
               <View style={[styles.errorBanner, { backgroundColor: '#FFF3CD' }]}>
                 <Ionicons name="warning" size={20} color="#856404" />
@@ -283,56 +216,36 @@ export default function RelayPointMap({
             )}
 
             {/* Points List */}
-            <View style={[styles.listContainer, { backgroundColor: t.cardBg }]}>
+            <ScrollView style={styles.listContainer} contentContainerStyle={styles.listContent}>
               <Text style={[styles.listTitle, { color: t.heading }]}>
                 {relayPoints.length} points relais trouvés
               </Text>
-              
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.listScrollContent}
-              >
-                {relayPoints.map((point) => (
-                  <TouchableOpacity
-                    key={point.id}
-                    style={[
-                      styles.pointCard,
-                      {
-                        backgroundColor: selectedPoint?.id === point.id ? t.sectionLight : t.rootBg,
-                        borderColor: selectedPoint?.id === point.id ? t.primaryBtn : t.border,
-                      },
-                    ]}
-                    onPress={() => {
-                      handleMarkerPress(point);
-                      const coords = getCoordinates(point);
-                      if (!isNaN(coords.latitude) && !isNaN(coords.longitude)) {
-                        mapRef.current?.animateToRegion({
-                          ...coords,
-                          latitudeDelta: 0.01,
-                          longitudeDelta: 0.01 * ASPECT_RATIO,
-                        });
-                      }
-                    }}
-                  >
+
+              {relayPoints.map((point) => (
+                <TouchableOpacity
+                  key={point.id}
+                  style={[
+                    styles.pointCard,
+                    {
+                      backgroundColor: selectedPoint?.id === point.id ? t.sectionLight : t.cardBg,
+                      borderColor: selectedPoint?.id === point.id ? t.primaryBtn : t.border,
+                    },
+                  ]}
+                  onPress={() => setSelectedPoint(point)}
+                >
+                  <View style={styles.pointCardHeader}>
                     <View style={styles.pointIcon}>
                       <Ionicons 
-                        name="location" 
-                        size={24} 
+                        name={selectedPoint?.id === point.id ? "checkmark-circle" : "location"} 
+                        size={32} 
                         color={selectedPoint?.id === point.id ? t.primaryBtn : '#2196F3'} 
                       />
                     </View>
                     <View style={styles.pointInfo}>
-                      <Text 
-                        style={[styles.pointName, { color: t.heading }]}
-                        numberOfLines={1}
-                      >
+                      <Text style={[styles.pointName, { color: t.heading }]}>
                         {point.name}
                       </Text>
-                      <Text 
-                        style={[styles.pointAddress, { color: t.muted }]}
-                        numberOfLines={2}
-                      >
+                      <Text style={[styles.pointAddress, { color: t.muted }]}>
                         {point.address}
                       </Text>
                       <Text style={[styles.pointCity, { color: t.muted }]}>
@@ -347,47 +260,31 @@ export default function RelayPointMap({
                         </View>
                       )}
                     </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-
-            {/* Selected Point Details */}
-            {selectedPoint && (
-              <View style={[styles.detailsContainer, { backgroundColor: t.cardBg, borderTopColor: t.border }]}>
-                <View style={styles.detailsHeader}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.detailsName, { color: t.heading }]}>
-                      {selectedPoint.name}
-                    </Text>
-                    <Text style={[styles.detailsAddress, { color: t.muted }]}>
-                      {selectedPoint.address}, {selectedPoint.postalCode} {selectedPoint.city}
-                    </Text>
                   </View>
-                  <TouchableOpacity 
-                    onPress={() => setSelectedPoint(null)}
-                    style={styles.closeDetails}
-                  >
-                    <Ionicons name="close-circle" size={24} color={t.muted} />
-                  </TouchableOpacity>
-                </View>
 
-                {/* Opening Hours */}
-                <View style={styles.hoursContainer}>
-                  <Text style={[styles.hoursTitle, { color: t.heading }]}>
-                    Horaires d'ouverture
-                  </Text>
-                  <View style={styles.hoursGrid}>
-                    {formatOpeningHours(selectedPoint.openingHours).map(({ day, hours }) => (
-                      <View key={day} style={styles.hoursRow}>
-                        <Text style={[styles.hoursDay, { color: t.muted }]}>{day}</Text>
-                        <Text style={[styles.hoursTime, { color: t.heading }]}>{hours}</Text>
+                  {/* Opening Hours - Show when selected */}
+                  {selectedPoint?.id === point.id && (
+                    <View style={styles.hoursContainer}>
+                      <Text style={[styles.hoursTitle, { color: t.heading }]}>
+                        Horaires d'ouverture
+                      </Text>
+                      <View style={styles.hoursGrid}>
+                        {formatOpeningHours(point.openingHours).map(({ day, hours }) => (
+                          <View key={day} style={styles.hoursRow}>
+                            <Text style={[styles.hoursDay, { color: t.muted }]}>{day}</Text>
+                            <Text style={[styles.hoursTime, { color: t.heading }]}>{hours}</Text>
+                          </View>
+                        ))}
                       </View>
-                    ))}
-                  </View>
-                </View>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
-                {/* Confirm Button */}
+            {/* Confirm Button */}
+            {selectedPoint && (
+              <View style={[styles.confirmContainer, { backgroundColor: t.cardBg, borderTopColor: t.border }]}>
                 <TouchableOpacity
                   style={[styles.confirmButton, { backgroundColor: t.primaryBtn }]}
                   onPress={handleConfirmSelection}
@@ -435,8 +332,13 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
   },
-  map: {
-    flex: 1,
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 8,
   },
   errorBanner: {
     flexDirection: 'row',
@@ -445,84 +347,61 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 8,
     borderRadius: 8,
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 100 : 60,
-    left: 0,
-    right: 0,
-    zIndex: 1,
   },
   listContainer: {
-    paddingVertical: 12,
+    flex: 1,
+  },
+  listContent: {
+    padding: 16,
   },
   listTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
-    paddingHorizontal: 16,
-    marginBottom: 8,
-  },
-  listScrollContent: {
-    paddingHorizontal: 12,
+    marginBottom: 16,
   },
   pointCard: {
-    width: 200,
-    flexDirection: 'row',
     borderRadius: 12,
     borderWidth: 2,
-    padding: 12,
-    marginHorizontal: 4,
+    padding: 16,
+    marginBottom: 12,
+  },
+  pointCardHeader: {
+    flexDirection: 'row',
   },
   pointIcon: {
-    marginRight: 10,
+    marginRight: 12,
   },
   pointInfo: {
     flex: 1,
   },
   pointName: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
   },
   pointAddress: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 2,
   },
   pointCity: {
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 14,
+    marginBottom: 6,
   },
   distanceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 6,
   },
   distanceText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
     marginLeft: 4,
   },
-  detailsContainer: {
-    padding: 16,
-    borderTopWidth: 1,
-  },
-  detailsHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  detailsName: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  detailsAddress: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  closeDetails: {
-    padding: 4,
-  },
   hoursContainer: {
-    marginBottom: 16,
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
   },
   hoursTitle: {
     fontSize: 14,
@@ -547,6 +426,10 @@ const styles = StyleSheet.create({
   hoursTime: {
     fontSize: 12,
     flex: 1,
+  },
+  confirmContainer: {
+    padding: 16,
+    borderTopWidth: 1,
   },
   confirmButton: {
     flexDirection: 'row',

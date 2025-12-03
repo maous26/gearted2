@@ -11,7 +11,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import RelayPointMap from '../components/RelayPointMap';
+import RelayPointMap from '../components/RelayPointMapSimple';
 import { useTheme } from '../components/ThemeProvider';
 import api from '../services/api';
 import { HugoTransactionMessage, useMessagesStore } from '../stores/messagesStore';
