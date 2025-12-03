@@ -1,14 +1,17 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Tabs } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { useTheme } from '../../components/ThemeProvider';
 import { useClientOnlyValue } from '../../components/useClientOnlyValue';
-import notificationService from '../../services/notifications';
+import api from '../../services/api';
 import { THEMES } from '../../themes';
 
 import { useUser } from '../../components/UserProvider';
+
+const UNREAD_MESSAGES_KEY = '@gearted_unread_messages';
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
@@ -23,24 +26,48 @@ function MessagesIcon({ color }: { color: string }) {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    if (!user) {
-      setUnreadCount(0);
-      return;
-    }
-
-    // Fetch notifications count
-    const fetchNotifications = async () => {
+    // Fetch unread messages count
+    const fetchUnreadMessages = async () => {
       try {
-        const { unreadCount } = await notificationService.getNotifications();
-        setUnreadCount(unreadCount);
+        // Récupérer les IDs des messages lus depuis le storage
+        const readMessagesJson = await AsyncStorage.getItem(UNREAD_MESSAGES_KEY);
+        const readMessageIds: string[] = readMessagesJson ? JSON.parse(readMessagesJson) : [];
+        
+        // Vérifier si le message de Hugo a été lu
+        const hugoRead = readMessageIds.includes('gearted-welcome');
+        
+        if (!user) {
+          // Si pas connecté, afficher 1 seulement si Hugo n'est pas lu
+          setUnreadCount(hugoRead ? 0 : 1);
+          return;
+        }
+
+        // Récupérer les conversations
+        const conversations = await api.get<any[]>('/api/messages/conversations');
+        const conversationList = Array.isArray(conversations) ? conversations : [];
+        
+        // Compter les conversations non lues (celles qui ne sont pas dans readMessageIds)
+        let unread = 0;
+        
+        // Hugo non lu ?
+        if (!hugoRead) unread++;
+        
+        // Conversations non lues
+        conversationList.forEach((conv: any) => {
+          if (!readMessageIds.includes(conv.id)) {
+            unread++;
+          }
+        });
+        
+        setUnreadCount(unread);
       } catch (error) {
-        // Silent error
+        setUnreadCount(0);
       }
     };
 
-    fetchNotifications();
+    fetchUnreadMessages();
     // Refresh every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
+    const interval = setInterval(fetchUnreadMessages, 30000);
     return () => clearInterval(interval);
   }, [user]);
 

@@ -26,7 +26,38 @@ interface Message {
   senderId: string;
   timestamp: Date;
   isMine: boolean;
+  isSystem?: boolean;
 }
+
+// Messages système de Hugo pour les différentes étapes
+const HUGO_SYSTEM_MESSAGES: Message[] = [
+  {
+    id: 'hugo-welcome',
+    text: "Bienvenue sur Gearted ! 🎯 Je suis Hugo, fondateur de la plateforme. N'hésitez pas à me contacter si vous avez des questions. Bonnes ventes !",
+    senderId: 'hugo-gearted',
+    timestamp: new Date(),
+    isMine: false,
+    isSystem: true
+  },
+  {
+    id: 'hugo-tip-1',
+    text: "💡 Conseil : Ajoutez des photos de qualité pour vendre plus vite ! Les annonces avec plusieurs photos se vendent 3x plus rapidement.",
+    senderId: 'hugo-gearted',
+    timestamp: new Date(Date.now() - 60000),
+    isMine: false,
+    isSystem: true
+  },
+  {
+    id: 'hugo-tip-2', 
+    text: "🔒 Sécurité : Utilisez toujours le système de paiement Gearted pour être protégé. Ne partagez jamais vos coordonnées bancaires en message.",
+    senderId: 'hugo-gearted',
+    timestamp: new Date(Date.now() - 120000),
+    isMine: false,
+    isSystem: true
+  }
+];
+
+const HUGO_AVATAR = 'https://ui-avatars.com/api/?name=Hugo+Gearted&background=4B5D3A&color=fff&size=100';
 
 export default function ChatScreen() {
   const { theme } = useTheme();
@@ -40,12 +71,19 @@ export default function ChatScreen() {
   const flatListRef = useRef<FlatList>(null);
 
   const conversationId = params.id as string;
+  const isHugoChat = conversationId === 'gearted-welcome';
 
   // Récupération des infos du vendeur depuis les params (facultatif)
-  const sellerName = (params.sellerName as string) || "Vendeur";
-  const sellerAvatar = (params.sellerAvatar as string) || "https://via.placeholder.com/40/4B5D3A/FFFFFF?text=U";
+  const sellerName = isHugoChat ? "Hugo de Gearted" : (params.sellerName as string) || "Vendeur";
+  const sellerAvatar = isHugoChat ? HUGO_AVATAR : (params.sellerAvatar as string) || "https://via.placeholder.com/40/4B5D3A/FFFFFF?text=U";
 
   useEffect(() => {
+    // Chat spécial Hugo - messages locaux
+    if (isHugoChat) {
+      setMessages(HUGO_SYSTEM_MESSAGES);
+      return;
+    }
+
     if (!conversationId || !user?.id) return;
 
     const fetchMessages = async () => {
@@ -90,11 +128,39 @@ export default function ChatScreen() {
 
     fetchMessages();
     markNotificationsAsRead();
-  }, [conversationId, user?.id]);
+  }, [conversationId, user?.id, isHugoChat]);
 
   const sendMessage = async () => {
     if (inputText.trim() === "") return;
     if (sending) return;
+
+    // Chat Hugo - réponse automatique
+    if (isHugoChat) {
+      const userMsg: Message = {
+        id: Date.now().toString(),
+        text: inputText.trim(),
+        senderId: user?.id || 'user',
+        timestamp: new Date(),
+        isMine: true
+      };
+      setMessages(prev => [...prev, userMsg]);
+      setInputText("");
+      
+      // Réponse automatique de Hugo après 1 seconde
+      setTimeout(() => {
+        const hugoResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          text: "Merci pour votre message ! 📩 Notre équipe vous répondra dans les plus brefs délais. En attendant, n'hésitez pas à consulter notre FAQ ou à explorer les annonces.",
+          senderId: 'hugo-gearted',
+          timestamp: new Date(),
+          isMine: false,
+          isSystem: true
+        };
+        setMessages(prev => [...prev, hugoResponse]);
+      }, 1000);
+      
+      return;
+    }
 
     // Filter message content for phone numbers and emails
     const filterResult = filterMessageContent(inputText);

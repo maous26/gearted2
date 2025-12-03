@@ -1,6 +1,8 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+    Alert,
     Image,
     ScrollView,
     StatusBar,
@@ -16,6 +18,9 @@ import { THEMES } from "../../themes";
 
 import { useUser } from '../../components/UserProvider';
 import api from '../../services/api';
+
+const UNREAD_MESSAGES_KEY = '@gearted_unread_messages';
+const DELETED_MESSAGES_KEY = '@gearted_deleted_messages';
 
 type User = {
   id: string;
@@ -82,12 +87,28 @@ export default function MessagesScreen() {
   const { user } = useUser();
   const [searchText, setSearchText] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([WELCOME_MESSAGE]);
+  const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Charger les messages supprimés au démarrage
+  useEffect(() => {
+    const loadDeletedMessages = async () => {
+      try {
+        const deleted = await AsyncStorage.getItem(DELETED_MESSAGES_KEY);
+        if (deleted) {
+          setDeletedIds(JSON.parse(deleted));
+        }
+      } catch (e) {
+        console.warn('Failed to load deleted messages', e);
+      }
+    };
+    loadDeletedMessages();
+  }, []);
+
   useEffect(() => {
     if (!user?.id) {
-      // Même sans utilisateur, afficher le message de bienvenue
+      // Même sans utilisateur, afficher le message de bienvenue (si non supprimé)
       setConversations([WELCOME_MESSAGE]);
       setLoading(false);
       return;
@@ -115,21 +136,65 @@ export default function MessagesScreen() {
       .finally(() => setLoading(false));
   }, [user?.id]);
 
-  const filteredConversations = conversations.filter(conv => {
-    // Pour le message de bienvenue, toujours l'afficher
-    if (conv.isSystemMessage) {
-      return searchText === "" || 
-        conv.participants?.[0]?.username?.toLowerCase().includes(searchText.toLowerCase());
+  // Marquer une conversation comme lue
+  const markAsRead = async (conversationId: string) => {
+    try {
+      const readJson = await AsyncStorage.getItem(UNREAD_MESSAGES_KEY);
+      const readIds: string[] = readJson ? JSON.parse(readJson) : [];
+      if (!readIds.includes(conversationId)) {
+        readIds.push(conversationId);
+        await AsyncStorage.setItem(UNREAD_MESSAGES_KEY, JSON.stringify(readIds));
+      }
+    } catch (e) {
+      console.warn('Failed to mark as read', e);
     }
-    
-    if (!user?.id) return false;
-    const other = conv.participants?.find((u: User) => u.id !== user.id);
-    return (
-      searchText === "" ||
-      (other?.username || "").toLowerCase().includes(searchText.toLowerCase()) ||
-      (conv.productTitle || "").toLowerCase().includes(searchText.toLowerCase())
+  };
+
+  // Supprimer une conversation (localement)
+  const deleteConversation = async (conversationId: string) => {
+    Alert.alert(
+      "Supprimer la conversation",
+      "Voulez-vous vraiment supprimer cette conversation ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const newDeletedIds = [...deletedIds, conversationId];
+              setDeletedIds(newDeletedIds);
+              await AsyncStorage.setItem(DELETED_MESSAGES_KEY, JSON.stringify(newDeletedIds));
+              
+              // Aussi marquer comme lu pour ne pas fausser le compteur
+              await markAsRead(conversationId);
+            } catch (e) {
+              console.warn('Failed to delete conversation', e);
+            }
+          }
+        }
+      ]
     );
-  });
+  };
+
+  // Filtrer les conversations (exclure les supprimées)
+  const filteredConversations = conversations
+    .filter(conv => !deletedIds.includes(conv.id))
+    .filter(conv => {
+      // Pour le message de bienvenue, toujours l'afficher
+      if (conv.isSystemMessage) {
+        return searchText === "" || 
+          conv.participants?.[0]?.username?.toLowerCase().includes(searchText.toLowerCase());
+      }
+      
+      if (!user?.id) return false;
+      const other = conv.participants?.find((u: User) => u.id !== user.id);
+      return (
+        searchText === "" ||
+        (other?.username || "").toLowerCase().includes(searchText.toLowerCase()) ||
+        (conv.productTitle || "").toLowerCase().includes(searchText.toLowerCase())
+      );
+    });
 
   const ConversationCard = ({ conversation }: { conversation: Conversation }) => {
     // Pour les messages système, utiliser le premier participant
@@ -151,13 +216,15 @@ export default function MessagesScreen() {
       }}>
         <TouchableOpacity
           style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}
-          onPress={() => {
-            if (isSystem) {
-              // Pour Hugo, on peut ouvrir un chat spécial ou afficher une alerte
-              // Pour l'instant, affichons juste le message
-              return;
-            }
+          onPress={async () => {
+            // Marquer comme lu
+            await markAsRead(conversation.id);
+            // Ouvrir le chat
             router.push({ pathname: '/chat/[id]', params: { id: conversation.id } });
+          }}
+          onLongPress={() => {
+            // Appui long pour supprimer
+            deleteConversation(conversation.id);
           }}
         >
           {/* Avatar */}
@@ -166,7 +233,6 @@ export default function MessagesScreen() {
               source={{ uri: other?.avatar || 'https://via.placeholder.com/50/888/fff?text=U' }}
               style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: t.primaryBtn }}
             />
-            {/* Unread badge: TODO - backend unread count */}
           </View>
           {/* Contenu */}
           <View style={{ flex: 1 }}>
@@ -222,6 +288,12 @@ export default function MessagesScreen() {
           />
           <Text style={{ fontSize: 16 }}>🔍</Text>
         </View>
+      </View>
+      {/* Hint for deletion */}
+      <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+        <Text style={{ fontSize: 12, color: t.muted, textAlign: 'center' }}>
+          💡 Appui long sur une conversation pour la supprimer
+        </Text>
       </View>
       {/* Error message */}
       {error ? (
