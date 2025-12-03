@@ -30,7 +30,6 @@ import stripeRoutes from './routes/stripe';
 import shippingRoutes from './routes/shipping';
 import webhookRoutes from './routes/webhook';
 import transactionRoutes from './routes/transactions';
-import shippoAdminRoutes from './routes/shippoAdmin.routes';
 import mondialrelayRoutes from './routes/mondialrelay.routes';
 import notificationRoutes from './routes/notifications';
 import adminRoutes from './routes/admin';
@@ -248,7 +247,6 @@ app.use('/api/stripe', stripeRoutes);
 app.use('/api/shipping', shippingRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/admin/shippo', shippoAdminRoutes);
 app.use('/api/mondialrelay', mondialrelayRoutes);
 app.use('/api/admin', adminRoutes);
 

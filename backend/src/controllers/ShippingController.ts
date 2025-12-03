@@ -1,6 +1,5 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
-import { ShippoService } from '../services/ShippoService';
 
 const prisma = new PrismaClient();
 
@@ -323,19 +322,15 @@ export class ShippingController {
         return res.status(404).json({ error: 'No tracking number available yet' });
       }
 
-      // Pour obtenir le tracking, on a besoin du carrier
-      // On le stocke dans metadata lors de l'achat de l'étiquette
+      // Mondial Relay tracking only
       const metadata = transaction.metadata as any;
-      const carrier = metadata?.carrier || 'unknown';
-
-      // Obtenir les infos de suivi via Shippo
-      const tracking = await ShippoService.getTracking(carrier, transaction.trackingNumber);
+      const trackingUrl = `https://www.mondialrelay.fr/suivi-de-colis/?numeroExpedition=${transaction.trackingNumber}`;
 
       return res.json({
         success: true,
-        tracking,
         trackingNumber: transaction.trackingNumber,
-        trackingUrl: metadata?.trackingUrl
+        trackingUrl,
+        carrier: 'Mondial Relay'
       });
     } catch (error: any) {
       console.error('[Shipping] Get tracking error:', error);
