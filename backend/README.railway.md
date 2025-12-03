@@ -55,6 +55,27 @@ Expected response:
 }
 ```
 
+## 💾 Data Persistence
+
+### Database is PERSISTENT
+Your PostgreSQL database on Railway **persists across deployments**. Your data (users, products, transactions) will NOT be lost when you redeploy.
+
+### What CAN cause data loss:
+1. ❌ Running `prisma migrate reset`
+2. ❌ Deleting the PostgreSQL service in Railway
+3. ❌ Using `--accept-data-loss` flag in prisma commands
+4. ❌ Running cleanup scripts (`clean-database.ts`, `delete-all-products.ts`)
+
+### Recommended: Regular Backups
+Railway PostgreSQL supports automatic backups. Enable them in:
+- Railway Dashboard → Your PostgreSQL service → Settings → Backups
+
+### Check Database Status
+```bash
+# From backend folder
+npx ts-node scripts/check-db-status.ts
+```
+
 ## Troubleshooting
 
 If you see errors about `GEARTEDicon5.png` or React Native components:

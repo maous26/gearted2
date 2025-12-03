@@ -299,9 +299,26 @@ export default function SellScreen() {
           },
         ]
       );
-    } catch (e) {
-      console.error(e);
-      Alert.alert('Erreur', "Impossible de publier votre annonce");
+    } catch (e: any) {
+      console.error('[Sell] Product creation failed:', e);
+      
+      // Check for session expiration
+      const errorMessage = e?.message || e?.response?.data?.error || '';
+      if (errorMessage.includes('Session expired') || e?.response?.status === 401) {
+        Alert.alert(
+          'Session expirée',
+          'Votre session a expiré. Veuillez vous reconnecter pour publier votre annonce.',
+          [
+            {
+              text: 'Se reconnecter',
+              onPress: () => router.replace('/login'),
+            },
+            { text: 'Annuler', style: 'cancel' },
+          ]
+        );
+      } else {
+        Alert.alert('Erreur', `Impossible de publier votre annonce: ${errorMessage || 'Erreur inconnue'}`);
+      }
     } finally {
       setSubmitting(false);
     }
