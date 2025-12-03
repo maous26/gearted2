@@ -1,24 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  Image,
-  Alert,
+    ActivityIndicator,
+    Alert,
+    Image,
+    RefreshControl,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../components/ThemeProvider';
-import { THEMES } from '../themes';
-import { Ionicons } from '@expo/vector-icons';
 import transactionService, { Transaction } from '../services/transactions';
-import { useMessagesStore, HugoTransactionMessage, HugoMessageType } from '../stores/messagesStore';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { HugoMessageType, HugoTransactionMessage, useMessagesStore } from '../stores/messagesStore';
+import { THEMES } from '../themes';
 
 const NOTIFIED_TRANSACTIONS_KEY = '@gearted_notified_transactions';
 
@@ -26,7 +25,10 @@ export default function OrdersScreen() {
   const { theme } = useTheme();
   const t = THEMES[theme];
   const router = useRouter();
-  const { addHugoMessage, hasHugoMessage } = useMessagesStore();
+  const { addHugoMessage, hasHugoMessage, loadFromStorage } = useMessagesStore();
+  
+  // Ref pour éviter les notifications multiples
+  const notificationsProcessed = useRef<Set<string>>(new Set());
 
   const [activeTab, setActiveTab] = useState<'sales' | 'purchases'>('sales');
   const [statusFilter, setStatusFilter] = useState<'ongoing' | 'completed'>('ongoing');
@@ -35,16 +37,26 @@ export default function OrdersScreen() {
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [sales, setSales] = useState<Transaction[]>([]);
   const [purchases, setPurchases] = useState<Transaction[]>([]);
+  const [storeLoaded, setStoreLoaded] = useState(false);
+
+  // Charger le store au démarrage
+  useEffect(() => {
+    loadFromStorage().then(() => setStoreLoaded(true));
+  }, []);
 
   useEffect(() => {
-    loadOrders();
-  }, [activeTab, statusFilter]);
+    if (storeLoaded) {
+      loadOrders();
+    }
+  }, [activeTab, statusFilter, storeLoaded]);
 
   // Recharger automatiquement quand on revient sur l'écran
   useFocusEffect(
     React.useCallback(() => {
-      loadOrders();
-    }, [activeTab, statusFilter])
+      if (storeLoaded) {
+        loadOrders();
+      }
+    }, [activeTab, statusFilter, storeLoaded])
   );
 
   // Envoyer une notification Hugo pour une transaction
@@ -53,10 +65,22 @@ export default function OrdersScreen() {
     type: HugoMessageType,
     forRole: 'BUYER' | 'SELLER'
   ) => {
-    // Vérifier si déjà notifié
-    if (hasHugoMessage(transaction.id, type)) {
+    const notifKey = `${type}-${transaction.id}`;
+    
+    // Vérifier d'abord le ref local (évite doublons pendant la même session)
+    if (notificationsProcessed.current.has(notifKey)) {
       return;
     }
+    
+    // Vérifier si déjà dans le store
+    if (hasHugoMessage(transaction.id, type)) {
+      // Marquer comme traité pour éviter de revérifier
+      notificationsProcessed.current.add(notifKey);
+      return;
+    }
+    
+    // Marquer comme traité AVANT d'ajouter
+    notificationsProcessed.current.add(notifKey);
 
     const message: HugoTransactionMessage = {
       id: `hugo-${type}-${transaction.id}`,

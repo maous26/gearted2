@@ -19,6 +19,8 @@ export interface Product {
   status?: 'DRAFT' | 'PENDING_APPROVAL' | 'ACTIVE' | 'SOLD' | 'EXPIRED' | 'SUSPENDED' | 'DELETED';
   createdAt: string;
   handDelivery?: boolean; // Remise en main propre disponible
+  listingType?: 'SALE' | 'TRADE' | 'BOTH'; // Type d'annonce
+  tradeFor?: string; // Ce que le vendeur recherche en échange
 }
 
 const PRODUCTS_STORAGE_KEY = '@gearted_products';

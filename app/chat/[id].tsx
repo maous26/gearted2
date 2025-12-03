@@ -71,16 +71,27 @@ export default function ChatScreen() {
   const flatListRef = useRef<FlatList>(null);
 
   const conversationId = params.id as string;
-  const isHugoChat = conversationId === 'gearted-welcome';
+  const isHugoChat = conversationId === 'gearted-welcome' || conversationId.startsWith('hugo-');
 
   // Récupération des infos du vendeur depuis les params (facultatif)
   const sellerName = isHugoChat ? "Hugo de Gearted" : (params.sellerName as string) || "Vendeur";
   const sellerAvatar = isHugoChat ? HUGO_AVATAR : (params.sellerAvatar as string) || "https://via.placeholder.com/40/4B5D3A/FFFFFF?text=U";
 
+  // Message Hugo basé sur les params ou le message par défaut
+  const hugoMessageContent = params.hugoMessage as string || "Bienvenue sur Gearted ! 🎯 Je suis Hugo, fondateur de la plateforme. N'hésitez pas à me contacter si vous avez des questions.";
+
   useEffect(() => {
-    // Chat spécial Hugo - messages locaux
+    // Chat spécial Hugo - messages locaux (pas d'appel API)
     if (isHugoChat) {
-      setMessages(HUGO_SYSTEM_MESSAGES);
+      const hugoMsg: Message = {
+        id: conversationId,
+        text: hugoMessageContent,
+        senderId: 'hugo-gearted',
+        timestamp: new Date(),
+        isMine: false,
+        isSystem: true
+      };
+      setMessages([hugoMsg]);
       return;
     }
 

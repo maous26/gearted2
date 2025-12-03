@@ -23,12 +23,17 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.gearted.app"
     },
     "web": {
       "bundler": "metro",
       "output": "static"
     },
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "plugins": [
       "expo-router"
     ],
@@ -40,9 +45,7 @@
         "projectId": "0b5e4bdd-08e9-4049-81ce-dbad5fd2efb0"
       }
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/0b5e4bdd-08e9-4049-81ce-dbad5fd2efb0"
     }

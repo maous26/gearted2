@@ -1,21 +1,21 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  TextInput,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../components/ThemeProvider';
-import { THEMES } from '../themes';
-import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
-import { useMessagesStore, HugoTransactionMessage } from '../stores/messagesStore';
+import { useMessagesStore } from '../stores/messagesStore';
+import { THEMES } from '../themes';
 
 export default function SellerSetDimensionsScreen() {
   const { theme } = useTheme();
@@ -87,7 +87,7 @@ export default function SellerSetDimensionsScreen() {
         }}
       >
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
-          <Ionicons name="arrow-back" size={24} color={t.text} />
+          <Ionicons name="arrow-back" size={24} color={t.heading} />
         </TouchableOpacity>
         <Text style={{ fontSize: 20, fontWeight: '700', color: t.heading }}>
           Préparer l'expédition
@@ -110,7 +110,7 @@ export default function SellerSetDimensionsScreen() {
           <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading, marginBottom: 8 }}>
             {productTitle}
           </Text>
-          <Text style={{ fontSize: 14, color: t.mutedText }}>
+          <Text style={{ fontSize: 14, color: t.muted }}>
             Acheteur: {buyerName}
           </Text>
         </View>
@@ -118,7 +118,7 @@ export default function SellerSetDimensionsScreen() {
         {/* Instructions */}
         <View
           style={{
-            backgroundColor: t.accentBg,
+            backgroundColor: t.sectionLight,
             borderRadius: 12,
             padding: 16,
             marginBottom: 20,
@@ -128,7 +128,7 @@ export default function SellerSetDimensionsScreen() {
         >
           <Ionicons name="information-circle" size={24} color={t.primaryBtn} style={{ marginRight: 12 }} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 14, color: t.text, lineHeight: 20 }}>
+            <Text style={{ fontSize: 14, color: t.heading, lineHeight: 20 }}>
               Entrez les dimensions de votre colis. L'acheteur pourra ensuite choisir son mode de livraison et générer l'étiquette.
             </Text>
           </View>
@@ -151,7 +151,7 @@ export default function SellerSetDimensionsScreen() {
 
           <View style={{ flexDirection: 'row', marginBottom: 12 }}>
             <View style={{ flex: 1, marginRight: 8 }}>
-              <Text style={{ fontSize: 14, color: t.mutedText, marginBottom: 4 }}>
+              <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>
                 Longueur (cm)
               </Text>
               <TextInput
@@ -165,12 +165,12 @@ export default function SellerSetDimensionsScreen() {
                   borderRadius: 8,
                   paddingHorizontal: 12,
                   paddingVertical: 10,
-                  color: t.text,
+                  color: t.heading,
                 }}
               />
             </View>
             <View style={{ flex: 1, marginLeft: 8 }}>
-              <Text style={{ fontSize: 14, color: t.mutedText, marginBottom: 4 }}>
+              <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>
                 Largeur (cm)
               </Text>
               <TextInput
@@ -184,7 +184,7 @@ export default function SellerSetDimensionsScreen() {
                   borderRadius: 8,
                   paddingHorizontal: 12,
                   paddingVertical: 10,
-                  color: t.text,
+                  color: t.heading,
                 }}
               />
             </View>
@@ -192,7 +192,7 @@ export default function SellerSetDimensionsScreen() {
 
           <View style={{ flexDirection: 'row' }}>
             <View style={{ flex: 1, marginRight: 8 }}>
-              <Text style={{ fontSize: 14, color: t.mutedText, marginBottom: 4 }}>
+              <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>
                 Hauteur (cm)
               </Text>
               <TextInput
@@ -206,12 +206,12 @@ export default function SellerSetDimensionsScreen() {
                   borderRadius: 8,
                   paddingHorizontal: 12,
                   paddingVertical: 10,
-                  color: t.text,
+                  color: t.heading,
                 }}
               />
             </View>
             <View style={{ flex: 1, marginLeft: 8 }}>
-              <Text style={{ fontSize: 14, color: t.mutedText, marginBottom: 4 }}>
+              <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>
                 Poids (kg)
               </Text>
               <TextInput
@@ -225,7 +225,7 @@ export default function SellerSetDimensionsScreen() {
                   borderRadius: 8,
                   paddingHorizontal: 12,
                   paddingVertical: 10,
-                  color: t.text,
+                  color: t.heading,
                 }}
               />
             </View>
@@ -254,7 +254,7 @@ export default function SellerSetDimensionsScreen() {
 
         {/* Note */}
         <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
-          <Text style={{ fontSize: 12, color: t.mutedText, textAlign: 'center', lineHeight: 18 }}>
+          <Text style={{ fontSize: 12, color: t.muted, textAlign: 'center', lineHeight: 18 }}>
             Une fois les dimensions enregistrées, l'acheteur recevra une notification pour générer son étiquette.
           </Text>
         </View>

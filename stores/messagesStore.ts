@@ -106,12 +106,29 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
       
       const readIds = readJson ? JSON.parse(readJson) : [];
       const deletedIds = deletedJson ? JSON.parse(deletedJson) : [];
-      const hugoMsgs = hugoJson ? JSON.parse(hugoJson) : [];
+      let hugoMsgs = hugoJson ? JSON.parse(hugoJson) : [];
+      
+      // Nettoyer les doublons (même transactionId + type)
+      const seen = new Set<string>();
+      const cleanedHugoMsgs = hugoMsgs.filter((msg: HugoTransactionMessage) => {
+        const key = `${msg.type}-${msg.transactionId}`;
+        if (seen.has(key)) {
+          return false; // Doublon, on l'ignore
+        }
+        seen.add(key);
+        return true;
+      });
+      
+      // Si on a nettoyé des doublons, sauvegarder
+      if (cleanedHugoMsgs.length !== hugoMsgs.length) {
+        console.log(`[MessagesStore] Cleaned ${hugoMsgs.length - cleanedHugoMsgs.length} duplicate Hugo messages`);
+        await AsyncStorage.setItem(HUGO_MESSAGES_KEY, JSON.stringify(cleanedHugoMsgs));
+      }
       
       set({ 
         readMessageIds: readIds, 
         deletedMessageIds: deletedIds,
-        hugoMessages: hugoMsgs
+        hugoMessages: cleanedHugoMsgs
       });
     } catch (e) {
       console.warn('Failed to load messages from storage', e);

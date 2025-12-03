@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { Request, Response } from 'express';
 import { StripeService } from '../services/StripeService';
 
 const prisma = new PrismaClient();

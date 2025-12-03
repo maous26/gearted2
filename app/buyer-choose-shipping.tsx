@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../components/ThemeProvider';
-import { THEMES } from '../themes';
-import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
-import { useMessagesStore, HugoTransactionMessage } from '../stores/messagesStore';
+import { HugoTransactionMessage, useMessagesStore } from '../stores/messagesStore';
+import { THEMES } from '../themes';
 
 interface ShippingRate {
   rateId: string;
@@ -167,7 +167,7 @@ export default function BuyerChooseShippingScreen() {
         }}
       >
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
-          <Ionicons name="arrow-back" size={24} color={t.text} />
+          <Ionicons name="arrow-back" size={24} color={t.heading} />
         </TouchableOpacity>
         <Text style={{ fontSize: 20, fontWeight: '700', color: t.heading }}>
           Choisir la livraison
@@ -190,7 +190,7 @@ export default function BuyerChooseShippingScreen() {
           <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading, marginBottom: 8 }}>
             {productTitle}
           </Text>
-          <Text style={{ fontSize: 14, color: t.mutedText }}>
+          <Text style={{ fontSize: 14, color: t.muted }}>
             Vendeur: {sellerName}
           </Text>
         </View>
@@ -198,7 +198,7 @@ export default function BuyerChooseShippingScreen() {
         {/* Instructions */}
         <View
           style={{
-            backgroundColor: t.accentBg,
+            backgroundColor: t.sectionLight,
             borderRadius: 12,
             padding: 16,
             marginBottom: 20,
@@ -208,7 +208,7 @@ export default function BuyerChooseShippingScreen() {
         >
           <Ionicons name="information-circle" size={24} color={t.primaryBtn} style={{ marginRight: 12 }} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 14, color: t.text, lineHeight: 20 }}>
+            <Text style={{ fontSize: 14, color: t.heading, lineHeight: 20 }}>
               Le vendeur a défini les dimensions du colis. Choisissez votre mode de livraison préféré.
             </Text>
           </View>
@@ -218,7 +218,7 @@ export default function BuyerChooseShippingScreen() {
         {loading ? (
           <View style={{ paddingVertical: 40, alignItems: 'center' }}>
             <ActivityIndicator size="large" color={t.primaryBtn} />
-            <Text style={{ marginTop: 16, fontSize: 14, color: t.mutedText }}>
+            <Text style={{ marginTop: 16, fontSize: 14, color: t.muted }}>
               Récupération des tarifs...
             </Text>
           </View>
@@ -242,7 +242,7 @@ export default function BuyerChooseShippingScreen() {
                 key={rate.rateId}
                 onPress={() => setSelectedRate(rate.rateId)}
                 style={{
-                  backgroundColor: selectedRate === rate.rateId ? t.accentBg : t.rootBg,
+                  backgroundColor: selectedRate === rate.rateId ? t.sectionLight : t.rootBg,
                   borderWidth: 2,
                   borderColor: selectedRate === rate.rateId ? t.primaryBtn : t.border,
                   borderRadius: 12,
@@ -255,12 +255,12 @@ export default function BuyerChooseShippingScreen() {
                     <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
                       {rate.provider}
                     </Text>
-                    <Text style={{ fontSize: 14, color: t.mutedText, marginTop: 4 }}>
+                    <Text style={{ fontSize: 14, color: t.muted, marginTop: 4 }}>
                       {rate.servicelevel?.name || rate.servicelevelName || 'Service standard'}
                     </Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                      <Ionicons name="car-outline" size={14} color={t.mutedText} style={{ marginRight: 4 }} />
-                      <Text style={{ fontSize: 12, color: t.mutedText }}>
+                      <Ionicons name="car-outline" size={14} color={t.muted} style={{ marginRight: 4 }} />
+                      <Text style={{ fontSize: 12, color: t.muted }}>
                         Livraison estimée: <Text style={{ fontWeight: '600' }}>{(() => {
                           const deliveryDate = new Date();
                           deliveryDate.setDate(deliveryDate.getDate() + rate.estimatedDays);
@@ -310,11 +310,11 @@ export default function BuyerChooseShippingScreen() {
               borderColor: t.border,
             }}
           >
-            <Ionicons name="cube-outline" size={48} color={t.mutedText} />
+            <Ionicons name="cube-outline" size={48} color={t.muted} />
             <Text style={{ fontSize: 16, color: t.heading, fontWeight: '600', marginTop: 16 }}>
               En attente des dimensions
             </Text>
-            <Text style={{ fontSize: 14, color: t.mutedText, textAlign: 'center', marginTop: 8 }}>
+            <Text style={{ fontSize: 14, color: t.muted, textAlign: 'center', marginTop: 8 }}>
               Le vendeur n'a pas encore défini les dimensions du colis.
             </Text>
           </View>
@@ -322,7 +322,7 @@ export default function BuyerChooseShippingScreen() {
 
         {/* Note */}
         <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
-          <Text style={{ fontSize: 12, color: t.mutedText, textAlign: 'center', lineHeight: 18 }}>
+          <Text style={{ fontSize: 12, color: t.muted, textAlign: 'center', lineHeight: 18 }}>
             Une fois l'étiquette générée, le vendeur recevra une notification pour expédier votre colis.
           </Text>
         </View>

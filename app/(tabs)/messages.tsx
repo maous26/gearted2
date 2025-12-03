@@ -1,14 +1,14 @@
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    Image,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Image,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../components/ThemeProvider";
@@ -219,8 +219,11 @@ export default function MessagesScreen() {
           onPress={async () => {
             // Marquer comme lu
             await markAsRead(conversation.id);
-            // Ouvrir le chat
-            router.push({ pathname: '/chat/[id]', params: { id: conversation.id } });
+            // Ouvrir le chat seulement si ce n'est pas une notification Hugo
+            // Les notifications Hugo (isSystemMessage) ne doivent pas ouvrir de chat
+            if (!conversation.isSystemMessage) {
+              router.push({ pathname: '/chat/[id]', params: { id: conversation.id } });
+            }
           }}
           onLongPress={() => {
             // Appui long pour supprimer
