@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,11 +13,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { useTheme } from './ThemeProvider';
 import api from '../services/api';
 import { THEMES } from '../themes';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+const ASPECT_RATIO = width / height;
+const LATITUDE_DELTA = 0.05;
+const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 
 interface RelayPoint {
   id: string;
@@ -56,6 +60,7 @@ export default function RelayPointMap({
   const { theme } = useTheme();
   const t = THEMES[theme];
 
+  const mapRef = useRef<MapView>(null);
   const [loading, setLoading] = useState(true);
   const [relayPoints, setRelayPoints] = useState<RelayPoint[]>([]);
   const [selectedPoint, setSelectedPoint] = useState<RelayPoint | null>(null);
@@ -63,6 +68,12 @@ export default function RelayPointMap({
     latitude: number;
     longitude: number;
   } | null>(null);
+  const [region, setRegion] = useState<Region>({
+    latitude: 48.8566,
+    longitude: 2.3522,
+    latitudeDelta: LATITUDE_DELTA,
+    longitudeDelta: LONGITUDE_DELTA,
+  });
   const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
