@@ -10,6 +10,9 @@ import { createServer } from 'http';
 import morgan from 'morgan';
 import { Server } from 'socket.io';
 
+// BUILD VERSION: 2024-12-04-v2 - Added test-cancel endpoint
+console.log('🚀 [SERVER] Build version: 2024-12-04-v2');
+
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
