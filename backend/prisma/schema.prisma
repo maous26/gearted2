@@ -39,6 +39,11 @@ model User {
   // Security
   refreshToken String?
 
+  // Admin features
+  exemptFromCommissions Boolean? @default(false)
+  isPremium            Boolean? @default(false)
+  premiumUntil         DateTime?
+
   @@unique([provider, providerId]) // Éviter les doublons OAuth
   
   createdAt DateTime @default(now())
@@ -714,4 +719,41 @@ enum ExpertServiceStatus {
   COMPLETED            // Service terminé
   CANCELLED            // Annulé
   REFUNDED             // Remboursé
+}
+
+// ==========================================
+// ADMIN - Platform Settings
+// ==========================================
+model PlatformSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique // 'commissions', 'features', etc.
+  value     Json     // Flexible JSON storage
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("platform_settings")
+}
+
+// ==========================================
+// ADMIN - Advertisements
+// ==========================================
+model Advertisement {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String   // URL de l'image de la publicité
+  link        String?  // URL de destination au clic
+  placement   String   // 'home', 'landing', 'sidebar', 'banner'
+  isActive    Boolean  @default(true)
+  startDate   DateTime @default(now())
+  endDate     DateTime? // Null = pas de fin
+
+  // Statistiques
+  impressions Int      @default(0) // Nombre d'affichages
+  clicks      Int      @default(0) // Nombre de clics
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("advertisements")
 }
