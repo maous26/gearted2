@@ -180,6 +180,7 @@ export class NotificationController {
 
   /**
    * Create a notification (internal use - for other controllers)
+   * Enhanced: Groups messages by transaction in dedicated conversations
    */
   static async createNotification(data: {
     userId: string;
@@ -189,13 +190,19 @@ export class NotificationController {
     data?: any;
   }) {
     try {
+      // Extract navigation info from data
+      const navigationTarget = data.data?.navigationTarget || this.getDefaultNavigationTarget(data.data);
+      
       const notification = await prisma.notification.create({
         data: {
           userId: data.userId,
           title: data.title,
           message: data.message,
           type: data.type,
-          data: data.data || {},
+          data: {
+            ...data.data,
+            navigationTarget, // Add navigation target for frontend
+          },
         },
       });
 
@@ -247,16 +254,20 @@ export class NotificationController {
         console.log(`[NotificationController] Created conversation between Hugo and user ${data.userId}`);
       }
 
-      // Create message in the conversation
+      // Create message in the conversation with transaction info embedded in content
+      const messageContent = data.data?.transactionId 
+        ? `${data.title}\n\n${data.message}\n\n---\n📋 Transaction: ${data.data.transactionId}\n${data.data?.role === 'SELLER' ? '💼 Voir mes ventes' : '🛒 Voir mes achats'}`
+        : `${data.title}\n\n${data.message}`;
+
       await prisma.message.create({
         data: {
           conversationId: conversation.id,
           senderId: hugoUser.id,
-          content: `${data.title}\n\n${data.message}`
+          content: messageContent
         }
       });
 
-      console.log(`[NotificationController] Created message from Hugo for user ${data.userId}`);
+      console.log(`[NotificationController] Created message from Hugo for user ${data.userId} (${data.data?.role || 'unknown role'})`);
 
       return notification;
     } catch (error: any) {
@@ -264,5 +275,33 @@ export class NotificationController {
       throw error;
     }
   }
-}
 
+  /**
+   * Get default navigation target based on notification data
+   */
+  private static getDefaultNavigationTarget(data: any): { screen: string; params?: any } {
+    if (!data) return { screen: 'orders' };
+
+    if (data.transactionId) {
+      // Determine which tab based on role
+      const tab = data.role === 'SELLER' ? 'sales' : 'purchases';
+      return {
+        screen: 'orders',
+        params: {
+          tab,
+          transactionId: data.transactionId,
+          filter: 'in_progress' // Show "En cours" transactions
+        }
+      };
+    }
+
+    if (data.productId) {
+      return {
+        screen: 'product',
+        params: { productId: data.productId }
+      };
+    }
+
+    return { screen: 'orders' };
+  }
+}

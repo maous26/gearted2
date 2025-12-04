@@ -57,9 +57,29 @@ export default function NotificationsScreen() {
         );
       }
 
-      // Navigate based on notification data
-      if (notification.data?.transactionId) {
-        router.push('/orders');
+      // Navigate based on notification data and role
+      const data = notification.data;
+      if (data?.transactionId) {
+        // Determine which tab to show based on role
+        const role = data?.role;
+        if (role === 'SELLER') {
+          // Navigate to Sales tab
+          router.push({
+            pathname: '/orders',
+            params: { tab: 'sales', transactionId: data.transactionId }
+          });
+        } else if (role === 'BUYER') {
+          // Navigate to Purchases tab
+          router.push({
+            pathname: '/orders',
+            params: { tab: 'purchases', transactionId: data.transactionId }
+          });
+        } else {
+          // Default: just go to orders
+          router.push('/orders');
+        }
+      } else if (data?.productId) {
+        router.push(`/product/${data.productId}`);
       }
     } catch (error: any) {
       console.error('Failed to mark notification as read:', error);

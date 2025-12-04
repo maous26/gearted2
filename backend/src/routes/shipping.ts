@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { Router, Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
+import { NotificationController } from '../controllers/NotificationController';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -92,6 +93,35 @@ router.post('/products/:productId/parcel-dimensions', async (req: Request, res: 
       data: updateData,
       include: { parcelDimensions: true }
     });
+
+    // 🔔 NOTIFICATION ACHETEUR : Dimensions saisies, peut générer l'étiquette
+    try {
+      // Trouver la transaction liée au produit
+      const transaction = await prisma.transaction.findFirst({
+        where: { productId },
+        include: { buyer: true, product: { include: { seller: true } } }
+      });
+
+      if (transaction) {
+        await NotificationController.createNotification({
+          userId: transaction.buyerId,
+          title: '📦 Colis prêt !',
+          message: `Bonne nouvelle ! ${transaction.product.seller.username} a renseigné les dimensions du colis pour "${transaction.product.title}".\n\n👉 Vous pouvez maintenant choisir votre mode de livraison et générer l'étiquette d'expédition dans "Mes achats".`,
+          type: 'SHIPPING_UPDATE',
+          data: {
+            transactionId: transaction.id,
+            productId: transaction.productId,
+            productTitle: transaction.product.title,
+            role: 'BUYER',
+            step: 'DIMENSIONS_SET',
+            sellerName: transaction.product.seller.username
+          }
+        });
+        console.log(`[Shipping] 🔔 Notification sent to buyer ${transaction.buyerId} - dimensions set`);
+      }
+    } catch (notifError) {
+      console.error('[Shipping] Failed to send dimension notification:', notifError);
+    }
 
     return res.json({
       success: true,
@@ -384,12 +414,34 @@ router.post('/label/:transactionId', async (req: Request, res: Response): Promis
         status: 'PROCESSING'
       },
       include: {
-        product: true,
+        product: { include: { seller: true } },
         buyer: true
       }
     });
 
     console.log(`[Shipping/Label] Transaction updated - status: ${updatedTransaction.status}`);
+
+    // 🔔 NOTIFICATION VENDEUR : Étiquette générée, préparer le colis
+    try {
+      await NotificationController.createNotification({
+        userId: updatedTransaction.product.sellerId,
+        title: '🏷️ Étiquette générée !',
+        message: `${updatedTransaction.buyer.username} a généré l'étiquette d'expédition pour "${updatedTransaction.product.title}".\n\nNuméro de suivi : ${trackingNumber}\n\n👉 Préparez votre colis et déposez-le au point relais indiqué. Consultez "Mes ventes" pour plus de détails.`,
+        type: 'SHIPPING_UPDATE',
+        data: {
+          transactionId: updatedTransaction.id,
+          productId: updatedTransaction.productId,
+          productTitle: updatedTransaction.product.title,
+          trackingNumber,
+          role: 'SELLER',
+          step: 'LABEL_GENERATED',
+          buyerName: updatedTransaction.buyer.username
+        }
+      });
+      console.log(`[Shipping] 🔔 Notification sent to seller ${updatedTransaction.product.sellerId} - label generated`);
+    } catch (notifError) {
+      console.error('[Shipping] Failed to send label notification:', notifError);
+    }
 
     // Créer une URL factice pour l'étiquette PDF
     const labelUrl = `https://example.com/labels/${trackingNumber}.pdf`;

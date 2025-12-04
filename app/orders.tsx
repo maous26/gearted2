@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -25,6 +25,7 @@ export default function OrdersScreen() {
   const { theme } = useTheme();
   const t = THEMES[theme];
   const router = useRouter();
+  const params = useLocalSearchParams<{ tab?: string; transactionId?: string }>();
   const { addHugoMessage, hasHugoMessage, loadFromStorage } = useMessagesStore();
   
   // Ref pour éviter les notifications multiples
@@ -38,6 +39,15 @@ export default function OrdersScreen() {
   const [sales, setSales] = useState<Transaction[]>([]);
   const [purchases, setPurchases] = useState<Transaction[]>([]);
   const [storeLoaded, setStoreLoaded] = useState(false);
+
+  // Handle navigation params (from notifications)
+  useEffect(() => {
+    if (params.tab === 'sales' || params.tab === 'purchases') {
+      setActiveTab(params.tab);
+      // Default to ongoing transactions when coming from notification
+      setStatusFilter('ongoing');
+    }
+  }, [params.tab]);
 
   // Charger le store au démarrage
   useEffect(() => {

@@ -14,9 +14,9 @@ import {
   View,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
-import { useTheme } from './ThemeProvider';
 import api from '../services/api';
 import { THEMES } from '../themes';
+import { useTheme } from './ThemeProvider';
 
 const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;

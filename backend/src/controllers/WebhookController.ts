@@ -128,14 +128,17 @@ export class WebhookController {
       try {
         await NotificationController.createNotification({
           userId: transaction.buyerId,
-          title: 'Hugo de Gearted',
-          message: `🎉 Félicitations ! Vous venez d'acquérir "${transaction.product.title}". Après validation du vendeur, vous pourrez générer l'étiquette d'envoi.`,
+          title: '✅ Achat confirmé !',
+          message: `Votre achat de "${transaction.product.title}" auprès de ${transaction.product.seller.username} a été confirmé !\n\nLe vendeur va maintenant préparer votre colis et renseigner ses dimensions. Vous serez notifié dès que vous pourrez générer l'étiquette d'expédition.`,
           type: 'PAYMENT_UPDATE',
           data: {
             transactionId: transaction.id,
             productId: transaction.productId,
             productTitle: transaction.product.title,
-            amount: transaction.amount.toString()
+            amount: transaction.amount.toString(),
+            role: 'BUYER',
+            step: 'PURCHASE_COMPLETED',
+            sellerName: transaction.product.seller.username
           }
         });
         console.log(`[Webhook] 🔔 Notification sent to buyer ${transaction.buyerId}`);
@@ -147,14 +150,16 @@ export class WebhookController {
       try {
         await NotificationController.createNotification({
           userId: transaction.product.sellerId,
-          title: 'Hugo de Gearted',
-          message: `📦 Félicitations ! Votre article "${transaction.product.title}" a été vendu pour ${(Number(transaction.amount) / 100).toFixed(2)}€. Veuillez saisir les dimensions du colis pour permettre à l'acheteur de générer son étiquette d'expédition.`,
+          title: '🎉 Nouvelle vente !',
+          message: `Félicitations ! ${transaction.buyer.username} vient d'acheter "${transaction.product.title}" pour ${(Number(transaction.amount) / 100).toFixed(2)}€ !\n\n👉 Action requise : Rendez-vous dans "Mes ventes" pour renseigner les dimensions du colis et permettre à l'acheteur de générer l'étiquette d'expédition.`,
           type: 'PAYMENT_UPDATE',
           data: {
             transactionId: transaction.id,
             productId: transaction.productId,
             productTitle: transaction.product.title,
             amount: transaction.amount.toString(),
+            role: 'SELLER',
+            step: 'SALE_COMPLETED',
             buyerName: transaction.buyer.username
           }
         });
