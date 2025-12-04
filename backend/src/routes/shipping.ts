@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
-import { Router, Request, Response } from 'express';
-import { authenticate } from '../middleware/auth';
+import { Request, Response, Router } from 'express';
 import { NotificationController } from '../controllers/NotificationController';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();

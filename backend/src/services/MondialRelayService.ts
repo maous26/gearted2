@@ -1,5 +1,5 @@
-import * as soap from 'soap';
 import crypto from 'crypto';
+import * as soap from 'soap';
 
 const MONDIAL_RELAY_WSDL = 'https://api.mondialrelay.com/Web_Services.asmx?WSDL';
 

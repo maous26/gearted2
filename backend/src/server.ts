@@ -18,26 +18,26 @@ import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
 
 // Import routes
+import adminRoutes from './routes/admin';
 import authRoutes from './routes/auth';
-import discordAuthRoutes from './routes/discord-auth';
 import categoryRoutes from './routes/categories';
 import compatibilityRoutes from './routes/compatibility';
+import discordAuthRoutes from './routes/discord-auth';
 import favoritesRoutes from './routes/favorites';
 import messageRoutes from './routes/messages';
+import mondialrelayRoutes from './routes/mondialrelay.routes';
+import notificationRoutes from './routes/notifications';
+import premiumRoutes from './routes/premium';
 import productRoutes from './routes/products';
 import reviewRoutes from './routes/reviews';
 import searchRoutes from './routes/search';
+import shippingRoutes from './routes/shipping';
+import shippoAdminRoutes from './routes/shippoAdmin.routes';
+import stripeRoutes from './routes/stripe';
+import transactionRoutes from './routes/transactions';
 import uploadRoutes from './routes/uploads';
 import userRoutes from './routes/users';
-import stripeRoutes from './routes/stripe';
-import shippingRoutes from './routes/shipping';
 import webhookRoutes from './routes/webhook';
-import transactionRoutes from './routes/transactions';
-import shippoAdminRoutes from './routes/shippoAdmin.routes';
-import mondialrelayRoutes from './routes/mondialrelay.routes';
-import notificationRoutes from './routes/notifications';
-import adminRoutes from './routes/admin';
-import premiumRoutes from './routes/premium';
 
 // Load environment variables
 dotenv.config();
@@ -64,9 +64,14 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'production',
-    version: '2.0.0-no-mocks',
+    version: '2024-12-04-v3-cancel-fix',
     buildTime: new Date().toISOString()
   });
+});
+
+// Simple test endpoint for cancel route
+app.post('/test-cancel-route', (req, res) => {
+  res.json({ message: 'Test cancel route works!', version: '2024-12-04-v3' });
 });
 
 // Diagnostic endpoint to check if routes are loaded

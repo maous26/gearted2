@@ -2,19 +2,19 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import { useTheme } from './ThemeProvider';
 import api from '../services/api';
 import { THEMES } from '../themes';
+import { useTheme } from './ThemeProvider';
 
 interface RelayPoint {
   id: string;

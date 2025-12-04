@@ -1,6 +1,5 @@
-import { Request, Response } from 'express';
-import { MondialRelayService } from '../services/MondialRelayService';
 import { PrismaClient } from '@prisma/client';
+import { Request, Response } from 'express';
 
 const prisma = new PrismaClient();
 

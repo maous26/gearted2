@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
   Alert,
   RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
 import { useTheme } from '../components/ThemeProvider';
-import { THEMES } from '../themes';
-import { Ionicons } from '@expo/vector-icons';
 import notificationService, { Notification } from '../services/notifications';
+import { THEMES } from '../themes';
 
 export default function NotificationsScreen() {
   const { theme } = useTheme();
@@ -139,7 +139,7 @@ export default function NotificationsScreen() {
       key={notification.id}
       onPress={() => handleNotificationPress(notification)}
       style={{
-        backgroundColor: notification.isRead ? t.cardBg : t.accentBg,
+        backgroundColor: notification.isRead ? t.cardBg : t.sectionLight,
         borderRadius: 12,
         padding: 16,
         marginBottom: 12,
@@ -171,10 +171,10 @@ export default function NotificationsScreen() {
         <Text style={{ fontSize: 15, fontWeight: '600', color: t.heading, marginBottom: 4 }}>
           {notification.title}
         </Text>
-        <Text style={{ fontSize: 14, color: t.text, lineHeight: 20, marginBottom: 6 }}>
+        <Text style={{ fontSize: 14, color: t.heading, lineHeight: 20, marginBottom: 6 }}>
           {notification.message}
         </Text>
-        <Text style={{ fontSize: 12, color: t.mutedText }}>
+        <Text style={{ fontSize: 12, color: t.muted }}>
           {new Date(notification.createdAt).toLocaleString('fr-FR', {
             day: 'numeric',
             month: 'short',
@@ -217,7 +217,7 @@ export default function NotificationsScreen() {
       >
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <TouchableOpacity onPress={() => router.back()} style={{ padding: 8, marginRight: 8 }}>
-            <Ionicons name="arrow-back" size={24} color={t.text} />
+            <Ionicons name="arrow-back" size={24} color={t.heading} />
           </TouchableOpacity>
           <Text style={{ fontSize: 20, fontWeight: '700', color: t.heading }}>
             Notifications
@@ -241,7 +241,7 @@ export default function NotificationsScreen() {
         {loading ? (
           <View style={{ paddingTop: 60, alignItems: 'center' }}>
             <ActivityIndicator size="large" color={t.primaryBtn} />
-            <Text style={{ marginTop: 16, fontSize: 14, color: t.mutedText }}>
+            <Text style={{ marginTop: 16, fontSize: 14, color: t.muted }}>
               Chargement...
             </Text>
           </View>
@@ -264,7 +264,7 @@ export default function NotificationsScreen() {
             <Text
               style={{
                 fontSize: 14,
-                color: t.mutedText,
+                color: t.muted,
                 marginTop: 8,
                 textAlign: 'center',
               }}
