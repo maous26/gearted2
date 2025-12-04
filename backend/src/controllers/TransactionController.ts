@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
 import { StripeService } from '../services/StripeService';
+import { NotificationController } from './NotificationController';
 
 const prisma = new PrismaClient();
 
@@ -382,6 +383,52 @@ export class TransactionController {
           data: { status: 'ACTIVE' }
         });
 
+        // 🔔 NOTIFICATIONS D'ANNULATION (même si le remboursement a échoué)
+        try {
+          const cancellerRole = isBuyer ? 'BUYER' : 'SELLER';
+          const otherPartyRole = isBuyer ? 'SELLER' : 'BUYER';
+          const otherPartyId = isBuyer ? transaction.product.sellerId : transaction.buyerId;
+          const otherPartyUsername = isBuyer ? 'le vendeur' : transaction.buyer.username;
+          const cancellerUsername = isBuyer ? transaction.buyer.username : 'le vendeur';
+
+          // Notification pour celui qui annule (confirmation avec note sur remboursement manuel)
+          await NotificationController.createNotification({
+            userId: userId,
+            title: '✅ Transaction annulée',
+            message: `Votre ${isBuyer ? 'achat' : 'vente'} de "${transaction.product.title}" a été annulé${isBuyer ? '' : 'e'}. Le remboursement sera traité manuellement par notre équipe. Vous serez notifié dès que le remboursement sera effectué.`,
+            type: 'PAYMENT_UPDATE',
+            data: {
+              transactionId: transaction.id,
+              productId: transaction.productId,
+              productTitle: transaction.product.title,
+              role: cancellerRole,
+              action: 'cancelled',
+              refundStatus: 'manual_required'
+            }
+          });
+
+          // Notification pour l'autre partie (alerte d'annulation)
+          await NotificationController.createNotification({
+            userId: otherPartyId,
+            title: '❌ Transaction annulée',
+            message: `${cancellerUsername} a annulé ${isBuyer ? 'son achat' : 'la vente'} de "${transaction.product.title}". Le remboursement sera traité manuellement.${isBuyer ? ' Votre produit a été remis en vente.' : ''}`,
+            type: 'PAYMENT_UPDATE',
+            data: {
+              transactionId: transaction.id,
+              productId: transaction.productId,
+              productTitle: transaction.product.title,
+              role: otherPartyRole,
+              action: 'cancelled_by_other',
+              cancelledBy: cancellerRole,
+              refundStatus: 'manual_required'
+            }
+          });
+
+          console.log(`[Transactions] Cancellation notifications sent (manual refund case)`);
+        } catch (notifError) {
+          console.error(`[Transactions] Failed to send cancellation notifications:`, notifError);
+        }
+
         return res.json({
           success: true,
           message: 'Transaction annulée (le remboursement sera traité manuellement)',
@@ -405,6 +452,51 @@ export class TransactionController {
       });
 
       console.log(`[Transactions] Transaction ${transactionId} cancelled successfully`);
+
+      // 🔔 NOTIFICATIONS D'ANNULATION
+      try {
+        const cancellerRole = isBuyer ? 'BUYER' : 'SELLER';
+        const otherPartyRole = isBuyer ? 'SELLER' : 'BUYER';
+        const otherPartyId = isBuyer ? transaction.product.sellerId : transaction.buyerId;
+        const otherPartyUsername = isBuyer ? 'le vendeur' : transaction.buyer.username;
+        const cancellerUsername = isBuyer ? transaction.buyer.username : 'le vendeur';
+
+        // Notification pour celui qui annule (confirmation)
+        await NotificationController.createNotification({
+          userId: userId,
+          title: '✅ Transaction annulée',
+          message: `Votre ${isBuyer ? 'achat' : 'vente'} de "${transaction.product.title}" a été annulé${isBuyer ? '' : 'e'} avec succès. Le remboursement a été traité et les fonds seront recrédités sous 5-10 jours ouvrés.`,
+          type: 'PAYMENT_UPDATE',
+          data: {
+            transactionId: transaction.id,
+            productId: transaction.productId,
+            productTitle: transaction.product.title,
+            role: cancellerRole,
+            action: 'cancelled'
+          }
+        });
+
+        // Notification pour l'autre partie (alerte d'annulation)
+        await NotificationController.createNotification({
+          userId: otherPartyId,
+          title: '❌ Transaction annulée',
+          message: `${cancellerUsername} a annulé ${isBuyer ? 'son achat' : 'la vente'} de "${transaction.product.title}". Le remboursement a été effectué automatiquement.${isBuyer ? ' Votre produit a été remis en vente.' : ''}`,
+          type: 'PAYMENT_UPDATE',
+          data: {
+            transactionId: transaction.id,
+            productId: transaction.productId,
+            productTitle: transaction.product.title,
+            role: otherPartyRole,
+            action: 'cancelled_by_other',
+            cancelledBy: cancellerRole
+          }
+        });
+
+        console.log(`[Transactions] Cancellation notifications sent to both parties`);
+      } catch (notifError) {
+        console.error(`[Transactions] Failed to send cancellation notifications:`, notifError);
+        // Continue anyway - cancellation was successful
+      }
 
       return res.json({
         success: true,
