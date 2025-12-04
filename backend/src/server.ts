@@ -232,6 +232,13 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined'));
 }
 
+// DEBUG: Test endpoint for cancel route (temporary)
+app.post('/api/test-cancel/:transactionId/cancel', async (req, res) => {
+  const { transactionId } = req.params;
+  console.log(`[DEBUG] Test cancel called with transactionId: "${transactionId}"`);
+  res.json({ success: true, receivedId: transactionId, method: 'POST' });
+});
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/auth', discordAuthRoutes); // Discord OAuth routes
