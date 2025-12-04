@@ -2,6 +2,9 @@ import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
 import Stripe from 'stripe';
 import { NotificationController } from './NotificationController';
+import { BoostService } from '../services/BoostService';
+import { ProtectionService } from '../services/ProtectionService';
+import { ExpertService } from '../services/ExpertService';
 
 const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
@@ -76,10 +79,46 @@ export class WebhookController {
     console.log(`[Webhook] Payment succeeded: ${paymentIntent.id}`);
 
     try {
+      // 🚀 GÉRER LES SERVICES PREMIUM (Boost, Protect, Expert)
+      const paymentType = paymentIntent.metadata?.type;
+
+      if (paymentType === 'boost') {
+        console.log(`[Webhook] 🚀 Activating Boost for PaymentIntent: ${paymentIntent.id}`);
+        try {
+          await BoostService.activateBoost(paymentIntent.id);
+          console.log(`[Webhook] ✅ Boost activated successfully`);
+        } catch (error) {
+          console.error(`[Webhook] ❌ Failed to activate boost:`, error);
+        }
+        return; // Boost n'a pas de transaction standard
+      }
+
+      if (paymentType === 'protection') {
+        console.log(`[Webhook] 🛡️ Activating Protection for PaymentIntent: ${paymentIntent.id}`);
+        try {
+          await ProtectionService.activateProtection(paymentIntent.id);
+          console.log(`[Webhook] ✅ Protection activated successfully`);
+        } catch (error) {
+          console.error(`[Webhook] ❌ Failed to activate protection:`, error);
+        }
+        // Continue pour traiter la transaction normale
+      }
+
+      if (paymentType === 'expert') {
+        console.log(`[Webhook] 🔬 Activating Expert Service for PaymentIntent: ${paymentIntent.id}`);
+        try {
+          await ExpertService.activateExpertService(paymentIntent.id);
+          console.log(`[Webhook] ✅ Expert service activated successfully`);
+        } catch (error) {
+          console.error(`[Webhook] ❌ Failed to activate expert service:`, error);
+        }
+        // Continue pour traiter la transaction normale
+      }
+
       // Récupérer la transaction avec toutes les relations
       const transaction = await prisma.transaction.findUnique({
         where: { paymentIntentId: paymentIntent.id },
-        include: { 
+        include: {
           product: {
             include: {
               seller: true
