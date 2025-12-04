@@ -203,39 +203,17 @@ export default function OrdersScreen() {
           onPress: async () => {
             try {
               setCancelling(order.id);
-              
-              // DEBUG: Test direct fetch
-              const token = await require('../services/storage').default.getAccessToken();
-              const url = `https://gearted2-production.up.railway.app/api/transactions/${order.id}/cancel`;
-              console.log('[DEBUG Cancel] URL:', url);
-              console.log('[DEBUG Cancel] Token length:', token?.length || 0);
-              console.log('[DEBUG Cancel] Token first 20 chars:', token?.substring(0, 20));
-              
-              const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify({ reason: isSale ? 'seller_request' : 'buyer_request' }),
-              });
-              
-              console.log('[DEBUG Cancel] Response status:', response.status);
-              console.log('[DEBUG Cancel] Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
-              const data = await response.json();
-              console.log('[DEBUG Cancel] Response data:', JSON.stringify(data));
-              
-              if (!response.ok) {
-                throw new Error(data.error?.message || data.message || 'Erreur');
-              }
-              
+
+              const reason = isSale ? 'seller_request' : 'buyer_request';
+              const data = await transactionService.cancelTransaction(order.id, reason);
+
               Alert.alert(
                 'Transaction annulée',
                 data.message || 'Transaction annulée avec succès',
                 [{ text: 'OK', onPress: () => loadOrders() }]
               );
             } catch (error: any) {
-              console.error('[DEBUG Cancel] Error:', error);
+              console.error('[Cancel] Error:', error);
               Alert.alert('Erreur', error.message || 'Impossible d\'annuler la transaction');
             } finally {
               setCancelling(null);
