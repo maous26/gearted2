@@ -291,7 +291,8 @@ export class TransactionController {
       const { transactionId } = req.params;
       const { reason } = req.body; // Raison optionnelle de l'annulation
 
-      console.log(`[Transactions] Cancel request for transaction ${transactionId} by user ${userId}`);
+      console.log(`[Transactions] Cancel request for transaction "${transactionId}" (length: ${transactionId?.length}) by user ${userId}`);
+      console.log(`[Transactions] Raw params:`, JSON.stringify(req.params));
 
       // Récupérer la transaction avec toutes les infos nécessaires
       const transaction = await prisma.transaction.findUnique({
@@ -314,7 +315,10 @@ export class TransactionController {
       });
 
       if (!transaction) {
-        console.log(`[Transactions] Transaction ${transactionId} not found`);
+        console.log(`[Transactions] Transaction "${transactionId}" not found in database`);
+        // Debug: list all transaction IDs
+        const allTxIds = await prisma.transaction.findMany({ select: { id: true }, take: 10 });
+        console.log(`[Transactions] Available transactions:`, allTxIds.map(t => t.id));
         return res.status(404).json({ error: 'Transaction introuvable' });
       }
 
