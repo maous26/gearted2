@@ -114,8 +114,8 @@ export class ProtectionService {
         data: { status: 'ACTIVE' },
       });
 
-      // Mettre à jour la transaction
-      await prisma.transaction.update({
+      // Mettre à jour la transaction (avec le nouveau champ hasProtection)
+      await (prisma as any).transaction.update({
         where: { id: protection.transactionId },
         data: { hasProtection: true },
       });

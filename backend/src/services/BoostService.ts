@@ -3,6 +3,9 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Cast prisma pour accéder aux nouveaux modèles (avant migration)
+const db = prisma as any;
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-10-29.clover',
 });
@@ -47,7 +50,7 @@ export class BoostService {
       }
 
       // Vérifier s'il y a déjà un boost actif sur ce produit
-      const existingBoost = await prisma.productBoost.findFirst({
+      const existingBoost = await db.productBoost.findFirst({
         where: {
           productId,
           status: 'ACTIVE',
@@ -79,7 +82,7 @@ export class BoostService {
       const endsAt = new Date();
       endsAt.setHours(endsAt.getHours() + durationHours);
 
-      const boost = await prisma.productBoost.create({
+      const boost = await db.productBoost.create({
         data: {
           productId,
           userId,
@@ -110,7 +113,7 @@ export class BoostService {
    */
   static async activateBoost(paymentIntentId: string) {
     try {
-      const boost = await prisma.productBoost.findFirst({
+      const boost = await db.productBoost.findFirst({
         where: { paymentIntentId },
       });
 
@@ -124,7 +127,7 @@ export class BoostService {
       endsAt.setHours(endsAt.getHours() + durationHours);
 
       // Activer le boost
-      const updatedBoost = await prisma.productBoost.update({
+      const updatedBoost = await db.productBoost.update({
         where: { id: boost.id },
         data: {
           status: 'ACTIVE',
@@ -173,7 +176,7 @@ export class BoostService {
    */
   static async getBoostedProducts(limit: number = 10) {
     try {
-      const boostedProducts = await prisma.productBoost.findMany({
+      const boostedProducts = await db.productBoost.findMany({
         where: {
           status: 'ACTIVE',
           endsAt: { gt: new Date() },
@@ -197,7 +200,7 @@ export class BoostService {
         take: limit,
       });
 
-      return boostedProducts.map((boost) => ({
+      return boostedProducts.map((boost: any) => ({
         ...boost.product,
         boost: {
           id: boost.id,
@@ -216,7 +219,7 @@ export class BoostService {
    */
   static async expireOldBoosts() {
     try {
-      const result = await prisma.productBoost.updateMany({
+      const result = await db.productBoost.updateMany({
         where: {
           status: 'ACTIVE',
           endsAt: { lt: new Date() },
@@ -239,7 +242,7 @@ export class BoostService {
    */
   static async getUserBoosts(userId: string) {
     try {
-      const boosts = await prisma.productBoost.findMany({
+      const boosts = await db.productBoost.findMany({
         where: { userId },
         include: {
           product: {
@@ -265,7 +268,7 @@ export class BoostService {
    */
   static async getProductActiveBoost(productId: string) {
     try {
-      const boost = await prisma.productBoost.findFirst({
+      const boost = await db.productBoost.findFirst({
         where: {
           productId,
           status: 'ACTIVE',
@@ -285,7 +288,7 @@ export class BoostService {
    */
   static async cancelBoost(boostId: string, userId: string) {
     try {
-      const boost = await prisma.productBoost.findFirst({
+      const boost = await db.productBoost.findFirst({
         where: {
           id: boostId,
           userId,
@@ -297,7 +300,7 @@ export class BoostService {
         throw new Error('Boost non trouvé ou déjà activé');
       }
 
-      await prisma.productBoost.update({
+      await db.productBoost.update({
         where: { id: boostId },
         data: { status: 'CANCELLED' },
       });

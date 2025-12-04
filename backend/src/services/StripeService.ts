@@ -177,8 +177,8 @@ export class StripeService {
 
       const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams);
 
-      // Enregistrer la transaction dans la DB
-      await prisma.transaction.create({
+      // Enregistrer la transaction dans la DB (avec les nouveaux champs de commission)
+      await (prisma as any).transaction.create({
         data: {
           productId,
           buyerId,
