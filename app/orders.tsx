@@ -206,21 +206,22 @@ export default function OrdersScreen() {
               
               // DEBUG: Test direct fetch
               const token = await require('../services/storage').default.getAccessToken();
-              console.log('[DEBUG Cancel] Token:', token ? 'exists' : 'missing');
+              const url = `https://gearted2-production.up.railway.app/api/transactions/${order.id}/cancel`;
+              console.log('[DEBUG Cancel] URL:', url);
+              console.log('[DEBUG Cancel] Token length:', token?.length || 0);
+              console.log('[DEBUG Cancel] Token first 20 chars:', token?.substring(0, 20));
               
-              const response = await fetch(
-                `https://gearted2-production.up.railway.app/api/transactions/${order.id}/cancel`,
-                {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({ reason: isSale ? 'seller_request' : 'buyer_request' }),
-                }
-              );
+              const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ reason: isSale ? 'seller_request' : 'buyer_request' }),
+              });
               
               console.log('[DEBUG Cancel] Response status:', response.status);
+              console.log('[DEBUG Cancel] Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
               const data = await response.json();
               console.log('[DEBUG Cancel] Response data:', JSON.stringify(data));
               
