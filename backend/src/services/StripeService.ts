@@ -182,10 +182,15 @@ export class StripeService {
         data: {
           productId,
           buyerId,
-          amount: totalChargeInCents / 100,  // Montant total payé par l'acheteur
+          amount: productPriceInCents / 100,     // Prix du produit (sans frais)
           currency: currency.toUpperCase(),
-          platformFee: platformFeeInCents / 100,
-          sellerAmount: sellerAmountInCents / 100,
+          buyerFeePercent: BUYER_FEE_PERCENT,    // 5%
+          sellerFeePercent: SELLER_FEE_PERCENT,  // 5%
+          buyerFee: buyerFeeInCents / 100,       // Commission acheteur
+          sellerFee: sellerFeeInCents / 100,     // Commission vendeur
+          platformFee: platformFeeInCents / 100, // Commission totale Gearted
+          sellerAmount: sellerAmountInCents / 100, // Montant vendeur
+          totalPaid: totalChargeInCents / 100,   // Total payé par l'acheteur
           paymentIntentId: paymentIntent.id,
           status: 'PENDING',
         }

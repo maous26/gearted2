@@ -286,6 +286,7 @@ model Product {
   images       ProductImage[]
   transactions Transaction[]
   shipments    Shipment[]
+  boosts       ProductBoost[]
 
   @@map("products")
 }
@@ -412,11 +413,19 @@ model Transaction {
   buyerId   String
   buyer     User    @relation(fields: [buyerId], references: [id])
 
-  // Payment info
-  amount           Decimal
+  // Payment info - Prix de base
+  amount           Decimal // Prix du produit
   currency         String  @default("EUR")
-  platformFee      Decimal // Commission Gearted
-  sellerAmount     Decimal // Montant pour le vendeur
+  
+  // Commission structure (5% acheteur + 5% vendeur = 10% total)
+  buyerFeePercent  Decimal @default(5.0)   // Commission acheteur (5%)
+  sellerFeePercent Decimal @default(5.0)   // Commission vendeur (5%)
+  buyerFee         Decimal @default(0)     // Montant commission acheteur
+  sellerFee        Decimal @default(0)     // Montant commission vendeur
+  
+  platformFee      Decimal // Commission totale Gearted (buyerFee + sellerFee)
+  sellerAmount     Decimal // Montant pour le vendeur (amount - sellerFee)
+  totalPaid        Decimal? // Montant total payé par l'acheteur (amount + buyerFee)
 
   // Stripe IDs
   paymentIntentId  String  @unique
@@ -428,6 +437,14 @@ model Transaction {
   // Shipping
   shippingAddress  Json?
   trackingNumber   String?
+
+  // Premium services liés
+  hasProtection    Boolean @default(false) // Gearted Protect
+  hasExpert        Boolean @default(false) // Gearted Expert
+  
+  // Relations premium
+  protection       TransactionProtection?
+  expertService    ExpertService?
 
   // Metadata
   metadata Json?
@@ -549,4 +566,152 @@ model ShippingAddress {
   updatedAt DateTime @updatedAt
   
   @@map("shipping_addresses")
+}
+
+// ==========================================
+// PREMIUM FEATURES - Gearted Monetization
+// ==========================================
+
+// Product Boost - Mise en avant des annonces
+model ProductBoost {
+  id        String @id @default(cuid())
+  
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String // Vendeur qui a payé le boost
+  
+  // Type de boost
+  boostType BoostType
+  
+  // Prix payé
+  price    Decimal
+  currency String  @default("EUR")
+  
+  // Période de boost
+  startsAt  DateTime @default(now())
+  endsAt    DateTime
+  
+  // Stripe payment
+  paymentIntentId String?
+  
+  // Status
+  status BoostStatus @default(PENDING)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("product_boosts")
+}
+
+enum BoostType {
+  BOOST_24H  // 1.99€ - 24 heures de mise en avant
+  BOOST_7D   // 4.99€ - 7 jours de mise en avant
+}
+
+enum BoostStatus {
+  PENDING    // En attente de paiement
+  ACTIVE     // Boost actif
+  EXPIRED    // Boost terminé
+  CANCELLED  // Boost annulé
+}
+
+// Gearted Protect - Assurance transaction (sans transit physique)
+model TransactionProtection {
+  id String @id @default(cuid())
+  
+  transactionId String @unique
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  
+  // Prix fixe: 3.99€
+  price    Decimal @default(3.99)
+  currency String  @default("EUR")
+  
+  // Stripe payment
+  paymentIntentId String?
+  
+  // Status de la protection
+  status ProtectionStatus @default(PENDING)
+  
+  // En cas de litige
+  claimReason     String?
+  claimDescription String?
+  claimAt         DateTime?
+  claimResolvedAt DateTime?
+  claimResolution String?
+  refundAmount    Decimal?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("transaction_protections")
+}
+
+enum ProtectionStatus {
+  PENDING         // En attente de paiement
+  ACTIVE          // Protection active
+  CLAIM_OPENED    // Litige ouvert
+  CLAIM_RESOLVED  // Litige résolu
+  EXPIRED         // Protection expirée (14 jours après livraison)
+  CANCELLED       // Annulé
+}
+
+// Gearted Expert - Vérification physique par expert (transit par Gearted)
+model ExpertService {
+  id String @id @default(cuid())
+  
+  transactionId String @unique
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  
+  // Prix fixe: 19.90€
+  price    Decimal @default(19.90)
+  currency String  @default("EUR")
+  
+  // Stripe payment
+  paymentIntentId String?
+  
+  // Status du service
+  status ExpertServiceStatus @default(PENDING)
+  
+  // Tracking vendeur -> Gearted
+  sellerTrackingNumber String?
+  sellerShippedAt      DateTime?
+  receivedByGeartedAt  DateTime?
+  
+  // Vérification par l'expert
+  verifiedAt          DateTime?
+  verifiedBy          String?   // ID de l'expert/admin
+  verificationNotes   String?
+  verificationPhotos  String[]  @default([])
+  verificationPassed  Boolean?
+  
+  // Tracking Gearted -> Acheteur
+  buyerTrackingNumber String?
+  shippedToBuyerAt    DateTime?
+  deliveredToBuyerAt  DateTime?
+  
+  // En cas de problème détecté
+  issueDetected       Boolean   @default(false)
+  issueDescription    String?
+  issueResolution     String?
+  refundAmount        Decimal?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("expert_services")
+}
+
+enum ExpertServiceStatus {
+  PENDING              // En attente de paiement
+  AWAITING_SHIPMENT    // En attente d'expédition vendeur
+  IN_TRANSIT_TO_GEARTED // En transit vers Gearted
+  RECEIVED_BY_GEARTED  // Reçu par Gearted
+  UNDER_VERIFICATION   // En cours de vérification
+  VERIFIED             // Vérifié et approuvé
+  ISSUE_DETECTED       // Problème détecté
+  IN_TRANSIT_TO_BUYER  // En transit vers l'acheteur
+  DELIVERED            // Livré à l'acheteur
+  COMPLETED            // Service terminé
+  CANCELLED            // Annulé
+  REFUNDED             // Remboursé
 }

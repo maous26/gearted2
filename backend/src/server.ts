@@ -34,6 +34,7 @@ import shippoAdminRoutes from './routes/shippoAdmin.routes';
 import mondialrelayRoutes from './routes/mondialrelay.routes';
 import notificationRoutes from './routes/notifications';
 import adminRoutes from './routes/admin';
+import premiumRoutes from './routes/premium';
 
 // Load environment variables
 dotenv.config();
@@ -251,6 +252,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin/shippo', shippoAdminRoutes);
 app.use('/api/mondialrelay', mondialrelayRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/premium', premiumRoutes);
 
 // Serve static files (uploads)
 app.use('/uploads', express.static('uploads'));
