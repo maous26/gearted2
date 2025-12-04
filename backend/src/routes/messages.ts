@@ -195,4 +195,109 @@ router.post(
   }
 });
 
+/**
+ * Send a message to a user (creates conversation if doesn't exist)
+ * Useful for messaging from product pages
+ * POST /api/messages/send
+ */
+router.post(
+  '/send',
+  sanitizeFields('content'),
+  async (req: Request, res: Response) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { recipientId, content, productId } = req.body;
+
+    if (!recipientId) {
+      return res.status(400).json({ error: 'recipientId is required' });
+    }
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ error: 'Message content is required' });
+    }
+
+    try {
+      // Check if recipient exists
+      const recipient = await prisma.user.findUnique({
+        where: { id: recipientId },
+      });
+
+      if (!recipient) {
+        return res.status(404).json({ error: 'Recipient not found' });
+      }
+
+      // Find or create conversation between sender and recipient
+      let conversation = await prisma.conversation.findFirst({
+        where: {
+          AND: [
+            { participants: { some: { id: req.user.userId } } },
+            { participants: { some: { id: recipientId } } },
+          ],
+        },
+        include: { participants: true },
+      });
+
+      // Create conversation if it doesn't exist
+      if (!conversation) {
+        conversation = await prisma.conversation.create({
+          data: {
+            participants: {
+              connect: [{ id: req.user.userId }, { id: recipientId }],
+            },
+          },
+          include: { participants: true },
+        });
+        console.log(`[messages] Created new conversation ${conversation.id} between ${req.user.userId} and ${recipientId}`);
+      }
+
+      // Create the message
+      const message = await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          senderId: req.user.userId,
+          content: content.trim(),
+        },
+        include: { sender: true },
+      });
+
+      // Create notification for recipient
+      try {
+        const senderInfo = await prisma.user.findUnique({
+          where: { id: req.user.userId },
+          select: { username: true },
+        });
+
+        await NotificationController.createNotification({
+          userId: recipientId,
+          title: 'Nouveau message',
+          message: `${senderInfo?.username || 'Un utilisateur'} vous a envoyé un message${productId ? ' concernant une annonce' : ''}`,
+          type: 'MESSAGE',
+          data: {
+            conversationId: conversation.id,
+            senderId: req.user.userId,
+            senderName: senderInfo?.username,
+            productId: productId || undefined,
+          },
+        });
+      } catch (error) {
+        console.error('[messages] Failed to create notification', error);
+      }
+
+      return res.json({
+        success: true,
+        message,
+        conversation: {
+          id: conversation.id,
+          participants: conversation.participants,
+        },
+      });
+    } catch (error) {
+      console.error('[messages] Failed to send message:', error);
+      return res.status(500).json({ error: 'Failed to send message' });
+    }
+  }
+);
+
 export default router;
