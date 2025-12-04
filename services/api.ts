@@ -58,6 +58,7 @@ class ApiService {
         }
 
         const token = await TokenManager.getAccessToken();
+        console.log('[API Request] Token available:', !!token, 'URL:', config.url);
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -78,12 +79,15 @@ class ApiService {
         try {
           const method = (originalRequest.method || 'GET').toUpperCase();
           const fullUrl = `${originalRequest.baseURL || ''}${originalRequest.url || ''}`;
+          const hasAuth = !!originalRequest.headers?.Authorization;
           // eslint-disable-next-line no-console
           console.warn(
             `[API ${error.response?.status ?? 'ERR'}] ${method} ${fullUrl}`,
             {
               params: originalRequest.params,
               data: originalRequest.data,
+              hasAuthHeader: hasAuth,
+              responseData: error.response?.data,
             }
           );
         } catch { }

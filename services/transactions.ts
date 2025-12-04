@@ -113,6 +113,9 @@ class TransactionService {
     productTitle?: string;
   }> {
     try {
+      const url = `/api/transactions/${transactionId}/cancel`;
+      console.log('[Transactions] Calling cancel URL:', url, 'with reason:', reason);
+      
       const response = await api.post<{
         success: boolean;
         message: string;
@@ -120,8 +123,9 @@ class TransactionService {
         cancelledBy: 'buyer' | 'seller';
         productId?: string;
         productTitle?: string;
-      }>(`/api/transactions/${transactionId}/cancel`, { reason });
+      }>(url, { reason });
       
+      console.log('[Transactions] Cancel response:', response);
       return response;
     } catch (error: any) {
       console.error('[Transactions] Failed to cancel transaction:', error);

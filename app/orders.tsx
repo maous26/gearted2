@@ -203,17 +203,38 @@ export default function OrdersScreen() {
           onPress: async () => {
             try {
               setCancelling(order.id);
-              const result = await transactionService.cancelTransaction(
-                order.id,
-                isSale ? 'seller_request' : 'buyer_request'
+              
+              // DEBUG: Test direct fetch
+              const token = await require('../services/storage').default.getAccessToken();
+              console.log('[DEBUG Cancel] Token:', token ? 'exists' : 'missing');
+              
+              const response = await fetch(
+                `https://gearted2-production.up.railway.app/api/transactions/${order.id}/cancel`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({ reason: isSale ? 'seller_request' : 'buyer_request' }),
+                }
               );
+              
+              console.log('[DEBUG Cancel] Response status:', response.status);
+              const data = await response.json();
+              console.log('[DEBUG Cancel] Response data:', JSON.stringify(data));
+              
+              if (!response.ok) {
+                throw new Error(data.error?.message || data.message || 'Erreur');
+              }
               
               Alert.alert(
                 'Transaction annulée',
-                result.message,
+                data.message || 'Transaction annulée avec succès',
                 [{ text: 'OK', onPress: () => loadOrders() }]
               );
             } catch (error: any) {
+              console.error('[DEBUG Cancel] Error:', error);
               Alert.alert('Erreur', error.message || 'Impossible d\'annuler la transaction');
             } finally {
               setCancelling(null);
