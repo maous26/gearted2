@@ -334,11 +334,22 @@ server.listen(Number(PORT), '0.0.0.0', async () => {
 
   // Setup AdminJS after server starts using ts-node to load TypeScript file
   try {
+    console.log('[Server] Loading ts-node/register...');
     require('ts-node/register');
+    console.log('[Server] ts-node registered successfully');
+
+    console.log('[Server] Requiring adminjs.setup.ts...');
     const { setupAdminJS } = require('../src/config/adminjs.setup.ts');
+    console.log('[Server] adminjs.setup.ts loaded, setupAdminJS type:', typeof setupAdminJS);
+
+    console.log('[Server] Calling setupAdminJS...');
     await setupAdminJS(app);
+    console.log('[Server] AdminJS setup completed successfully');
   } catch (error) {
     console.error('[Server] Failed to setup AdminJS:', error);
+    if (error instanceof Error) {
+      console.error('[Server] Error stack:', error.stack);
+    }
   }
 });
 
