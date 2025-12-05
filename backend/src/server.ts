@@ -107,7 +107,7 @@ app.get('/diagnostic', (_req, res) => {
 });
 
 // Create admin account endpoint (one-time use)
-app.post('/setup-admin', async (req, res): Promise<any> => {
+app.post('/setup-admin', express.json(), async (req, res): Promise<any> => {
   const adminSecret = req.headers['x-admin-secret'];
   const expectedSecret = process.env.ADMIN_SECRET_KEY || 'gearted-admin-2025';
 
@@ -120,7 +120,7 @@ app.post('/setup-admin', async (req, res): Promise<any> => {
     const bcrypt = await import('bcryptjs');
     const prisma = new PrismaClient();
 
-    const { email, password, username } = req.body;
+    const { email, password, username } = req.body || {};
 
     if (!email || !password || !username) {
       return res.status(400).json({ error: 'email, password and username required' });
