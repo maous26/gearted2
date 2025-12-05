@@ -106,6 +106,62 @@ app.get('/diagnostic', (_req, res) => {
   });
 });
 
+// Create admin account endpoint (one-time use)
+app.post('/setup-admin', async (req, res): Promise<any> => {
+  const adminSecret = req.headers['x-admin-secret'];
+  const expectedSecret = process.env.ADMIN_SECRET_KEY || 'gearted-admin-2025';
+
+  if (!adminSecret || adminSecret !== expectedSecret) {
+    return res.status(403).json({ error: 'Invalid or missing admin secret key' });
+  }
+
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const bcrypt = await import('bcryptjs');
+    const prisma = new PrismaClient();
+
+    const { email, password, username } = req.body;
+
+    if (!email || !password || !username) {
+      return res.status(400).json({ error: 'email, password and username required' });
+    }
+
+    // Check if user exists
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      // Update to admin
+      const updated = await prisma.user.update({
+        where: { email },
+        data: { role: 'ADMIN' }
+      });
+      await prisma.$disconnect();
+      return res.json({ success: true, message: 'User upgraded to ADMIN', userId: updated.id });
+    }
+
+    // Create new admin
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const admin = await prisma.user.create({
+      data: {
+        email,
+        username,
+        password: hashedPassword,
+        role: 'ADMIN',
+        isActive: true
+      }
+    });
+
+    await prisma.$disconnect();
+    return res.json({ success: true, message: 'Admin created', userId: admin.id });
+
+  } catch (error) {
+    console.error('[Setup] Error creating admin:', error);
+    return res.status(500).json({
+      error: 'Error creating admin',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // Admin database cleanup endpoint (direct, no middleware)
 app.delete('/admin-clean-db', async (req, res): Promise<any> => {
   const adminSecret = req.headers['x-admin-secret'];
