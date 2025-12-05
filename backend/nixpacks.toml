@@ -1,0 +1,16 @@
+[phases.setup]
+nixPkgs = ["nodejs"]
+nixLibs = []
+nixOverlays = []
+nixpkgsArchive = "ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7"
+
+[phases.install]
+dependsOn = ['setup']
+cmds = ['npm ci || npm install']
+
+[phases.build]
+dependsOn = ['install']
+cmds = ['npm run build']
+
+[start]
+cmd = 'bash start.sh'
