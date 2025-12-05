@@ -162,14 +162,22 @@ app.delete('/admin-clean-db', async (req, res): Promise<any> => {
   }
 });
 
+// AdminJS setup (before security middleware to avoid CSP conflicts)
+import { setupAdminJS } from './config/adminjs.router';
+const { adminJs, adminRouter } = setupAdminJS();
+app.use(adminJs.options.rootPath, adminRouter);
+console.log(`🔐 [ADMINJS] Panel accessible at ${adminJs.options.rootPath}`);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       imgSrc: ["'self'", "data:", "https:"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      connectSrc: ["'self'"],
     },
   },
   crossOriginEmbedderPolicy: false
