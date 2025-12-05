@@ -162,11 +162,8 @@ app.delete('/admin-clean-db', async (req, res): Promise<any> => {
   }
 });
 
-// AdminJS setup (before security middleware to avoid CSP conflicts)
-import { setupAdminJS } from './config/adminjs.router';
-const { adminJs, adminRouter } = setupAdminJS();
-app.use(adminJs.options.rootPath, adminRouter);
-console.log(`🔐 [ADMINJS] Panel accessible at ${adminJs.options.rootPath}`);
+// AdminJS setup will be done after server initialization (async)
+import { setupAdminJS } from './config/adminjs.setup';
 
 // Security middleware
 app.use(helmet({
@@ -329,11 +326,14 @@ app.use(errorHandler);
 // Start server
 const PORT = process.env.PORT || 3000;
 
-server.listen(Number(PORT), '0.0.0.0', () => {
+server.listen(Number(PORT), '0.0.0.0', async () => {
   console.log(`🚀 Gearted API server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV}`);
   console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN}`);
   console.log(`💾 Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
+
+  // Setup AdminJS after server starts
+  await setupAdminJS(app);
 });
 
 // Graceful shutdown
