@@ -332,9 +332,10 @@ server.listen(Number(PORT), '0.0.0.0', async () => {
   console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN}`);
   console.log(`💾 Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
 
-  // Setup AdminJS after server starts using dynamic require
+  // Setup AdminJS after server starts using ts-node to load TypeScript file
   try {
-    const { setupAdminJS } = require('./config/adminjs.setup');
+    require('ts-node/register');
+    const { setupAdminJS } = require('../src/config/adminjs.setup.ts');
     await setupAdminJS(app);
   } catch (error) {
     console.error('[Server] Failed to setup AdminJS:', error);
