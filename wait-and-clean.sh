@@ -3,7 +3,7 @@
 # Script de nettoyage final
 # Attend que le déploiement soit terminé puis lance le nettoyage
 
-BACKEND_URL="https://gearted2-production.up.railway.app"
+BACKEND_URL="https://gearted2-production-36e5.up.railway.app"
 ADMIN_SECRET="gearted-admin-2025"
 
 echo "⏳ Attente du déploiement de la nouvelle version..."

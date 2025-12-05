@@ -4,8 +4,8 @@ MISE À JOUR VARIABLES DISCORD - Railway Dashboard
 
 Dans Railway, allez dans Variables et mettez à jour ces 2 variables:
 
-DISCORD_REDIRECT_URI=https://gearted2-production.up.railway.app/api/auth/discord/callback
-EXPO_PUBLIC_API_URL=https://gearted2-production.up.railway.app
+DISCORD_REDIRECT_URI=https://gearted2-production-36e5.up.railway.app/api/auth/discord/callback
+EXPO_PUBLIC_API_URL=https://gearted2-production-36e5.up.railway.app
 
 ========================================
 IMPORTANT: Discord Developer Portal
@@ -17,7 +17,7 @@ Vous devez AUSSI ajouter cette URL dans Discord Developer Portal:
 2. Sélectionnez votre application (Client ID: 1437825557202206812)
 3. Allez dans "OAuth2" → "Redirects"
 4. Ajoutez cette nouvelle URL:
-   https://gearted2-production.up.railway.app/api/auth/discord/callback
+   https://gearted2-production-36e5.up.railway.app/api/auth/discord/callback
 5. Cliquez "Save Changes"
 
 Note: Vous pouvez garder l'ancienne URL (empowering-truth) si vous voulez,

@@ -88,7 +88,7 @@ Les testeurs recevront la mise à jour au prochain lancement de l'app!
 ## ✅ App prête pour les tests
 
 Votre app inclut maintenant:
-- ✅ API connectée à gearted2-production.up.railway.app
+- ✅ API connectée à gearted2-production-36e5.up.railway.app
 - ✅ Base de données nettoyée (0 produits mock)
 - ✅ Inscription par email fonctionnelle
 - ✅ Connexion Discord configurée

@@ -9,8 +9,8 @@ echo "║     DISCORD AUTH - CONFIGURATION VERIFICATION            ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 
-BACKEND_URL="https://gearted2-production.up.railway.app"
-EXPECTED_REDIRECT="https://gearted2-production.up.railway.app/api/auth/discord/callback"
+BACKEND_URL="https://gearted2-production-36e5.up.railway.app"
+EXPECTED_REDIRECT="https://gearted2-production-36e5.up.railway.app/api/auth/discord/callback"
 
 # Colors
 RED='\033[0;31m'
@@ -50,9 +50,9 @@ fi
 
 # Test 3: Check Redirect URI in Auth URL
 echo -n "3️⃣  Redirect URI configuration: "
-if echo "$AUTH_URL" | grep -q "gearted2-production.up.railway.app"; then
+if echo "$AUTH_URL" | grep -q "gearted2-production-36e5.up.railway.app"; then
   echo -e "${GREEN}✅ CORRECT${NC}"
-  echo "   Using: gearted2-production.up.railway.app"
+  echo "   Using: gearted2-production-36e5.up.railway.app"
 else
   echo -e "${YELLOW}⚠️  WARNING${NC}"
   echo "   Auth URL still contains old domain"

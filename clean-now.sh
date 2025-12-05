@@ -8,13 +8,13 @@ echo "🧹 Nettoyage des données mockées..."
 curl -k -s -X DELETE \
   -H "x-admin-secret: gearted-admin-2025" \
   -H "Content-Type: application/json" \
-  https://gearted2-production.up.railway.app/admin-clean-db | jq '.'
+  https://gearted2-production-36e5.up.railway.app/admin-clean-db | jq '.'
 
 echo ""
 echo "✅ Fait! Vérification..."
 echo ""
 
-TOTAL=$(curl -k -s 'https://gearted2-production.up.railway.app/api/products?limit=1' | jq -r '.total')
+TOTAL=$(curl -k -s 'https://gearted2-production-36e5.up.railway.app/api/products?limit=1' | jq -r '.total')
 echo "Produits restants: $TOTAL"
 
 if [ "$TOTAL" = "0" ]; then

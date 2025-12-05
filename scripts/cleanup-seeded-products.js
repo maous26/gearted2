@@ -6,7 +6,7 @@
 
 const https = require('https');
 
-const BACKEND_URL = 'https://gearted2-production.up.railway.app';
+const BACKEND_URL = 'https://gearted2-production-36e5.up.railway.app';
 const ADMIN_SECRET = process.env.ADMIN_SECRET_KEY || 'gearted-admin-2025';
 
 // Seeded product identifiers

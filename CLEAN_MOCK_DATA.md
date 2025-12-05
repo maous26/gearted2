@@ -40,7 +40,7 @@ Ce script va:
 curl -k -X DELETE \
   -H "x-admin-secret: gearted-admin-2025" \
   -H "Content-Type: application/json" \
-  https://gearted2-production.up.railway.app/admin-clean-db
+  https://gearted2-production-36e5.up.railway.app/admin-clean-db
 ```
 
 ### Option 3: Via Railway CLI
@@ -81,7 +81,7 @@ railway run npx prisma studio
 
 ```bash
 # Voir combien de produits mockés
-curl -k -s 'https://gearted2-production.up.railway.app/api/products?limit=100' | jq '.total'
+curl -k -s 'https://gearted2-production-36e5.up.railway.app/api/products?limit=100' | jq '.total'
 # Résultat actuel: 45 produits
 ```
 
@@ -111,7 +111,7 @@ Tapez `oui` pour confirmer.
 
 ```bash
 # Vérifier que les produits sont supprimés
-curl -k -s 'https://gearted2-production.up.railway.app/api/products?limit=5' | jq '.total'
+curl -k -s 'https://gearted2-production-36e5.up.railway.app/api/products?limit=5' | jq '.total'
 # Résultat attendu: 0 produits (ou seulement les vrais produits de vos utilisateurs)
 ```
 

@@ -4,7 +4,7 @@
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Backend Server | ✅ Working | Running at `https://gearted2-production.up.railway.app` |
+| Backend Server | ✅ Working | Running at `https://gearted2-production-36e5.up.railway.app` |
 | Health Endpoint | ✅ OK | Returns `{"status":"ok"}` |
 | Discord Auth Endpoint | ✅ OK | Returns auth URL |
 | Frontend API URL | ✅ Fixed | Updated to correct backend URL |
@@ -14,7 +14,7 @@
 
 ### Issue #1: Wrong Backend URL (FIXED ✅)
 - **Problem**: Frontend was trying to connect to `empowering-truth-production.up.railway.app`
-- **Reality**: Backend is running at `gearted2-production.up.railway.app`
+- **Reality**: Backend is running at `gearted2-production-36e5.up.railway.app`
 - **Result**: All API calls returned 404
 - **Fix Applied**: Updated `services/api.ts` to use correct URL
 
@@ -28,14 +28,14 @@
 ### 1. Updated Frontend API URL
 **File**: `services/api.ts`
 ```typescript
-const RAILWAY_URL = 'https://gearted2-production.up.railway.app';
+const RAILWAY_URL = 'https://gearted2-production-36e5.up.railway.app';
 ```
 
 ### 2. Updated Backend Config
 **File**: `backend/RAILWAY_VARIABLES_TO_PASTE.txt`
 ```bash
-DISCORD_REDIRECT_URI=https://gearted2-production.up.railway.app/api/auth/discord/callback
-EXPO_PUBLIC_API_URL=https://gearted2-production.up.railway.app
+DISCORD_REDIRECT_URI=https://gearted2-production-36e5.up.railway.app/api/auth/discord/callback
+EXPO_PUBLIC_API_URL=https://gearted2-production-36e5.up.railway.app
 ```
 
 ### 3. Added Clear Auth Button
@@ -53,7 +53,7 @@ EXPO_PUBLIC_API_URL=https://gearted2-production.up.railway.app
 3. Navigate to **OAuth2** section
 4. Update **Redirect URI** to:
    ```
-   https://gearted2-production.up.railway.app/api/auth/discord/callback
+   https://gearted2-production-36e5.up.railway.app/api/auth/discord/callback
    ```
 5. Click **Save Changes**
 
@@ -64,7 +64,7 @@ EXPO_PUBLIC_API_URL=https://gearted2-production.up.railway.app
 3. Click **Variables** → **Raw Editor**
 4. Update this line:
    ```
-   DISCORD_REDIRECT_URI=https://gearted2-production.up.railway.app/api/auth/discord/callback
+   DISCORD_REDIRECT_URI=https://gearted2-production-36e5.up.railway.app/api/auth/discord/callback
    ```
 5. Save (auto-deploys)
 
@@ -100,13 +100,13 @@ Run these tests after completing all steps:
 
 ### Test 1: Backend Health
 ```bash
-curl https://gearted2-production.up.railway.app/health
+curl https://gearted2-production-36e5.up.railway.app/health
 ```
 Expected: `{"status":"ok","timestamp":"...","uptime":...}`
 
 ### Test 2: Discord Auth Endpoint
 ```bash
-curl https://gearted2-production.up.railway.app/api/auth/discord
+curl https://gearted2-production-36e5.up.railway.app/api/auth/discord
 ```
 Expected: `{"success":true,"authUrl":"https://discord.com/...","state":"..."}`
 
@@ -148,14 +148,14 @@ If you just want to get it working ASAP:
 
 ### "Invalid redirect_uri" error from Discord
 - Double-check Discord Developer Portal redirect URI matches exactly
-- No trailing slash, exact URL: `https://gearted2-production.up.railway.app/api/auth/discord/callback`
+- No trailing slash, exact URL: `https://gearted2-production-36e5.up.railway.app/api/auth/discord/callback`
 
 ### Still getting 401 errors
 - Make sure you tapped "Clear Auth Data" button
 - Or clear app data: Settings → Apps → [App] → Clear Data
 
 ### Still getting 404 errors
-- Check backend is running: `curl https://gearted2-production.up.railway.app/health`
+- Check backend is running: `curl https://gearted2-production-36e5.up.railway.app/health`
 - Check Railway deployment logs for errors
 - Verify environment variables are set
 
@@ -191,10 +191,10 @@ Once Discord auth is working perfectly:
 
 ## 📚 Reference
 
-- **Backend URL**: `https://gearted2-production.up.railway.app`
+- **Backend URL**: `https://gearted2-production-36e5.up.railway.app`
 - **Discord Client ID**: `1437825557202206812`
 - **Discord Guild ID**: `1438463061181726743`
-- **Discord Callback**: `https://gearted2-production.up.railway.app/api/auth/discord/callback`
+- **Discord Callback**: `https://gearted2-production-36e5.up.railway.app/api/auth/discord/callback`
 
 ## 🆘 Need Help?
 

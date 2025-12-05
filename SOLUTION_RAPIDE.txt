@@ -78,7 +78,7 @@ Puis supprimer visuellement les données dans l'interface web
 │ ✅ VÉRIFICATION APRÈS NETTOYAGE                                     │
 └─────────────────────────────────────────────────────────────────────┘
 
-curl -k -s 'https://gearted2-production.up.railway.app/api/products?limit=1' | jq '.total'
+curl -k -s 'https://gearted2-production-36e5.up.railway.app/api/products?limit=1' | jq '.total'
 
 Devrait retourner: 0
 

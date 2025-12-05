@@ -28,7 +28,7 @@ I've added a **"Clear Auth Data"** button to your login screen:
 
 1. Before: Your app was trying to use `empowering-truth-production.up.railway.app` (which doesn't exist → 404)
 2. The app couldn't connect, but it had stored invalid tokens
-3. Now: We fixed the URL to `gearted2-production.up.railway.app` (which works!)
+3. Now: We fixed the URL to `gearted2-production-36e5.up.railway.app` (which works!)
 4. But the old tokens are still in storage
 5. When the app tries to refresh them, the backend says "These tokens are invalid" → 401
 
@@ -89,11 +89,11 @@ The backend is now working correctly:
 
 ```bash
 # Test health endpoint
-curl https://gearted2-production.up.railway.app/health
+curl https://gearted2-production-36e5.up.railway.app/health
 # Returns: {"status":"ok",...}
 
 # Test Discord auth endpoint
-curl https://gearted2-production.up.railway.app/api/auth/discord
+curl https://gearted2-production-36e5.up.railway.app/api/auth/discord
 # Returns: {"success":true,"authUrl":"https://discord.com/...",...}
 ```
 
@@ -101,7 +101,7 @@ curl https://gearted2-production.up.railway.app/api/auth/discord
 
 1. **Make sure you updated Discord Developer Portal:**
    - Go to: https://discord.com/developers/applications
-   - Update redirect URI to: `https://gearted2-production.up.railway.app/api/auth/discord/callback`
+   - Update redirect URI to: `https://gearted2-production-36e5.up.railway.app/api/auth/discord/callback`
 
 2. **Make sure you updated Railway environment variable:**
    - Go to: https://railway.app
@@ -123,7 +123,7 @@ Once everything works, you can remove the red "Clear Auth Data" button by removi
 ## Summary
 
 - ❌ **Old Problem**: Backend was at wrong URL, tokens were invalid
-- ✅ **Fixed**: Backend URL updated to `gearted2-production.up.railway.app`
+- ✅ **Fixed**: Backend URL updated to `gearted2-production-36e5.up.railway.app`
 - 🔄 **Current Issue**: Old tokens still in storage
 - 🎯 **Solution**: Tap "Clear Auth Data" button → Log in with Discord again
 - ✅ **Result**: Fresh tokens, successful login!

@@ -63,7 +63,7 @@ bash clean-mock-data.sh
 └─────────────────────────────────────────────────────────────────────┘
 
 # Voir combien de produits actuellement
-curl -k -s 'https://gearted2-production.up.railway.app/api/products?limit=1' | jq '.total'
+curl -k -s 'https://gearted2-production-36e5.up.railway.app/api/products?limit=1' | jq '.total'
 
 Résultat actuel: 45
 Résultat après nettoyage: 0

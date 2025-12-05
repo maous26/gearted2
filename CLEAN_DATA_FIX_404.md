@@ -144,7 +144,7 @@ Ce n'est pas grave, les méthodes ci-dessus fonctionnent parfaitement!
 Vérifier que c'est bien nettoyé:
 
 ```bash
-curl -k -s 'https://gearted2-production.up.railway.app/api/products?limit=1' | jq '.total'
+curl -k -s 'https://gearted2-production-36e5.up.railway.app/api/products?limit=1' | jq '.total'
 # Devrait retourner: 0
 ```
 

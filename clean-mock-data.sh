@@ -7,7 +7,7 @@ echo "🧹 Nettoyage des données mockées de la production"
 echo "=================================================="
 echo ""
 
-BACKEND_URL="https://gearted2-production.up.railway.app"
+BACKEND_URL="https://gearted2-production-36e5.up.railway.app"
 ADMIN_SECRET="gearted-admin-2025"
 
 echo "⚠️  ATTENTION: Ce script va supprimer:"

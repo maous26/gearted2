@@ -114,7 +114,7 @@ echo ""
 echo "✅ Fait!"
 echo ""
 echo "🔍 Vérification..."
-curl -k -s 'https://gearted2-production.up.railway.app/api/products?limit=1' | jq '.total'
+curl -k -s 'https://gearted2-production-36e5.up.railway.app/api/products?limit=1' | jq '.total'
 
 rm -f /tmp/clean-db.ts
 

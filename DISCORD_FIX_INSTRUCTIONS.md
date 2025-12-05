@@ -4,7 +4,7 @@
 
 Le fichier `services/api.ts` a été mis à jour:
 - **Avant**: `https://empowering-truth-production.up.railway.app`
-- **Après**: `https://gearted2-production.up.railway.app`
+- **Après**: `https://gearted2-production-36e5.up.railway.app`
 
 Commit: `938c3c4` - "Fix: Update API URL to gearted2-production for Discord OAuth"
 
@@ -64,6 +64,6 @@ Vous êtes probablement en mode développement. Dans ce cas:
 
 Pour confirmer que le bon URL est utilisé, regardez les logs Expo:
 ```
-🔗 [API SERVICE] Using API URL: https://gearted2-production.up.railway.app
+🔗 [API SERVICE] Using API URL: https://gearted2-production-36e5.up.railway.app
 🌍 [API SERVICE] Environment: production
 ```

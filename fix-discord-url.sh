@@ -19,7 +19,7 @@ echo "  1. Go to: https://discord.com/developers/applications"
 echo "  2. Click your application (ID: 1437825557202206812)"
 echo "  3. Go to OAuth2 section"
 echo "  4. Update Redirect URI to:"
-echo "     https://gearted2-production.up.railway.app/api/auth/discord/callback"
+echo "     https://gearted2-production-36e5.up.railway.app/api/auth/discord/callback"
 echo "  5. Save Changes"
 echo ""
 
@@ -28,7 +28,7 @@ echo "  1. Go to: https://railway.app"
 echo "  2. Navigate to gearted2 service"
 echo "  3. Click Variables → Raw Editor"
 echo "  4. Update DISCORD_REDIRECT_URI to:"
-echo "     https://gearted2-production.up.railway.app/api/auth/discord/callback"
+echo "     https://gearted2-production-36e5.up.railway.app/api/auth/discord/callback"
 echo "  5. Click Deploy"
 echo ""
 
@@ -47,13 +47,13 @@ echo ""
 
 echo "========================================"
 echo "✅ Backend Status: WORKING"
-echo "🔗 Backend URL: https://gearted2-production.up.railway.app"
+echo "🔗 Backend URL: https://gearted2-production-36e5.up.railway.app"
 echo ""
 
 # Test the backend to confirm it's working
 echo "🔍 Testing backend connection..."
-HEALTH_STATUS=$(curl -k -s https://gearted2-production.up.railway.app/health | grep -o '"status":"ok"')
-DISCORD_STATUS=$(curl -k -s https://gearted2-production.up.railway.app/api/auth/discord | grep -o '"success":true')
+HEALTH_STATUS=$(curl -k -s https://gearted2-production-36e5.up.railway.app/health | grep -o '"status":"ok"')
+DISCORD_STATUS=$(curl -k -s https://gearted2-production-36e5.up.railway.app/api/auth/discord | grep -o '"success":true')
 
 if [[ "$HEALTH_STATUS" == '"status":"ok"' ]]; then
   echo "  ✅ Health endpoint: OK"
