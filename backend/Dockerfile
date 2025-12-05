@@ -4,14 +4,14 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
-COPY tsconfig.json ./
+COPY backend/package*.json ./
+COPY backend/tsconfig.json ./
 
 # Install dependencies
 RUN npm install
 
 # Copy source code
-COPY . .
+COPY backend/ .
 
 # Generate Prisma client and build TypeScript
 RUN npx prisma generate
@@ -26,7 +26,7 @@ WORKDIR /app
 RUN apk add --no-cache bash
 
 # Copy package files
-COPY package*.json ./
+COPY backend/package*.json ./
 
 # Install only production dependencies
 RUN npm install --omit=dev
@@ -37,7 +37,7 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/prisma ./prisma
 
 # Copy start script
-COPY start.sh ./
+COPY backend/start.sh ./
 
 # Make start script executable
 RUN chmod +x start.sh
