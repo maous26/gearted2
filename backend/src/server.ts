@@ -334,8 +334,11 @@ server.listen(Number(PORT), '0.0.0.0', async () => {
 
   // Setup AdminJS after server starts using ts-node to load TypeScript file
   try {
-    console.log('[Server] Loading ts-node/register...');
-    require('ts-node/register');
+    console.log('[Server] Loading ts-node with custom config...');
+    require('ts-node').register({
+      project: './tsconfig.adminjs.json',
+      transpileOnly: true
+    });
     console.log('[Server] ts-node registered successfully');
 
     console.log('[Server] Requiring adminjs.setup.ts...');
