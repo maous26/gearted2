@@ -49,7 +49,9 @@
     },
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "noResolve": false,
+    "suppressImplicitAnyIndexErrors": true
   },
   "include": [
     "src/**/*"
@@ -58,6 +60,7 @@
     "node_modules",
     "dist",
     "**/*.test.ts",
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "src/config/adminjs.setup.ts"
   ]
 }

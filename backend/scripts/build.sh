@@ -17,5 +17,9 @@ npx prisma generate
 echo "🔨 Compiling TypeScript..."
 npx tsc
 
+echo "📋 Copying excluded AdminJS setup file..."
+mkdir -p dist/config
+cp src/config/adminjs.setup.ts dist/config/adminjs.setup.js
+
 echo "✅ Build completed successfully!"
 
