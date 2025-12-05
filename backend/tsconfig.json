@@ -49,9 +49,7 @@
     },
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "noResolve": false,
-    "suppressImplicitAnyIndexErrors": true
+    "emitDecoratorMetadata": true
   },
   "include": [
     "src/**/*"
