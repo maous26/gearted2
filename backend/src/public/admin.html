@@ -258,46 +258,140 @@
       <!-- Settings Tab -->
       <div id="tab-settings" class="tab-content hidden">
         <h2 class="text-2xl font-bold mb-6">Paramètres</h2>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- Commissions -->
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <!-- Commission Acheteur -->
           <div class="bg-gray-800 p-6 rounded-xl">
-            <h3 class="text-lg font-semibold mb-4">Commissions</h3>
-            <div class="space-y-4">
-              <div class="flex items-center justify-between">
-                <span>Commissions activées</span>
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" id="commissionsEnabled" class="sr-only peer" checked>
-                  <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:bg-orange-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                </label>
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-2">Commission acheteur (%)</label>
-                <input type="number" id="buyerFee" value="5" class="w-full px-4 py-2 bg-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-500">
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-2">Commission vendeur (%)</label>
-                <input type="number" id="sellerFee" value="5" class="w-full px-4 py-2 bg-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-500">
-              </div>
-              <button onclick="saveCommissionSettings()" class="w-full py-3 bg-orange-500 hover:bg-orange-600 rounded-lg font-semibold transition">
-                Sauvegarder
-              </button>
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold">💳 Commission Acheteur</h3>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="buyerCommissionEnabled" class="sr-only peer" checked>
+                <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:bg-green-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+              </label>
             </div>
+            <p class="text-gray-400 text-sm mb-4">Frais appliqués à l'acheteur lors d'un achat</p>
+            <div class="flex items-center gap-3">
+              <input type="number" id="buyerFee" value="5" min="0" max="30" step="0.5" class="flex-1 px-4 py-3 bg-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-green-500 text-xl font-bold text-center">
+              <span class="text-xl font-bold text-gray-400">%</span>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">Sur un achat de 100€, l'acheteur paiera: <span id="buyerExample" class="text-green-400">105€</span></p>
           </div>
 
-          <!-- Database Cleanup -->
+          <!-- Commission Vendeur -->
           <div class="bg-gray-800 p-6 rounded-xl">
-            <h3 class="text-lg font-semibold mb-4">Nettoyage Base de Données</h3>
-            <p class="text-gray-400 text-sm mb-4">
-              Supprime les données de test (utilisateurs et produits de démo) tout en conservant les vrais utilisateurs.
-            </p>
-            <div class="space-y-3">
-              <button onclick="analyzeProducts()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition">
-                Analyser les produits
-              </button>
-              <button onclick="cleanupProducts()" class="w-full py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition">
-                Supprimer données test
-              </button>
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold">🏪 Commission Vendeur</h3>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="sellerCommissionEnabled" class="sr-only peer" checked>
+                <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:bg-blue-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+              </label>
             </div>
+            <p class="text-gray-400 text-sm mb-4">Frais prélevés sur le paiement au vendeur</p>
+            <div class="flex items-center gap-3">
+              <input type="number" id="sellerFee" value="5" min="0" max="30" step="0.5" class="flex-1 px-4 py-3 bg-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-xl font-bold text-center">
+              <span class="text-xl font-bold text-gray-400">%</span>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">Sur une vente de 100€, le vendeur recevra: <span id="sellerExample" class="text-blue-400">95€</span></p>
+          </div>
+        </div>
+
+        <!-- Fonctions Premium -->
+        <div class="bg-gray-800 p-6 rounded-xl mb-6">
+          <h3 class="text-lg font-semibold mb-4">⭐ Fonctions Premium</h3>
+          <p class="text-gray-400 text-sm mb-4">Activer/désactiver les fonctionnalités premium globalement</p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="bg-gray-700/50 p-4 rounded-lg">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-medium">🔍 Boost annonces</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="premiumBoost" class="sr-only peer premium-feature" checked>
+                  <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:bg-purple-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                </label>
+              </div>
+              <p class="text-xs text-gray-400">Mise en avant des annonces premium</p>
+            </div>
+
+            <div class="bg-gray-700/50 p-4 rounded-lg">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-medium">📊 Statistiques avancées</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="premiumStats" class="sr-only peer premium-feature" checked>
+                  <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:bg-purple-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                </label>
+              </div>
+              <p class="text-xs text-gray-400">Analytics détaillés pour les vendeurs</p>
+            </div>
+
+            <div class="bg-gray-700/50 p-4 rounded-lg">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-medium">✅ Badge vérifié</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="premiumBadge" class="sr-only peer premium-feature" checked>
+                  <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:bg-purple-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                </label>
+              </div>
+              <p class="text-xs text-gray-400">Badge de confiance sur le profil</p>
+            </div>
+
+            <div class="bg-gray-700/50 p-4 rounded-lg">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-medium">📸 Photos illimitées</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="premiumPhotos" class="sr-only peer premium-feature" checked>
+                  <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:bg-purple-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                </label>
+              </div>
+              <p class="text-xs text-gray-400">Jusqu'à 20 photos par annonce</p>
+            </div>
+
+            <div class="bg-gray-700/50 p-4 rounded-lg">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-medium">🎯 Expert Gearted</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="premiumExpert" class="sr-only peer premium-feature" checked>
+                  <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:bg-purple-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                </label>
+              </div>
+              <p class="text-xs text-gray-400">Service de vérification expert</p>
+            </div>
+
+            <div class="bg-gray-700/50 p-4 rounded-lg">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-medium">💬 Support prioritaire</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="premiumSupport" class="sr-only peer premium-feature" checked>
+                  <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:bg-purple-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                </label>
+              </div>
+              <p class="text-xs text-gray-400">Réponse prioritaire du support</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bouton de sauvegarde global -->
+        <div class="flex gap-4 mb-6">
+          <button onclick="saveAllSettings()" class="flex-1 py-4 bg-orange-500 hover:bg-orange-600 rounded-xl font-semibold text-lg transition">
+            💾 Sauvegarder tous les paramètres
+          </button>
+          <button onclick="resetSettings()" class="px-6 py-4 bg-gray-700 hover:bg-gray-600 rounded-xl font-semibold transition">
+            ↺ Réinitialiser
+          </button>
+        </div>
+
+        <!-- Database Cleanup -->
+        <div class="bg-gray-800 p-6 rounded-xl">
+          <h3 class="text-lg font-semibold mb-4">🗑️ Nettoyage Base de Données</h3>
+          <p class="text-gray-400 text-sm mb-4">
+            Supprime les données de test (utilisateurs et produits de démo) tout en conservant les vrais utilisateurs.
+          </p>
+          <div class="flex gap-3">
+            <button onclick="analyzeProducts()" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition">
+              📊 Analyser les produits
+            </button>
+            <button onclick="cleanupProducts()" class="flex-1 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition">
+              🗑️ Supprimer données test
+            </button>
           </div>
         </div>
       </div>
@@ -340,6 +434,72 @@
           </button>
           <button onclick="createAd()" class="flex-1 py-3 bg-orange-500 hover:bg-orange-600 rounded-lg font-semibold transition">
             Créer
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Premium Modal -->
+  <div id="premiumModal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 hidden">
+    <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-md">
+      <h2 class="text-xl font-bold mb-2">⭐ Gestion Premium</h2>
+      <p id="premiumModalUser" class="text-gray-400 mb-6">Utilisateur: -</p>
+
+      <div class="space-y-4">
+        <div class="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg">
+          <span class="font-medium">Statut Premium</span>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="premiumModalEnabled" class="sr-only peer">
+            <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:bg-purple-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+          </label>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Durée</label>
+          <select id="premiumModalDuration" class="w-full px-4 py-3 bg-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-purple-500">
+            <option value="permanent">Permanent (illimité)</option>
+            <option value="1month">1 mois</option>
+            <option value="3months">3 mois</option>
+            <option value="6months">6 mois</option>
+            <option value="1year">1 an</option>
+            <option value="custom">Date personnalisée</option>
+          </select>
+        </div>
+
+        <div id="premiumCustomDate" class="hidden">
+          <label class="block text-sm font-medium mb-2">Date d'expiration</label>
+          <input type="date" id="premiumModalDate" class="w-full px-4 py-3 bg-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-purple-500">
+        </div>
+
+        <div class="pt-4 space-y-2">
+          <p class="text-sm text-gray-400">Fonctionnalités à activer :</p>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 text-sm">
+              <input type="checkbox" id="userPremiumBoost" checked class="rounded bg-gray-600">
+              <span>Boost annonces</span>
+            </label>
+            <label class="flex items-center gap-2 text-sm">
+              <input type="checkbox" id="userPremiumStats" checked class="rounded bg-gray-600">
+              <span>Statistiques</span>
+            </label>
+            <label class="flex items-center gap-2 text-sm">
+              <input type="checkbox" id="userPremiumBadge" checked class="rounded bg-gray-600">
+              <span>Badge vérifié</span>
+            </label>
+            <label class="flex items-center gap-2 text-sm">
+              <input type="checkbox" id="userPremiumPhotos" checked class="rounded bg-gray-600">
+              <span>Photos illimitées</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="flex gap-3 pt-4">
+          <button onclick="hidePremiumModal()" class="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-semibold transition">
+            Annuler
+          </button>
+          <button onclick="savePremiumUser()" class="flex-1 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold transition">
+            Sauvegarder
           </button>
         </div>
       </div>
@@ -533,7 +693,10 @@
         tbody.innerHTML = data.users.map(user => `
           <tr class="hover:bg-gray-700/50">
             <td class="px-6 py-4">
-              <div class="font-medium">${user.username}</div>
+              <div class="flex items-center gap-2">
+                <div class="font-medium">${user.username}</div>
+                ${user.isPremium ? '<span class="px-1.5 py-0.5 text-xs bg-purple-500/20 text-purple-400 rounded">⭐</span>' : ''}
+              </div>
               <div class="text-sm text-gray-400">${user.id.slice(0, 8)}...</div>
             </td>
             <td class="px-6 py-4 text-gray-300">${user.email}</td>
@@ -544,8 +707,10 @@
             <td class="px-6 py-4">${user._count?.purchases || 0}</td>
             <td class="px-6 py-4">
               <div class="flex gap-2">
-                <button onclick="togglePremium('${user.id}')" class="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm transition">Premium</button>
-                <button onclick="copyUserId('${user.id}')" class="px-3 py-1 bg-gray-600 hover:bg-gray-500 rounded text-sm transition">ID</button>
+                <button onclick="showPremiumModal('${user.id}', '${user.username}', ${user.isPremium || false})" class="px-3 py-1 ${user.isPremium ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-600 hover:bg-gray-500'} rounded text-sm transition">
+                  ${user.isPremium ? '⭐ Premium' : 'Premium'}
+                </button>
+                <button onclick="copyUserId('${user.id}')" class="px-3 py-1 bg-gray-600 hover:bg-gray-500 rounded text-sm transition" title="Copier l'ID">📋</button>
               </div>
             </td>
           </tr>
@@ -572,17 +737,73 @@
       showToast('ID copié !');
     }
 
-    async function togglePremium(userId) {
-      const until = prompt('Date expiration Premium (YYYY-MM-DD) ou vide pour permanent:');
+    // Premium Modal
+    let currentPremiumUserId = null;
+
+    function showPremiumModal(userId, username, isPremium) {
+      currentPremiumUserId = userId;
+      document.getElementById('premiumModalUser').textContent = `Utilisateur: ${username}`;
+      document.getElementById('premiumModalEnabled').checked = isPremium;
+      document.getElementById('premiumModalDuration').value = 'permanent';
+      document.getElementById('premiumCustomDate').classList.add('hidden');
+      document.getElementById('premiumModal').classList.remove('hidden');
+    }
+
+    function hidePremiumModal() {
+      document.getElementById('premiumModal').classList.add('hidden');
+      currentPremiumUserId = null;
+    }
+
+    // Show/hide custom date field
+    document.getElementById('premiumModalDuration')?.addEventListener('change', (e) => {
+      const customDateDiv = document.getElementById('premiumCustomDate');
+      if (e.target.value === 'custom') {
+        customDateDiv.classList.remove('hidden');
+      } else {
+        customDateDiv.classList.add('hidden');
+      }
+    });
+
+    async function savePremiumUser() {
+      if (!currentPremiumUserId) return;
+
+      const isPremium = document.getElementById('premiumModalEnabled').checked;
+      const duration = document.getElementById('premiumModalDuration').value;
+
+      let premiumUntil = null;
+      if (isPremium && duration !== 'permanent') {
+        const now = new Date();
+        switch(duration) {
+          case '1month': now.setMonth(now.getMonth() + 1); break;
+          case '3months': now.setMonth(now.getMonth() + 3); break;
+          case '6months': now.setMonth(now.getMonth() + 6); break;
+          case '1year': now.setFullYear(now.getFullYear() + 1); break;
+          case 'custom':
+            const customDate = document.getElementById('premiumModalDate').value;
+            if (customDate) premiumUntil = customDate;
+            break;
+        }
+        if (duration !== 'custom') premiumUntil = now.toISOString().split('T')[0];
+      }
+
+      const features = {
+        boost: document.getElementById('userPremiumBoost').checked,
+        stats: document.getElementById('userPremiumStats').checked,
+        badge: document.getElementById('userPremiumBadge').checked,
+        photos: document.getElementById('userPremiumPhotos').checked
+      };
+
       try {
-        await apiPut(`/api/admin/users/${userId}/premium`, {
-          isPremium: true,
-          premiumUntil: until || null
+        await apiPut(`/api/admin/users/${currentPremiumUserId}/premium`, {
+          isPremium,
+          premiumUntil,
+          features
         });
-        showToast('Premium activé !');
+        showToast(isPremium ? 'Premium activé !' : 'Premium désactivé');
+        hidePremiumModal();
         loadUsers();
       } catch (error) {
-        showToast('Erreur', 'error');
+        showToast('Erreur lors de la sauvegarde', 'error');
       }
     }
 
@@ -810,26 +1031,87 @@
       try {
         const data = await apiGet('/api/admin/commissions/settings');
         if (data.settings) {
-          document.getElementById('commissionsEnabled').checked = data.settings.enabled;
+          document.getElementById('buyerCommissionEnabled').checked = data.settings.buyerEnabled !== false;
+          document.getElementById('sellerCommissionEnabled').checked = data.settings.sellerEnabled !== false;
           document.getElementById('buyerFee').value = data.settings.buyerFeePercent || 5;
           document.getElementById('sellerFee').value = data.settings.sellerFeePercent || 5;
         }
+        if (data.premiumFeatures) {
+          document.getElementById('premiumBoost').checked = data.premiumFeatures.boost !== false;
+          document.getElementById('premiumStats').checked = data.premiumFeatures.stats !== false;
+          document.getElementById('premiumBadge').checked = data.premiumFeatures.badge !== false;
+          document.getElementById('premiumPhotos').checked = data.premiumFeatures.photos !== false;
+          document.getElementById('premiumExpert').checked = data.premiumFeatures.expert !== false;
+          document.getElementById('premiumSupport').checked = data.premiumFeatures.support !== false;
+        }
+        updateExamples();
       } catch (error) {
         // Use defaults
+        updateExamples();
       }
     }
 
-    async function saveCommissionSettings() {
-      const enabled = document.getElementById('commissionsEnabled').checked;
-      const buyerFeePercent = parseInt(document.getElementById('buyerFee').value) || 5;
-      const sellerFeePercent = parseInt(document.getElementById('sellerFee').value) || 5;
+    function updateExamples() {
+      const buyerFee = parseFloat(document.getElementById('buyerFee').value) || 0;
+      const sellerFee = parseFloat(document.getElementById('sellerFee').value) || 0;
+      const buyerEnabled = document.getElementById('buyerCommissionEnabled').checked;
+      const sellerEnabled = document.getElementById('sellerCommissionEnabled').checked;
+
+      const buyerTotal = buyerEnabled ? (100 + buyerFee).toFixed(2) : '100.00';
+      const sellerTotal = sellerEnabled ? (100 - sellerFee).toFixed(2) : '100.00';
+
+      document.getElementById('buyerExample').textContent = buyerTotal + '€';
+      document.getElementById('sellerExample').textContent = sellerTotal + '€';
+    }
+
+    // Add event listeners for real-time example updates
+    document.getElementById('buyerFee')?.addEventListener('input', updateExamples);
+    document.getElementById('sellerFee')?.addEventListener('input', updateExamples);
+    document.getElementById('buyerCommissionEnabled')?.addEventListener('change', updateExamples);
+    document.getElementById('sellerCommissionEnabled')?.addEventListener('change', updateExamples);
+
+    async function saveAllSettings() {
+      const settings = {
+        commissions: {
+          buyerEnabled: document.getElementById('buyerCommissionEnabled').checked,
+          sellerEnabled: document.getElementById('sellerCommissionEnabled').checked,
+          buyerFeePercent: parseFloat(document.getElementById('buyerFee').value) || 5,
+          sellerFeePercent: parseFloat(document.getElementById('sellerFee').value) || 5
+        },
+        premiumFeatures: {
+          boost: document.getElementById('premiumBoost').checked,
+          stats: document.getElementById('premiumStats').checked,
+          badge: document.getElementById('premiumBadge').checked,
+          photos: document.getElementById('premiumPhotos').checked,
+          expert: document.getElementById('premiumExpert').checked,
+          support: document.getElementById('premiumSupport').checked
+        }
+      };
 
       try {
-        await apiPut('/api/admin/commissions/settings', { enabled, buyerFeePercent, sellerFeePercent });
-        showToast('Paramètres sauvegardés !');
+        await apiPut('/api/admin/settings', settings);
+        showToast('Tous les paramètres ont été sauvegardés !');
       } catch (error) {
         showToast('Erreur lors de la sauvegarde', 'error');
       }
+    }
+
+    function resetSettings() {
+      if (!confirm('Réinitialiser tous les paramètres aux valeurs par défaut ?')) return;
+
+      document.getElementById('buyerCommissionEnabled').checked = true;
+      document.getElementById('sellerCommissionEnabled').checked = true;
+      document.getElementById('buyerFee').value = 5;
+      document.getElementById('sellerFee').value = 5;
+
+      document.querySelectorAll('.premium-feature').forEach(el => el.checked = true);
+
+      updateExamples();
+      showToast('Paramètres réinitialisés (non sauvegardés)');
+    }
+
+    async function saveCommissionSettings() {
+      await saveAllSettings();
     }
 
     // Products
