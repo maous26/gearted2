@@ -176,23 +176,22 @@ export default function LoginScreen() {
           style={{ paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40 }}
         >
           <Text style={{
-            fontSize: 32,
+            fontSize: 28,
             fontWeight: '700',
             color: t.heading,
             textAlign: 'center',
             marginBottom: 8,
-            fontFamily: 'Oswald-Bold',
             letterSpacing: 0.5,
             textTransform: 'uppercase'
           }}>
-            CONNECTE-TOI
+            CONTENT DE TE REVOIR
           </Text>
           <Text style={{
             fontSize: 16,
             color: t.muted,
             textAlign: 'center'
           }}>
-            Commence à déposer tes annonces
+            Ta prochaine trouvaille t'attend 🎯
           </Text>
         </LinearGradient>
 

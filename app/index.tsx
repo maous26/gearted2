@@ -74,34 +74,40 @@ export default function GeartedLanding() {
         >
           <View>
             <Text style={{
-              fontSize: 28,
+              fontSize: 26,
               fontWeight: '700',
               color: t.heading,
               textAlign: 'center',
-              marginBottom: 18,
-              fontFamily: 'Oswald-Bold',
+              marginBottom: 10,
               letterSpacing: 0.5,
               textTransform: 'uppercase'
             }}>
-              VENDEZ & ÉCHANGEZ{'\n'}VOTRE MATÉRIEL{'\n'}
-              <Text style={{ color: t.primaryBtn }}>AIRSOFT</Text>
+              TON ÉQUIPEMENT{'\n'}MÉRITE UNE{'\n'}
+              <Text style={{ color: t.primaryBtn }}>SECONDE VIE</Text>
             </Text>
-            
-            {/* Removed logo & descriptive paragraph per request */}
 
-            {/* Key Points */}
+            <Text style={{
+              fontSize: 15,
+              color: t.muted,
+              textAlign: 'center',
+              marginBottom: 20
+            }}>
+              La marketplace des airsofteurs
+            </Text>
+
+            {/* Key Points - Plus dynamiques */}
             <View style={{ marginBottom: 24 }}>
               {[
-                { label: "Publication en 2 minutes" },
-                { label: "Paiement sécurisé (escrow)" },
-                { label: "Profils vérifiés & avis" },
-                { label: "Compatibilité technique" },
+                { icon: "⚡", label: "Ton annonce live en 2 minutes" },
+                { icon: "🔒", label: "Paiement protégé jusqu'à réception" },
+                { icon: "✅", label: "Joueurs vérifiés, avis authentiques" },
+                { icon: "🎯", label: "Trouve exactement ce qu'il te faut" },
               ].map((item, i) => (
                 <View
                   key={i}
-                  style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}
+                  style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}
                 >
-                  <Text style={{ color: t.primaryBtn, marginRight: 8 }}>✓</Text>
+                  <Text style={{ fontSize: 16, marginRight: 10 }}>{item.icon}</Text>
                   <Text style={{ color: t.subtle, fontSize: 14 }}>{item.label}</Text>
                 </View>
               ))}
@@ -128,8 +134,8 @@ export default function GeartedLanding() {
                 }}
                 onPress={() => router.push("/register" as any)}
               >
-                <Text style={{ color: t.white, fontWeight: "600", marginRight: 8 }}>+</Text>
-                <Text style={{ color: t.white, fontWeight: "600" }}>Créer mon compte</Text>
+                <Text style={{ color: t.white, fontWeight: "600", marginRight: 8 }}>🎯</Text>
+                <Text style={{ color: t.white, fontWeight: "600" }}>Rejoindre la communauté</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={{

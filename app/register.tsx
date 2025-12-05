@@ -222,7 +222,7 @@ export default function RegisterScreen() {
           style={{ paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40 }}
         >
           <Text style={{
-            fontSize: 32,
+            fontSize: 28,
             fontWeight: '700',
             color: t.heading,
             textAlign: 'center',
@@ -230,14 +230,14 @@ export default function RegisterScreen() {
             letterSpacing: 0.5,
             textTransform: 'uppercase'
           }}>
-            INSCRIPTION
+            REJOINS LA COMMUNAUTÉ
           </Text>
           <Text style={{
             fontSize: 16,
             color: t.muted,
             textAlign: 'center'
           }}>
-            Créez votre compte Gearted
+            Gratuit, rapide, et tu commences à vendre direct 🚀
           </Text>
         </LinearGradient>
 
@@ -342,7 +342,7 @@ export default function RegisterScreen() {
                 borderWidth: 1,
                 borderColor: usernameError ? '#DC2626' : t.border
               }}
-              placeholder="johndoe"
+              placeholder="ton_pseudo_airsoft"
               value={username}
               onChangeText={(text) => {
                 setUsername(text);
