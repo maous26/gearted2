@@ -8,6 +8,7 @@ export async function setupAdminJS(app: Express) {
   try {
     // Dynamic imports for ESM modules
     const AdminJS = (await import('adminjs')).default;
+    // @ts-ignore - ESM module with moduleResolution issue
     const { Database, Resource } = await import('@adminjs/prisma');
     const AdminJSExpress = (await import('@adminjs/express')).default;
 
