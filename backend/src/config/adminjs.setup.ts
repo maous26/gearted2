@@ -14,7 +14,7 @@ export async function setupAdminJS(app: Express) {
     const AdminJS = AdminJSModule.default;
     console.log('[AdminJS] adminjs imported, default:', typeof AdminJS);
 
-    // @ts-expect-error - ESM module resolution issue, works at runtime
+    // @ts-ignore - ESM module resolution issue, works at runtime
     console.log('[AdminJS] Importing @adminjs/prisma...');
     const AdminJSPrismaModule = await import('@adminjs/prisma');
     const { Database, Resource } = AdminJSPrismaModule;
