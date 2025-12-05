@@ -7,9 +7,10 @@ const router = Router();
 const prisma = new PrismaClient();
 
 // Middleware pour vérifier que l'utilisateur est admin
-const requireAdmin = (req: Request, res: Response, next: any) => {
+const requireAdmin = (req: Request, res: Response, next: any): void => {
   if (req.user?.role !== 'ADMIN') {
-    return res.status(403).json({ error: 'Admin access required' });
+    res.status(403).json({ error: 'Admin access required' });
+    return;
   }
   next();
 };
@@ -456,7 +457,7 @@ router.get('/users', async (req, res) => {
           _count: {
             select: {
               products: true,
-              purchases: true
+              transactions: true
             }
           }
         },

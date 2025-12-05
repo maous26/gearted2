@@ -4,7 +4,7 @@ import { authenticate } from '../middleware/auth';
 import { validateRequest } from '../middleware/validation';
 import { authSchemas } from '../utils/validationSchemas';
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const router = Router();
 const prisma = new PrismaClient();
