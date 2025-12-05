@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CompatDrawer } from "../../components/CompatDrawer";
-// import { CompatibilityTeaser } from "../../components/CompatibilityTeaser"; // Désactivé
+import LegalFooter from "../../components/LegalFooter";
 import { useTheme } from "../../components/ThemeProvider";
 import { CATEGORIES } from "../../data";
 import { useCategoryStats, useProducts } from "../../hooks/useProducts";
@@ -495,6 +495,9 @@ export default function AuthenticatedHome() {
             </Pressable>
           </View>
         </View>
+
+        {/* Footer juridique */}
+        <LegalFooter />
       </ScrollView>
 
       <CompatDrawer

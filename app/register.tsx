@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
@@ -13,8 +14,8 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
+import LegalFooter from "../components/LegalFooter";
 import { useUser } from "../components/UserProvider";
 import authService from "../services/auth";
 import discordAuthService from "../services/discord-auth";
@@ -30,9 +31,11 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // États pour les erreurs
   const [emailError, setEmailError] = useState("");
+  const [termsError, setTermsError] = useState("");
   const [usernameError, setUsernameError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
@@ -84,6 +87,7 @@ export default function RegisterScreen() {
     setPasswordError("");
     setConfirmPasswordError("");
     setGeneralError("");
+    setTermsError("");
 
     // Validation
     let hasError = false;
@@ -122,6 +126,11 @@ export default function RegisterScreen() {
       hasError = true;
     } else if (password !== confirmPassword) {
       setConfirmPasswordError("Les mots de passe ne correspondent pas");
+      hasError = true;
+    }
+
+    if (!acceptedTerms) {
+      setTermsError("Vous devez accepter les CGU et CGV pour vous inscrire");
       hasError = true;
     }
 
@@ -438,7 +447,7 @@ export default function RegisterScreen() {
             ) : null}
           </View>
 
-          <View style={{ marginBottom: 32 }}>
+          <View style={{ marginBottom: 20 }}>
             <Text style={{
               fontSize: 16,
               fontWeight: '600',
@@ -471,6 +480,68 @@ export default function RegisterScreen() {
             {confirmPasswordError ? (
               <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 4, marginLeft: 4 }}>
                 {confirmPasswordError}
+              </Text>
+            ) : null}
+          </View>
+
+          {/* Case à cocher CGU/CGV */}
+          <View style={{ marginBottom: 24 }}>
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+              }}
+              onPress={() => {
+                setAcceptedTerms(!acceptedTerms);
+                if (termsError) setTermsError("");
+              }}
+            >
+              <View style={{
+                width: 24,
+                height: 24,
+                borderRadius: 6,
+                borderWidth: 2,
+                borderColor: termsError ? '#DC2626' : (acceptedTerms ? t.primaryBtn : t.border),
+                backgroundColor: acceptedTerms ? t.primaryBtn : 'transparent',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 12,
+                marginTop: 2
+              }}>
+                {acceptedTerms && (
+                  <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                )}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, color: t.heading, lineHeight: 20 }}>
+                  J'atteste avoir lu et j'accepte les{' '}
+                  <Text
+                    style={{ color: t.primaryBtn, textDecorationLine: 'underline' }}
+                    onPress={() => router.push('/legal/cgu' as any)}
+                  >
+                    Conditions Generales d'Utilisation
+                  </Text>
+                  {', les '}
+                  <Text
+                    style={{ color: t.primaryBtn, textDecorationLine: 'underline' }}
+                    onPress={() => router.push('/legal/cgv' as any)}
+                  >
+                    Conditions Generales de Vente
+                  </Text>
+                  {' et la '}
+                  <Text
+                    style={{ color: t.primaryBtn, textDecorationLine: 'underline' }}
+                    onPress={() => router.push('/legal/privacy' as any)}
+                  >
+                    Politique de Confidentialite
+                  </Text>
+                  .
+                </Text>
+              </View>
+            </TouchableOpacity>
+            {termsError ? (
+              <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 8, marginLeft: 36 }}>
+                {termsError}
               </Text>
             ) : null}
           </View>
@@ -543,7 +614,7 @@ export default function RegisterScreen() {
             style={{
               paddingVertical: 16,
               alignItems: 'center',
-              marginBottom: 32
+              marginBottom: 16
             }}
             onPress={() => router.push("/login" as any)}
           >
@@ -557,6 +628,9 @@ export default function RegisterScreen() {
               </Text>
             </Text>
           </TouchableOpacity>
+
+          {/* Footer juridique */}
+          <LegalFooter />
         </View>
       </ScrollView>
       </KeyboardAvoidingView>
