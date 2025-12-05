@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gearted Admin Console</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .tab-active { background-color: #f97316; color: white; }
+    .stat-card { transition: transform 0.2s; }
+    .stat-card:hover { transform: translateY(-2px); }
+  </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+  <!-- Login Modal -->
+  <div id="loginModal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+    <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-md">
+      <h2 class="text-2xl font-bold mb-6 text-center text-orange-500">Gearted Admin</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-2">Email</label>
+          <input type="email" id="loginEmail" class="w-full px-4 py-3 bg-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none" placeholder="admin@gearted.com">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Mot de passe</label>
+          <input type="password" id="loginPassword" class="w-full px-4 py-3 bg-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none" placeholder="••••••••">
+        </div>
+        <button onclick="login()" class="w-full py-3 bg-orange-500 hover:bg-orange-600 rounded-lg font-semibold transition">
+          Connexion
+        </button>
+        <p id="loginError" class="text-red-400 text-sm text-center hidden"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="mainApp" class="hidden">
+    <!-- Header -->
+    <header class="bg-gray-800 border-b border-gray-700 px-6 py-4">
+      <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center font-bold text-xl">G</div>
+          <h1 class="text-xl font-bold">Gearted Admin</h1>
+        </div>
+        <div class="flex items-center gap-4">
+          <span id="adminName" class="text-gray-400"></span>
+          <button onclick="logout()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition">
+            Déconnexion
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-gray-800 border-b border-gray-700 px-6">
+      <div class="max-w-7xl mx-auto flex gap-2 overflow-x-auto py-3">
+        <button onclick="showTab('dashboard')" class="tab-btn tab-active px-4 py-2 rounded-lg font-medium whitespace-nowrap" data-tab="dashboard">
+          Dashboard
+        </button>
+        <button onclick="showTab('users')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap hover:bg-gray-700" data-tab="users">
+          Utilisateurs
+        </button>
+        <button onclick="showTab('transactions')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap hover:bg-gray-700" data-tab="transactions">
+          Transactions
+        </button>
+        <button onclick="showTab('messages')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap hover:bg-gray-700" data-tab="messages">
+          Messages
+        </button>
+        <button onclick="showTab('ads')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap hover:bg-gray-700" data-tab="ads">
+          Publicités
+        </button>
+        <button onclick="showTab('expert')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap hover:bg-gray-700" data-tab="expert">
+          Expert Service
+        </button>
+        <button onclick="showTab('settings')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap hover:bg-gray-700" data-tab="settings">
+          Paramètres
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-8">
+      <!-- Dashboard Tab -->
+      <div id="tab-dashboard" class="tab-content">
+        <h2 class="text-2xl font-bold mb-6">Dashboard</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div class="stat-card bg-gray-800 p-6 rounded-xl">
+            <p class="text-gray-400 text-sm">Utilisateurs</p>
+            <p id="stat-users" class="text-3xl font-bold text-orange-500">-</p>
+          </div>
+          <div class="stat-card bg-gray-800 p-6 rounded-xl">
+            <p class="text-gray-400 text-sm">Transactions</p>
+            <p id="stat-transactions" class="text-3xl font-bold text-green-500">-</p>
+          </div>
+          <div class="stat-card bg-gray-800 p-6 rounded-xl">
+            <p class="text-gray-400 text-sm">Ventes totales</p>
+            <p id="stat-sales" class="text-3xl font-bold text-blue-500">-</p>
+          </div>
+          <div class="stat-card bg-gray-800 p-6 rounded-xl">
+            <p class="text-gray-400 text-sm">Commissions</p>
+            <p id="stat-commissions" class="text-3xl font-bold text-purple-500">-</p>
+          </div>
+        </div>
+
+        <div class="bg-gray-800 p-6 rounded-xl">
+          <h3 class="text-lg font-semibold mb-4">Actions rapides</h3>
+          <div class="flex flex-wrap gap-3">
+            <button onclick="analyzeProducts()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition">
+              Analyser les produits
+            </button>
+            <button onclick="cleanupProducts()" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition">
+              Nettoyer données test
+            </button>
+            <button onclick="loadDashboard()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition">
+              Rafraîchir
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users Tab -->
+      <div id="tab-users" class="tab-content hidden">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-bold">Utilisateurs</h2>
+          <div class="flex gap-3">
+            <input type="text" id="userSearch" placeholder="Rechercher..." class="px-4 py-2 bg-gray-800 rounded-lg outline-none focus:ring-2 focus:ring-orange-500">
+            <button onclick="loadUsers()" class="px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg transition">
+              Rechercher
+            </button>
+          </div>
+        </div>
+        <div class="bg-gray-800 rounded-xl overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-gray-700">
+              <tr>
+                <th class="px-6 py-3 text-left text-sm font-semibold">Utilisateur</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold">Email</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold">Rôle</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold">Produits</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold">Achats</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTable" class="divide-y divide-gray-700">
+              <tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">Chargement...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="usersPagination" class="flex justify-center gap-2 mt-4"></div>
+      </div>
+
+      <!-- Transactions Tab -->
+      <div id="tab-transactions" class="tab-content hidden">
+        <h2 class="text-2xl font-bold mb-6">Transactions</h2>
+        <div class="bg-gray-800 rounded-xl overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-gray-700">
+              <tr>
+                <th class="px-6 py-3 text-left text-sm font-semibold">ID</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold">Produit</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold">Acheteur</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold">Vendeur</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold">Montant</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold">Statut</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold">Date</th>
+              </tr>
+            </thead>
+            <tbody id="transactionsTable" class="divide-y divide-gray-700">
+              <tr><td colspan="7" class="px-6 py-8 text-center text-gray-400">Chargement...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Messages Tab -->
+      <div id="tab-messages" class="tab-content hidden">
+        <h2 class="text-2xl font-bold mb-6">Envoyer un message</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Broadcast -->
+          <div class="bg-gray-800 p-6 rounded-xl">
+            <h3 class="text-lg font-semibold mb-4">Message Broadcast (tous les utilisateurs)</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium mb-2">Titre</label>
+                <input type="text" id="broadcastTitle" class="w-full px-4 py-2 bg-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-2">Message</label>
+                <textarea id="broadcastMessage" rows="4" class="w-full px-4 py-2 bg-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-500"></textarea>
+              </div>
+              <button onclick="sendBroadcast()" class="w-full py-3 bg-orange-500 hover:bg-orange-600 rounded-lg font-semibold transition">
+                Envoyer à tous
+              </button>
+            </div>
+          </div>
+
+          <!-- Direct Message -->
+          <div class="bg-gray-800 p-6 rounded-xl">
+            <h3 class="text-lg font-semibold mb-4">Message Direct (utilisateur spécifique)</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium mb-2">ID Utilisateur</label>
+                <input type="text" id="directUserId" class="w-full px-4 py-2 bg-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-2">Titre</label>
+                <input type="text" id="directTitle" class="w-full px-4 py-2 bg-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-2">Message</label>
+                <textarea id="directMessage" rows="4" class="w-full px-4 py-2 bg-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-500"></textarea>
+              </div>
+              <button onclick="sendDirectMessage()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition">
+                Envoyer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ads Tab -->
+      <div id="tab-ads" class="tab-content hidden">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-bold">Publicités</h2>
+          <button onclick="showAdModal()" class="px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg transition">
+            + Nouvelle publicité
+          </button>
+        </div>
+        <div id="adsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <p class="text-gray-400">Chargement...</p>
+        </div>
+      </div>
+
+      <!-- Expert Tab -->
+      <div id="tab-expert" class="tab-content hidden">
+        <h2 class="text-2xl font-bold mb-6">Services Expert (Gearted Verification)</h2>
+        <div class="bg-gray-800 rounded-xl overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-gray-700">
+              <tr>
+                <th class="px-6 py-3 text-left text-sm font-semibold">ID</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold">Produit</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold">Acheteur</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold">Statut</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold">Date</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="expertTable" class="divide-y divide-gray-700">
+              <tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">Chargement...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Settings Tab -->
+      <div id="tab-settings" class="tab-content hidden">
+        <h2 class="text-2xl font-bold mb-6">Paramètres</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Commissions -->
+          <div class="bg-gray-800 p-6 rounded-xl">
+            <h3 class="text-lg font-semibold mb-4">Commissions</h3>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <span>Commissions activées</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="commissionsEnabled" class="sr-only peer" checked>
+                  <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:bg-orange-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                </label>
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-2">Commission acheteur (%)</label>
+                <input type="number" id="buyerFee" value="5" class="w-full px-4 py-2 bg-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-2">Commission vendeur (%)</label>
+                <input type="number" id="sellerFee" value="5" class="w-full px-4 py-2 bg-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-500">
+              </div>
+              <button onclick="saveCommissionSettings()" class="w-full py-3 bg-orange-500 hover:bg-orange-600 rounded-lg font-semibold transition">
+                Sauvegarder
+              </button>
+            </div>
+          </div>
+
+          <!-- Database Cleanup -->
+          <div class="bg-gray-800 p-6 rounded-xl">
+            <h3 class="text-lg font-semibold mb-4">Nettoyage Base de Données</h3>
+            <p class="text-gray-400 text-sm mb-4">
+              Supprime les données de test (utilisateurs et produits de démo) tout en conservant les vrais utilisateurs.
+            </p>
+            <div class="space-y-3">
+              <button onclick="analyzeProducts()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition">
+                Analyser les produits
+              </button>
+              <button onclick="cleanupProducts()" class="w-full py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition">
+                Supprimer données test
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Ad Modal -->
+  <div id="adModal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 hidden">
+    <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-lg">
+      <h2 class="text-xl font-bold mb-6">Nouvelle publicité</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-2">Titre</label>
+          <input type="text" id="adTitle" class="w-full px-4 py-2 bg-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Description</label>
+          <textarea id="adDescription" rows="2" class="w-full px-4 py-2 bg-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-500"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">URL Image</label>
+          <input type="text" id="adImageUrl" class="w-full px-4 py-2 bg-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Lien</label>
+          <input type="text" id="adLink" class="w-full px-4 py-2 bg-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Emplacement</label>
+          <select id="adPlacement" class="w-full px-4 py-2 bg-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-500">
+            <option value="home">Page d'accueil</option>
+            <option value="landing">Landing page</option>
+            <option value="sidebar">Barre latérale</option>
+            <option value="banner">Bannière</option>
+          </select>
+        </div>
+        <div class="flex gap-3 pt-4">
+          <button onclick="hideAdModal()" class="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-semibold transition">
+            Annuler
+          </button>
+          <button onclick="createAd()" class="flex-1 py-3 bg-orange-500 hover:bg-orange-600 rounded-lg font-semibold transition">
+            Créer
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300">
+    <p id="toastMessage"></p>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    let authToken = localStorage.getItem('adminToken');
+    let currentUser = null;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      if (authToken) {
+        checkAuth();
+      }
+    });
+
+    // Auth functions
+    async function login() {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (data.token && data.user?.role === 'ADMIN') {
+          authToken = data.token;
+          currentUser = data.user;
+          localStorage.setItem('adminToken', authToken);
+          showApp();
+        } else if (data.user?.role !== 'ADMIN') {
+          showLoginError('Accès réservé aux administrateurs');
+        } else {
+          showLoginError(data.message || 'Identifiants incorrects');
+        }
+      } catch (error) {
+        showLoginError('Erreur de connexion');
+      }
+    }
+
+    async function checkAuth() {
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/me`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user?.role === 'ADMIN') {
+            currentUser = data.user;
+            showApp();
+            return;
+          }
+        }
+        logout();
+      } catch {
+        logout();
+      }
+    }
+
+    function logout() {
+      authToken = null;
+      currentUser = null;
+      localStorage.removeItem('adminToken');
+      document.getElementById('loginModal').classList.remove('hidden');
+      document.getElementById('mainApp').classList.add('hidden');
+    }
+
+    function showLoginError(message) {
+      const el = document.getElementById('loginError');
+      el.textContent = message;
+      el.classList.remove('hidden');
+    }
+
+    function showApp() {
+      document.getElementById('loginModal').classList.add('hidden');
+      document.getElementById('mainApp').classList.remove('hidden');
+      document.getElementById('adminName').textContent = currentUser?.username || 'Admin';
+      loadDashboard();
+    }
+
+    // API helpers
+    async function apiGet(endpoint) {
+      const res = await fetch(`${API_BASE}${endpoint}`, {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      });
+      return res.json();
+    }
+
+    async function apiPost(endpoint, data) {
+      const res = await fetch(`${API_BASE}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      return res.json();
+    }
+
+    async function apiPut(endpoint, data) {
+      const res = await fetch(`${API_BASE}${endpoint}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      return res.json();
+    }
+
+    async function apiDelete(endpoint) {
+      const res = await fetch(`${API_BASE}${endpoint}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      });
+      return res.json();
+    }
+
+    // Tab navigation
+    function showTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(el => {
+        el.classList.remove('tab-active');
+        el.classList.add('hover:bg-gray-700');
+      });
+
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+      document.querySelector(`[data-tab="${tabName}"]`).classList.add('tab-active');
+      document.querySelector(`[data-tab="${tabName}"]`).classList.remove('hover:bg-gray-700');
+
+      // Load data for tab
+      switch(tabName) {
+        case 'dashboard': loadDashboard(); break;
+        case 'users': loadUsers(); break;
+        case 'transactions': loadTransactions(); break;
+        case 'ads': loadAds(); break;
+        case 'expert': loadExpertServices(); break;
+        case 'settings': loadSettings(); break;
+      }
+    }
+
+    // Dashboard
+    async function loadDashboard() {
+      try {
+        const [usersData, salesData] = await Promise.all([
+          apiGet('/api/admin/users?limit=1'),
+          apiGet('/api/admin/logs/sales')
+        ]);
+
+        document.getElementById('stat-users').textContent = usersData.pagination?.total || 0;
+        document.getElementById('stat-transactions').textContent = salesData.stats?.totalTransactions || 0;
+        document.getElementById('stat-sales').textContent = `${(salesData.stats?.totalSales || 0).toFixed(2)}€`;
+        document.getElementById('stat-commissions').textContent = `${(salesData.stats?.totalCommissions || 0).toFixed(2)}€`;
+      } catch (error) {
+        showToast('Erreur lors du chargement du dashboard', 'error');
+      }
+    }
+
+    // Users
+    async function loadUsers(page = 1) {
+      const search = document.getElementById('userSearch')?.value || '';
+      try {
+        const data = await apiGet(`/api/admin/users?page=${page}&limit=20&search=${search}`);
+        const tbody = document.getElementById('usersTable');
+
+        if (!data.users?.length) {
+          tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">Aucun utilisateur trouvé</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = data.users.map(user => `
+          <tr class="hover:bg-gray-700/50">
+            <td class="px-6 py-4">
+              <div class="font-medium">${user.username}</div>
+              <div class="text-sm text-gray-400">${user.id.slice(0, 8)}...</div>
+            </td>
+            <td class="px-6 py-4 text-gray-300">${user.email}</td>
+            <td class="px-6 py-4">
+              <span class="px-2 py-1 text-xs rounded ${user.role === 'ADMIN' ? 'bg-orange-500/20 text-orange-400' : 'bg-gray-600 text-gray-300'}">${user.role}</span>
+            </td>
+            <td class="px-6 py-4">${user._count?.products || 0}</td>
+            <td class="px-6 py-4">${user._count?.purchases || 0}</td>
+            <td class="px-6 py-4">
+              <div class="flex gap-2">
+                <button onclick="togglePremium('${user.id}')" class="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm transition">Premium</button>
+                <button onclick="copyUserId('${user.id}')" class="px-3 py-1 bg-gray-600 hover:bg-gray-500 rounded text-sm transition">ID</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+
+        // Pagination
+        const pagination = document.getElementById('usersPagination');
+        if (data.pagination?.pages > 1) {
+          let html = '';
+          for (let i = 1; i <= data.pagination.pages; i++) {
+            html += `<button onclick="loadUsers(${i})" class="px-3 py-1 rounded ${i === page ? 'bg-orange-500' : 'bg-gray-700 hover:bg-gray-600'}">${i}</button>`;
+          }
+          pagination.innerHTML = html;
+        } else {
+          pagination.innerHTML = '';
+        }
+      } catch (error) {
+        showToast('Erreur lors du chargement des utilisateurs', 'error');
+      }
+    }
+
+    function copyUserId(id) {
+      navigator.clipboard.writeText(id);
+      showToast('ID copié !');
+    }
+
+    async function togglePremium(userId) {
+      const until = prompt('Date expiration Premium (YYYY-MM-DD) ou vide pour permanent:');
+      try {
+        await apiPut(`/api/admin/users/${userId}/premium`, {
+          isPremium: true,
+          premiumUntil: until || null
+        });
+        showToast('Premium activé !');
+        loadUsers();
+      } catch (error) {
+        showToast('Erreur', 'error');
+      }
+    }
+
+    // Transactions
+    async function loadTransactions() {
+      try {
+        const data = await apiGet('/api/admin/logs/transactions?limit=50');
+        const tbody = document.getElementById('transactionsTable');
+
+        if (!data.transactions?.length) {
+          tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-gray-400">Aucune transaction</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = data.transactions.map(tx => `
+          <tr class="hover:bg-gray-700/50">
+            <td class="px-6 py-4 text-sm text-gray-400">${tx.id.slice(0, 8)}...</td>
+            <td class="px-6 py-4">${tx.product?.title || 'N/A'}</td>
+            <td class="px-6 py-4">${tx.buyer?.username || 'N/A'}</td>
+            <td class="px-6 py-4">${tx.product?.seller?.username || 'N/A'}</td>
+            <td class="px-6 py-4 font-medium">${Number(tx.amount).toFixed(2)}€</td>
+            <td class="px-6 py-4">
+              <span class="px-2 py-1 text-xs rounded ${getStatusColor(tx.status)}">${tx.status}</span>
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-400">${new Date(tx.createdAt).toLocaleDateString()}</td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        showToast('Erreur lors du chargement des transactions', 'error');
+      }
+    }
+
+    function getStatusColor(status) {
+      const colors = {
+        'SUCCEEDED': 'bg-green-500/20 text-green-400',
+        'PENDING': 'bg-yellow-500/20 text-yellow-400',
+        'FAILED': 'bg-red-500/20 text-red-400',
+        'CANCELLED': 'bg-gray-500/20 text-gray-400'
+      };
+      return colors[status] || 'bg-gray-600 text-gray-300';
+    }
+
+    // Messages
+    async function sendBroadcast() {
+      const title = document.getElementById('broadcastTitle').value;
+      const message = document.getElementById('broadcastMessage').value;
+
+      if (!title || !message) {
+        showToast('Titre et message requis', 'error');
+        return;
+      }
+
+      try {
+        const data = await apiPost('/api/admin/messages/broadcast', { title, message });
+        showToast(`Message envoyé à ${data.sentTo} utilisateurs !`);
+        document.getElementById('broadcastTitle').value = '';
+        document.getElementById('broadcastMessage').value = '';
+      } catch (error) {
+        showToast('Erreur lors de l\'envoi', 'error');
+      }
+    }
+
+    async function sendDirectMessage() {
+      const userId = document.getElementById('directUserId').value;
+      const title = document.getElementById('directTitle').value;
+      const message = document.getElementById('directMessage').value;
+
+      if (!userId || !title || !message) {
+        showToast('Tous les champs sont requis', 'error');
+        return;
+      }
+
+      try {
+        await apiPost('/api/admin/messages/user', { userId, title, message });
+        showToast('Message envoyé !');
+        document.getElementById('directUserId').value = '';
+        document.getElementById('directTitle').value = '';
+        document.getElementById('directMessage').value = '';
+      } catch (error) {
+        showToast('Erreur lors de l\'envoi', 'error');
+      }
+    }
+
+    // Ads
+    async function loadAds() {
+      try {
+        const data = await apiGet('/api/admin/advertisements');
+        const container = document.getElementById('adsList');
+
+        if (!data.advertisements?.length) {
+          container.innerHTML = '<p class="text-gray-400 col-span-3">Aucune publicité</p>';
+          return;
+        }
+
+        container.innerHTML = data.advertisements.map(ad => `
+          <div class="bg-gray-800 rounded-xl overflow-hidden">
+            ${ad.imageUrl ? `<img src="${ad.imageUrl}" alt="${ad.title}" class="w-full h-40 object-cover">` : '<div class="w-full h-40 bg-gray-700 flex items-center justify-center text-gray-500">Pas d\'image</div>'}
+            <div class="p-4">
+              <h4 class="font-semibold mb-1">${ad.title}</h4>
+              <p class="text-sm text-gray-400 mb-2">${ad.description || ''}</p>
+              <div class="flex items-center justify-between">
+                <span class="text-xs px-2 py-1 rounded ${ad.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-600 text-gray-400'}">${ad.isActive ? 'Actif' : 'Inactif'}</span>
+                <button onclick="deleteAd('${ad.id}')" class="text-red-400 hover:text-red-300 text-sm">Supprimer</button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        showToast('Erreur lors du chargement des publicités', 'error');
+      }
+    }
+
+    function showAdModal() {
+      document.getElementById('adModal').classList.remove('hidden');
+    }
+
+    function hideAdModal() {
+      document.getElementById('adModal').classList.add('hidden');
+    }
+
+    async function createAd() {
+      const title = document.getElementById('adTitle').value;
+      const description = document.getElementById('adDescription').value;
+      const imageUrl = document.getElementById('adImageUrl').value;
+      const link = document.getElementById('adLink').value;
+      const placement = document.getElementById('adPlacement').value;
+
+      if (!title || !imageUrl || !placement) {
+        showToast('Titre, image et emplacement requis', 'error');
+        return;
+      }
+
+      try {
+        await apiPost('/api/admin/advertisements', { title, description, imageUrl, link, placement, isActive: true });
+        showToast('Publicité créée !');
+        hideAdModal();
+        loadAds();
+      } catch (error) {
+        showToast('Erreur lors de la création', 'error');
+      }
+    }
+
+    async function deleteAd(id) {
+      if (!confirm('Supprimer cette publicité ?')) return;
+
+      try {
+        await apiDelete(`/api/admin/advertisements/${id}`);
+        showToast('Publicité supprimée');
+        loadAds();
+      } catch (error) {
+        showToast('Erreur lors de la suppression', 'error');
+      }
+    }
+
+    // Expert Services
+    async function loadExpertServices() {
+      try {
+        const data = await apiGet('/api/admin/expert/all?limit=50');
+        const tbody = document.getElementById('expertTable');
+
+        if (!data.services?.length) {
+          tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">Aucun service expert</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = data.services.map(svc => `
+          <tr class="hover:bg-gray-700/50">
+            <td class="px-6 py-4 text-sm text-gray-400">${svc.id.slice(0, 8)}...</td>
+            <td class="px-6 py-4">${svc.transaction?.product?.title || 'N/A'}</td>
+            <td class="px-6 py-4">${svc.transaction?.buyer?.username || 'N/A'}</td>
+            <td class="px-6 py-4">
+              <span class="px-2 py-1 text-xs rounded ${getExpertStatusColor(svc.status)}">${svc.status}</span>
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-400">${new Date(svc.createdAt).toLocaleDateString()}</td>
+            <td class="px-6 py-4">
+              <button onclick="updateExpertStatus('${svc.id}')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition">
+                Mettre à jour
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        showToast('Erreur lors du chargement', 'error');
+      }
+    }
+
+    function getExpertStatusColor(status) {
+      const colors = {
+        'PENDING_SHIPMENT': 'bg-yellow-500/20 text-yellow-400',
+        'SHIPPED_TO_GEARTED': 'bg-blue-500/20 text-blue-400',
+        'RECEIVED': 'bg-purple-500/20 text-purple-400',
+        'VERIFIED': 'bg-green-500/20 text-green-400',
+        'SHIPPED_TO_BUYER': 'bg-cyan-500/20 text-cyan-400',
+        'DELIVERED': 'bg-green-600/20 text-green-500'
+      };
+      return colors[status] || 'bg-gray-600 text-gray-300';
+    }
+
+    function updateExpertStatus(id) {
+      const status = prompt('Nouveau statut:\n- RECEIVED\n- VERIFIED\n- SHIPPED_TO_BUYER\n- DELIVERED');
+      if (!status) return;
+
+      const endpoints = {
+        'RECEIVED': 'received',
+        'VERIFIED': 'verify',
+        'SHIPPED_TO_BUYER': 'ship-to-buyer',
+        'DELIVERED': 'delivered'
+      };
+
+      if (!endpoints[status]) {
+        showToast('Statut invalide', 'error');
+        return;
+      }
+
+      apiPost(`/api/premium/admin/expert/${id}/${endpoints[status]}`, {})
+        .then(() => {
+          showToast('Statut mis à jour');
+          loadExpertServices();
+        })
+        .catch(() => showToast('Erreur', 'error'));
+    }
+
+    // Settings
+    async function loadSettings() {
+      try {
+        const data = await apiGet('/api/admin/commissions/settings');
+        if (data.settings) {
+          document.getElementById('commissionsEnabled').checked = data.settings.enabled;
+          document.getElementById('buyerFee').value = data.settings.buyerFeePercent || 5;
+          document.getElementById('sellerFee').value = data.settings.sellerFeePercent || 5;
+        }
+      } catch (error) {
+        // Use defaults
+      }
+    }
+
+    async function saveCommissionSettings() {
+      const enabled = document.getElementById('commissionsEnabled').checked;
+      const buyerFeePercent = parseInt(document.getElementById('buyerFee').value) || 5;
+      const sellerFeePercent = parseInt(document.getElementById('sellerFee').value) || 5;
+
+      try {
+        await apiPut('/api/admin/commissions/settings', { enabled, buyerFeePercent, sellerFeePercent });
+        showToast('Paramètres sauvegardés !');
+      } catch (error) {
+        showToast('Erreur lors de la sauvegarde', 'error');
+      }
+    }
+
+    // Products
+    async function analyzeProducts() {
+      try {
+        const data = await apiGet('/api/admin/products/analyze');
+        alert(`Analyse des produits:\n\nTotal: ${data.total}\nDonnées test: ${data.seeded?.count || 0}\nVrais produits: ${data.real?.count || 0}`);
+      } catch (error) {
+        showToast('Erreur lors de l\'analyse', 'error');
+      }
+    }
+
+    async function cleanupProducts() {
+      if (!confirm('Supprimer toutes les données de test ? Cette action est irréversible.')) return;
+
+      try {
+        const data = await apiDelete('/api/admin/products/cleanup');
+        showToast(`Nettoyage terminé ! ${data.deleted?.productsByUser || 0} produits supprimés`);
+        loadDashboard();
+      } catch (error) {
+        showToast('Erreur lors du nettoyage', 'error');
+      }
+    }
+
+    // Toast
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toastMessage');
+
+      toastMessage.textContent = message;
+      toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 ${type === 'error' ? 'bg-red-600' : 'bg-green-600'}`;
+
+      setTimeout(() => {
+        toast.classList.add('translate-y-0', 'opacity-100');
+        toast.classList.remove('translate-y-20', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    // Enter key for login
+    document.getElementById('loginPassword')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') login();
+    });
+  </script>
+</body>
+</html>

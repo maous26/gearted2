@@ -456,8 +456,7 @@ router.get('/users', async (req, res) => {
           createdAt: true,
           _count: {
             select: {
-              products: true,
-              transactions: true
+              products: true
             }
           }
         },

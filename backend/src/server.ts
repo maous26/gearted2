@@ -8,6 +8,7 @@ import slowDown from 'express-slow-down';
 import helmet from 'helmet';
 import { createServer } from 'http';
 import morgan from 'morgan';
+import path from 'path';
 import { Server } from 'socket.io';
 
 // BUILD VERSION: 2024-12-04-v2 - Added test-cancel endpoint
@@ -64,9 +65,14 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'production',
-    version: '2024-12-04-v3-cancel-fix',
+    version: '2024-12-05-admin-console',
     buildTime: new Date().toISOString()
   });
+});
+
+// Admin console - serve static HTML page
+app.get('/admin', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
 // Simple test endpoint for cancel route
