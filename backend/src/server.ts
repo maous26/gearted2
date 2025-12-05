@@ -250,10 +250,15 @@ app.use(helmet({
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'];
-    
+
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
-    
+
+    // Allow same-origin requests (admin console)
+    if (origin.includes('railway.app') || origin.includes('gearted')) {
+      return callback(null, true);
+    }
+
     if (allowedOrigins.includes(origin) || origin.startsWith('exp://')) {
       callback(null, true);
     } else {
