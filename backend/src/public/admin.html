@@ -377,15 +377,19 @@
 
         const data = await res.json();
 
-        if (data.token && data.user?.role === 'ADMIN') {
-          authToken = data.token;
-          currentUser = data.user;
+        // Handle response format: { success: true, data: { user: {...}, tokens: { accessToken, refreshToken } } }
+        const user = data.data?.user || data.user;
+        const token = data.data?.tokens?.accessToken || data.token;
+
+        if (token && user?.role === 'ADMIN') {
+          authToken = token;
+          currentUser = user;
           localStorage.setItem('adminToken', authToken);
           showApp();
-        } else if (data.user?.role !== 'ADMIN') {
+        } else if (user?.role && user?.role !== 'ADMIN') {
           showLoginError('Accès réservé aux administrateurs');
         } else {
-          showLoginError(data.message || 'Identifiants incorrects');
+          showLoginError(data.error?.message || data.message || 'Identifiants incorrects');
         }
       } catch (error) {
         showLoginError('Erreur de connexion');
@@ -400,8 +404,9 @@
 
         if (res.ok) {
           const data = await res.json();
-          if (data.user?.role === 'ADMIN') {
-            currentUser = data.user;
+          const user = data.data?.user || data.user;
+          if (user?.role === 'ADMIN') {
+            currentUser = user;
             showApp();
             return;
           }
