@@ -22,7 +22,7 @@
     "noImplicitThis": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
     "baseUrl": "./",
     "paths": {
       "@/*": [

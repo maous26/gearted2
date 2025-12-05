@@ -1,7 +1,6 @@
 import AdminJS from 'adminjs';
 import { Database, Resource } from '@adminjs/prisma';
 import { PrismaClient } from '@prisma/client';
-import { DMMFClass } from '@prisma/client/runtime/library';
 
 // Register Prisma adapter
 AdminJS.registerAdapter({ Database, Resource });
@@ -117,7 +116,6 @@ export const adminJsConfig = {
   rootPath: '/admin',
   branding: {
     companyName: 'Gearted Admin',
-    logo: false,
     withMadeWithLove: false,
     favicon: 'https://gearted.com/favicon.ico',
   },
