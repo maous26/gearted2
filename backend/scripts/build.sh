@@ -17,5 +17,9 @@ npx prisma generate
 echo "🔨 Compiling TypeScript..."
 npx tsc
 
+echo "📁 Copying static files..."
+mkdir -p dist/public
+cp -r src/public/* dist/public/ 2>/dev/null || echo "No static files to copy"
+
 echo "✅ Build completed successfully!"
 
