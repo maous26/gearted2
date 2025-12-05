@@ -9,17 +9,23 @@ export async function setupAdminJS(app: Express) {
     console.log('[AdminJS] Starting setup...');
 
     // Use dynamic import() for ESM modules - THIS IS THE CORRECT WAY
+    console.log('[AdminJS] Importing adminjs...');
     const AdminJSModule = await import('adminjs');
     const AdminJS = AdminJSModule.default;
+    console.log('[AdminJS] adminjs imported, default:', typeof AdminJS);
 
     // @ts-expect-error - ESM module resolution issue, works at runtime
+    console.log('[AdminJS] Importing @adminjs/prisma...');
     const AdminJSPrismaModule = await import('@adminjs/prisma');
     const { Database, Resource } = AdminJSPrismaModule;
+    console.log('[AdminJS] @adminjs/prisma imported, Database:', typeof Database, 'Resource:', typeof Resource);
 
+    console.log('[AdminJS] Importing @adminjs/express...');
     const AdminJSExpressModule = await import('@adminjs/express');
     const AdminJSExpress = AdminJSExpressModule.default;
+    console.log('[AdminJS] @adminjs/express imported, default:', typeof AdminJSExpress);
 
-    console.log('[AdminJS] Modules loaded successfully');
+    console.log('[AdminJS] All modules loaded successfully');
 
     // Register Prisma adapter
     AdminJS.registerAdapter({
