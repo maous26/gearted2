@@ -17,9 +17,9 @@ npx prisma generate
 echo "🔨 Compiling TypeScript..."
 npx tsc
 
-echo "📋 Copying excluded AdminJS setup file..."
+echo "📋 Transpiling AdminJS setup file separately..."
 mkdir -p dist/config
-cp src/config/adminjs.setup.ts dist/config/adminjs.setup.js
+npx tsc src/config/adminjs.setup.ts --outDir dist/config --module commonjs --target ES2020 --esModuleInterop --skipLibCheck --allowSyntheticDefaultImports
 
 echo "✅ Build completed successfully!"
 
