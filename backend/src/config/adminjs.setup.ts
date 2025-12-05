@@ -39,7 +39,7 @@ export async function setupAdminJS(app: Express) {
     const adminJs = new AdminJS({
       resources: [
         {
-          resource: { model: (prisma as any)._baseDmmf.modelMap.User, client: prisma },
+          resource: { model: prisma.user, client: prisma },
           options: {
             navigation: {
               name: 'Gestion des utilisateurs',
@@ -59,7 +59,7 @@ export async function setupAdminJS(app: Express) {
           },
         },
         {
-          resource: { model: (prisma as any)._baseDmmf.modelMap.Product, client: prisma },
+          resource: { model: prisma.product, client: prisma },
           options: {
             navigation: {
               name: 'Marketplace',
@@ -68,7 +68,7 @@ export async function setupAdminJS(app: Express) {
           },
         },
         {
-          resource: { model: (prisma as any)._baseDmmf.modelMap.Transaction, client: prisma },
+          resource: { model: prisma.transaction, client: prisma },
           options: {
             navigation: {
               name: 'Marketplace',
@@ -77,7 +77,7 @@ export async function setupAdminJS(app: Express) {
           },
         },
         {
-          resource: { model: (prisma as any)._baseDmmf.modelMap.Category, client: prisma },
+          resource: { model: prisma.category, client: prisma },
           options: {
             navigation: {
               name: 'Catalogue',
@@ -86,7 +86,7 @@ export async function setupAdminJS(app: Express) {
           },
         },
         {
-          resource: { model: (prisma as any)._baseDmmf.modelMap.Brand, client: prisma },
+          resource: { model: prisma.brand, client: prisma },
           options: {
             navigation: {
               name: 'Catalogue',
@@ -95,7 +95,7 @@ export async function setupAdminJS(app: Express) {
           },
         },
         {
-          resource: { model: (prisma as any)._baseDmmf.modelMap.Conversation, client: prisma },
+          resource: { model: prisma.conversation, client: prisma },
           options: {
             navigation: {
               name: 'Communication',
@@ -104,7 +104,7 @@ export async function setupAdminJS(app: Express) {
           },
         },
         {
-          resource: { model: (prisma as any)._baseDmmf.modelMap.Message, client: prisma },
+          resource: { model: prisma.message, client: prisma },
           options: {
             navigation: {
               name: 'Communication',
@@ -113,7 +113,7 @@ export async function setupAdminJS(app: Express) {
           },
         },
         {
-          resource: { model: (prisma as any)._baseDmmf.modelMap.StripeAccount, client: prisma },
+          resource: { model: prisma.stripeAccount, client: prisma },
           options: {
             navigation: {
               name: 'Paiements',
@@ -122,7 +122,7 @@ export async function setupAdminJS(app: Express) {
           },
         },
         {
-          resource: { model: (prisma as any)._baseDmmf.modelMap.Shipment, client: prisma },
+          resource: { model: prisma.shipment, client: prisma },
           options: {
             navigation: {
               name: 'Logistique',
