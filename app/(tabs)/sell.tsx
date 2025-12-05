@@ -42,6 +42,9 @@ const listingSchema = z.object({
   ),
   images: z.array(z.string()).min(1, "Au moins une photo est requise").max(5, "Maximum 5 photos"),
   handDelivery: z.boolean().optional(),
+  boost: z.boolean().optional(),
+  expertVerification: z.boolean().optional(),
+  insurance: z.boolean().optional(),
 });
 
 type ListingFormData = z.infer<typeof listingSchema>;
@@ -224,7 +227,10 @@ export default function SellScreen() {
       condition: "",
       brand: "",
       images: [],
-      handDelivery: false
+      handDelivery: false,
+      boost: false,
+      expertVerification: false,
+      insurance: false
     }
   });
 
@@ -245,6 +251,9 @@ export default function SellScreen() {
         location: 'Paris, 75001',
         images,
         handDelivery: Boolean(data.handDelivery),
+        featured: Boolean(data.boost), // Boost = featured listing
+        expertVerified: Boolean(data.expertVerification),
+        insured: Boolean(data.insurance),
       };
       const created = await api.post<{ id: string }>("/api/products", {
         ...payload,
@@ -267,7 +276,7 @@ export default function SellScreen() {
         sellerId: user?.id || 'user-1',
         rating: 4.5,
         images,
-        featured: false,
+        featured: Boolean(data.boost),
         createdAt: new Date().toISOString(),
         handDelivery: Boolean(data.handDelivery),
       });
@@ -690,6 +699,168 @@ export default function SellScreen() {
                 <HandDeliveryToggle value={!!value} onChange={onChange} />
               )}
             />
+          </View>
+
+          {/* Section 4: Options Premium */}
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ fontSize: 18, fontWeight: '800', color: t.heading, marginBottom: 8 }}>
+              ⭐ Booster mon annonce
+            </Text>
+            <View style={{ backgroundColor: '#FFB800' + '15', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+              <Text style={{ color: '#B8860B', fontSize: 13 }}>
+                🚀 Une annonce boostée apparaît en priorité dans "À la une" et en tête des résultats de recherche !
+              </Text>
+            </View>
+
+            <Controller
+              control={control}
+              name="boost"
+              render={({ field: { value, onChange } }) => (
+                <View style={{ marginBottom: 16 }}>
+                  <TouchableOpacity
+                    onPress={() => onChange(!value)}
+                    style={{
+                      backgroundColor: value ? '#FFB800' : t.cardBg,
+                      borderRadius: 12,
+                      padding: 16,
+                      borderWidth: 2,
+                      borderColor: value ? '#FFB800' : t.border,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={{
+                        color: value ? '#1a1a1a' : t.heading,
+                        fontWeight: '700',
+                        fontSize: 16,
+                        marginBottom: 4
+                      }}>
+                        {value ? '⭐ Annonce boostée' : '🚀 Booster cette annonce'}
+                      </Text>
+                      <Text style={{ color: value ? '#333' : t.muted, fontSize: 13 }}>
+                        Visibilité maximale pendant 7 jours
+                      </Text>
+                    </View>
+                    <View style={{
+                      backgroundColor: value ? '#1a1a1a' : t.primaryBtn,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 8
+                    }}>
+                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
+                        2,99 €
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              )}
+            />
+
+            {/* Expertise Gearted */}
+            <Controller
+              control={control}
+              name="expertVerification"
+              render={({ field: { value, onChange } }) => (
+                <View style={{ marginBottom: 16 }}>
+                  <TouchableOpacity
+                    onPress={() => onChange(!value)}
+                    style={{
+                      backgroundColor: value ? '#3B82F6' : t.cardBg,
+                      borderRadius: 12,
+                      padding: 16,
+                      borderWidth: 2,
+                      borderColor: value ? '#3B82F6' : t.border,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={{
+                        color: value ? '#fff' : t.heading,
+                        fontWeight: '700',
+                        fontSize: 16,
+                        marginBottom: 4
+                      }}>
+                        {value ? '🎯 Expertise activée' : '🎯 Expertise Gearted'}
+                      </Text>
+                      <Text style={{ color: value ? '#E0E7FF' : t.muted, fontSize: 13 }}>
+                        Vérification par un expert certifié
+                      </Text>
+                      <Text style={{ color: value ? '#93C5FD' : t.muted, fontSize: 11, marginTop: 4 }}>
+                        Badge "Vérifié" + rapport d'expertise
+                      </Text>
+                    </View>
+                    <View style={{
+                      backgroundColor: value ? '#1E40AF' : '#3B82F6',
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 8
+                    }}>
+                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
+                        19,90 €
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              )}
+            />
+
+            {/* Assurance Gearted */}
+            <Controller
+              control={control}
+              name="insurance"
+              render={({ field: { value, onChange } }) => (
+                <View style={{ marginBottom: 16 }}>
+                  <TouchableOpacity
+                    onPress={() => onChange(!value)}
+                    style={{
+                      backgroundColor: value ? '#10B981' : t.cardBg,
+                      borderRadius: 12,
+                      padding: 16,
+                      borderWidth: 2,
+                      borderColor: value ? '#10B981' : t.border,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={{
+                        color: value ? '#fff' : t.heading,
+                        fontWeight: '700',
+                        fontSize: 16,
+                        marginBottom: 4
+                      }}>
+                        {value ? '🛡️ Assurance activée' : '🛡️ Assurance Gearted'}
+                      </Text>
+                      <Text style={{ color: value ? '#D1FAE5' : t.muted, fontSize: 13 }}>
+                        Protection contre casse et perte
+                      </Text>
+                      <Text style={{ color: value ? '#6EE7B7' : t.muted, fontSize: 11, marginTop: 4 }}>
+                        Remboursement jusqu'à 500€
+                      </Text>
+                    </View>
+                    <View style={{
+                      backgroundColor: value ? '#047857' : '#10B981',
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 8
+                    }}>
+                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
+                        4,99 €
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              )}
+            />
+
+            <Text style={{ color: t.muted, fontSize: 11, marginBottom: 16, textAlign: 'center' }}>
+              Le paiement des options sera effectué après la publication
+            </Text>
 
             {/* Submit Button */}
             <TouchableOpacity
