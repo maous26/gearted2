@@ -129,13 +129,17 @@ app.post('/setup-admin', express.json(), async (req, res): Promise<any> => {
     // Check if user exists
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      // Update to admin
+      // Update to admin AND reset password
+      const hashedPassword = await bcrypt.hash(password, 10);
       const updated = await prisma.user.update({
         where: { email },
-        data: { role: 'ADMIN' }
+        data: {
+          role: 'ADMIN',
+          password: hashedPassword
+        }
       });
       await prisma.$disconnect();
-      return res.json({ success: true, message: 'User upgraded to ADMIN', userId: updated.id });
+      return res.json({ success: true, message: 'User upgraded to ADMIN with new password', userId: updated.id });
     }
 
     // Create new admin
