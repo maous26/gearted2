@@ -6,14 +6,22 @@ const prisma = new PrismaClient();
 
 export async function setupAdminJS(app: Express) {
   try {
-    // Dynamic imports for ESM modules
-    const AdminJS = (await import('adminjs')).default;
-    // @ts-ignore - ESM module with moduleResolution issue
-    const { Database, Resource } = await import('@adminjs/prisma');
-    const AdminJSExpress = (await import('@adminjs/express')).default;
+    console.log('[AdminJS] Starting setup...');
+
+    // Use require for ESM modules (works better in production)
+    const AdminJS = require('adminjs');
+    const AdminJSPrisma = require('@adminjs/prisma');
+    const AdminJSExpress = require('@adminjs/express');
+
+    console.log('[AdminJS] Modules loaded successfully');
 
     // Register Prisma adapter
-    AdminJS.registerAdapter({ Database, Resource });
+    AdminJS.registerAdapter({
+      Database: AdminJSPrisma.Database,
+      Resource: AdminJSPrisma.Resource,
+    });
+
+    console.log('[AdminJS] Prisma adapter registered');
 
     // AdminJS configuration
     const adminJs = new AdminJS({
@@ -130,6 +138,8 @@ export async function setupAdminJS(app: Express) {
       },
     });
 
+    console.log('[AdminJS] Configuration created');
+
     // Authentication router
     const adminRouter = AdminJSExpress.buildAuthenticatedRouter(
       adminJs,
@@ -180,6 +190,8 @@ export async function setupAdminJS(app: Express) {
         },
       }
     );
+
+    console.log('[AdminJS] Router created');
 
     app.use(adminJs.options.rootPath, adminRouter);
     console.log(`🔐 [ADMINJS] Panel accessible at ${adminJs.options.rootPath}`);
