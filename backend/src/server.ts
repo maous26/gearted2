@@ -163,7 +163,7 @@ app.delete('/admin-clean-db', async (req, res): Promise<any> => {
 });
 
 // AdminJS setup will be done after server initialization (async)
-import { setupAdminJS } from './config/adminjs.setup';
+// Using dynamic require to avoid TypeScript compilation issues with ESM modules
 
 // Security middleware
 app.use(helmet({
@@ -332,8 +332,13 @@ server.listen(Number(PORT), '0.0.0.0', async () => {
   console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN}`);
   console.log(`💾 Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
 
-  // Setup AdminJS after server starts
-  await setupAdminJS(app);
+  // Setup AdminJS after server starts using dynamic require
+  try {
+    const { setupAdminJS } = require('./config/adminjs.setup');
+    await setupAdminJS(app);
+  } catch (error) {
+    console.error('[Server] Failed to setup AdminJS:', error);
+  }
 });
 
 // Graceful shutdown
