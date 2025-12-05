@@ -133,6 +133,57 @@ export default function MessagesScreen() {
     };
   });
 
+  // Fonction pour regrouper les conversations par interlocuteur
+  const groupConversationsByUser = (convs: Conversation[], currentUserId: string): Conversation[] => {
+    const grouped: Record<string, Conversation> = {};
+
+    for (const conv of convs) {
+      // Ignorer les messages système (Hugo)
+      if (conv.isSystemMessage) continue;
+
+      // Trouver l'autre participant
+      const other = conv.participants?.find((u: User) => u.id !== currentUserId);
+      if (!other) continue;
+
+      const otherUserId = other.id;
+
+      // Si on a déjà une conversation avec cet utilisateur
+      if (grouped[otherUserId]) {
+        // Comparer les dates du dernier message et garder la plus récente
+        const existingLastMsg = grouped[otherUserId].messages?.[0];
+        const newLastMsg = conv.messages?.[0];
+
+        if (newLastMsg && existingLastMsg) {
+          const existingDate = new Date(existingLastMsg.sentAt).getTime();
+          const newDate = new Date(newLastMsg.sentAt).getTime();
+
+          // Si le nouveau message est plus récent, utiliser cette conversation
+          if (newDate > existingDate) {
+            // Stocker l'ID de toutes les conversations avec cet utilisateur
+            const existingConvIds = (grouped[otherUserId] as any).allConversationIds || [grouped[otherUserId].id];
+            grouped[otherUserId] = {
+              ...conv,
+              // Garder tous les IDs de conversations pour le chat
+            };
+            (grouped[otherUserId] as any).allConversationIds = [...existingConvIds, conv.id];
+          } else {
+            // Ajouter l'ID de cette conversation à la liste
+            (grouped[otherUserId] as any).allConversationIds = [
+              ...((grouped[otherUserId] as any).allConversationIds || [grouped[otherUserId].id]),
+              conv.id
+            ];
+          }
+        }
+      } else {
+        // Première conversation avec cet utilisateur
+        grouped[otherUserId] = conv;
+        (grouped[otherUserId] as any).allConversationIds = [conv.id];
+      }
+    }
+
+    return Object.values(grouped);
+  };
+
   useEffect(() => {
     if (!user?.id) {
       // Même sans utilisateur, afficher le message de bienvenue (si non supprimé)
@@ -145,8 +196,16 @@ export default function MessagesScreen() {
       .get<Conversation[]>('/api/messages/conversations')
       .then((data) => {
         const apiConversations = Array.isArray(data) ? data : [];
-        // Ajouter le message de bienvenue de Hugo en premier, puis les notifications, puis les conversations API
-        setConversations([WELCOME_MESSAGE, ...hugoTransactionConversations, ...apiConversations]);
+        // Regrouper les conversations par interlocuteur
+        const groupedConversations = groupConversationsByUser(apiConversations, user.id);
+        // Trier par date du dernier message (plus récent en premier)
+        groupedConversations.sort((a, b) => {
+          const dateA = a.messages?.[0]?.sentAt ? new Date(a.messages[0].sentAt).getTime() : 0;
+          const dateB = b.messages?.[0]?.sentAt ? new Date(b.messages[0].sentAt).getTime() : 0;
+          return dateB - dateA;
+        });
+        // Ajouter le message de bienvenue de Hugo en premier, puis les notifications, puis les conversations groupées
+        setConversations([WELCOME_MESSAGE, ...hugoTransactionConversations, ...groupedConversations]);
         setError('');
       })
       .catch((err) => {

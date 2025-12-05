@@ -84,7 +84,7 @@ router.post('/conversations', async (req: Request, res: Response) => {
   }
 });
 
-// Get a single conversation by ID
+// Get a single conversation by ID (returns merged info for all conversations with same user)
 router.get('/conversations/:conversationId', async (req: Request, res: Response) => {
   if (!req.user) {
     return res.status(401).json({ error: 'Authentication required' });
@@ -121,6 +121,28 @@ router.get('/conversations/:conversationId', async (req: Request, res: Response)
       return res.status(404).json({ error: 'Conversation not found' });
     }
 
+    // Find the other participant
+    const otherUser = conversation.participants.find(p => p.id !== req.user!.userId);
+
+    if (otherUser) {
+      // Find ALL conversation IDs between these two users (for reference)
+      const allConversations = await prisma.conversation.findMany({
+        where: {
+          AND: [
+            { participants: { some: { id: req.user.userId } } },
+            { participants: { some: { id: otherUser.id } } }
+          ]
+        },
+        select: { id: true }
+      });
+
+      // Return conversation with all related conversation IDs
+      return res.json({
+        ...conversation,
+        allConversationIds: allConversations.map(c => c.id)
+      });
+    }
+
     return res.json(conversation);
   } catch (error) {
     console.error('[messages] Failed to fetch conversation', error);
@@ -128,7 +150,7 @@ router.get('/conversations/:conversationId', async (req: Request, res: Response)
   }
 });
 
-// Get all messages in a conversation
+// Get all messages in a conversation (merged from all conversations with same user)
 router.get('/conversations/:conversationId/messages', async (req: Request, res: Response) => {
   if (!req.user) {
     return res.status(401).json({ error: 'Authentication required' });
@@ -144,20 +166,52 @@ router.get('/conversations/:conversationId/messages', async (req: Request, res: 
         participants: {
           some: { id: req.user.userId }
         }
-      }
+      },
+      include: { participants: true }
     });
 
     if (!conversation) {
       return res.status(403).json({ error: 'Access denied to this conversation' });
     }
 
+    // Find the other participant
+    const otherUser = conversation.participants.find(p => p.id !== req.user!.userId);
+
+    if (!otherUser) {
+      // If no other user, just return messages from this conversation
+      const messages = await prisma.message.findMany({
+        where: { conversationId },
+        orderBy: { sentAt: 'asc' },
+        include: { sender: true }
+      });
+      return res.json(messages);
+    }
+
+    // Find ALL conversations between these two users
+    const allConversations = await prisma.conversation.findMany({
+      where: {
+        AND: [
+          { participants: { some: { id: req.user.userId } } },
+          { participants: { some: { id: otherUser.id } } }
+        ]
+      },
+      select: { id: true }
+    });
+
+    const conversationIds = allConversations.map(c => c.id);
+
+    // Get all messages from all conversations with this user
     const messages = await prisma.message.findMany({
-      where: { conversationId },
+      where: {
+        conversationId: { in: conversationIds }
+      },
       orderBy: { sentAt: 'asc' },
       include: { sender: true }
     });
+
     return res.json(messages);
   } catch (error) {
+    console.error('[messages] Failed to fetch messages', error);
     return res.status(500).json({ error: 'Failed to fetch messages' });
   }
 });
