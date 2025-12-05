@@ -163,7 +163,17 @@ export class StripeController {
         return res.status(401).json({ error: 'Authentication required' });
       }
 
-      const { productId, amount, currency = 'eur' } = req.body;
+      const {
+        productId,
+        amount,
+        currency = 'eur',
+        // Options premium acheteur
+        wantExpertise = false,
+        wantInsurance = false,
+        expertisePrice = 0,
+        insurancePrice = 0,
+        grandTotal
+      } = req.body;
 
       if (!productId || !amount) {
         return res.status(400).json({ error: 'Product ID and amount are required' });
@@ -190,12 +200,22 @@ export class StripeController {
         return res.status(400).json({ error: 'This product is already sold' });
       }
 
+      // Options premium
+      const premiumOptions = {
+        wantExpertise,
+        wantInsurance,
+        expertisePrice: Number(expertisePrice) || 0,
+        insurancePrice: Number(insurancePrice) || 0,
+        grandTotal: grandTotal ? Number(grandTotal) : undefined
+      };
+
       const result = await StripeService.createPaymentIntent(
         productId,
         userId,
         product.sellerId,
         amount,
-        currency
+        currency,
+        premiumOptions
       );
 
       return res.json({

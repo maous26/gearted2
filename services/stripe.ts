@@ -13,6 +13,14 @@ export interface PaymentIntentResponse {
   platformFee: number;
 }
 
+export interface PremiumOptions {
+  wantExpertise: boolean;
+  wantInsurance: boolean;
+  expertisePrice: number;
+  insurancePrice: number;
+  grandTotal: number;
+}
+
 export interface StripePublicKeyResponse {
   publishableKey: string;
 }
@@ -40,13 +48,21 @@ class StripeService {
   async createPaymentIntent(
     productId: string,
     amount: number,
-    currency: string = 'eur'
+    currency: string = 'eur',
+    premiumOptions?: PremiumOptions
   ): Promise<PaymentIntentResponse> {
     try {
       const response = await api.post<PaymentIntentResponse>('/api/stripe/create-payment-intent', {
         productId,
         amount,
-        currency
+        currency,
+        ...(premiumOptions && {
+          wantExpertise: premiumOptions.wantExpertise,
+          wantInsurance: premiumOptions.wantInsurance,
+          expertisePrice: premiumOptions.expertisePrice,
+          insurancePrice: premiumOptions.insurancePrice,
+          grandTotal: premiumOptions.grandTotal
+        })
       });
 
       if (!response.success) {

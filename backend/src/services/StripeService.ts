@@ -13,6 +13,15 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 const SELLER_FEE_PERCENT = 5; // 5% prélevé au vendeur
 const BUYER_FEE_PERCENT = 5;  // 5% ajouté à l'acheteur
 
+// Interface pour les options premium
+interface PremiumOptions {
+  wantExpertise: boolean;
+  wantInsurance: boolean;
+  expertisePrice: number;
+  insurancePrice: number;
+  grandTotal?: number;
+}
+
 export class StripeService {
   /**
    * Créer un compte Stripe Connect pour un vendeur
@@ -116,13 +125,15 @@ export class StripeService {
   /**
    * Créer un Payment Intent avec destination charge (split payment)
    * Commission: 5% vendeur + 5% acheteur = 10% total pour Gearted
+   * Options premium: Expertise (19.90€) et Assurance (4.99€) pour l'acheteur
    */
   static async createPaymentIntent(
     productId: string,
     buyerId: string,
     sellerId: string,
     productPrice: number, // Prix du produit affiché (vendeur reçoit ce montant - 5%)
-    currency: string = 'eur'
+    currency: string = 'eur',
+    premiumOptions?: PremiumOptions
   ) {
     try {
       // Récupérer le compte Stripe du vendeur (optionnel pour les tests)
@@ -137,7 +148,7 @@ export class StripeService {
         throw new Error('Le compte Stripe du vendeur n\'est pas encore activé');
       }
 
-      // Calculer les montants
+      // Calculer les montants de base
       // Prix produit: 100€
       // Commission vendeur (5%): 5€ → Vendeur reçoit 95€
       // Commission acheteur (5%): 5€ → Acheteur paie 105€
@@ -147,9 +158,14 @@ export class StripeService {
       const sellerFeeInCents = Math.round(productPriceInCents * (SELLER_FEE_PERCENT / 100));
       const buyerFeeInCents = Math.round(productPriceInCents * (BUYER_FEE_PERCENT / 100));
 
+      // Options premium (100% pour Gearted)
+      const expertisePriceInCents = premiumOptions?.wantExpertise ? Math.round((premiumOptions.expertisePrice || 19.90) * 100) : 0;
+      const insurancePriceInCents = premiumOptions?.wantInsurance ? Math.round((premiumOptions.insurancePrice || 4.99) * 100) : 0;
+      const premiumOptionsTotal = expertisePriceInCents + insurancePriceInCents;
+
       const sellerAmountInCents = productPriceInCents - sellerFeeInCents; // Ce que le vendeur reçoit
-      const totalChargeInCents = productPriceInCents + buyerFeeInCents;   // Ce que l'acheteur paie
-      const platformFeeInCents = sellerFeeInCents + buyerFeeInCents;      // Commission totale Gearted
+      const totalChargeInCents = productPriceInCents + buyerFeeInCents + premiumOptionsTotal;   // Ce que l'acheteur paie (avec options)
+      const platformFeeInCents = sellerFeeInCents + buyerFeeInCents + premiumOptionsTotal;      // Commission totale Gearted (incluant options)
 
       // Créer le Payment Intent
       const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
@@ -164,6 +180,12 @@ export class StripeService {
           buyerFee: (buyerFeeInCents / 100).toFixed(2),
           platformFee: (platformFeeInCents / 100).toFixed(2),
           sellerAmount: (sellerAmountInCents / 100).toFixed(2),
+          // Options premium
+          wantExpertise: premiumOptions?.wantExpertise ? 'true' : 'false',
+          wantInsurance: premiumOptions?.wantInsurance ? 'true' : 'false',
+          expertisePrice: (expertisePriceInCents / 100).toFixed(2),
+          insurancePrice: (insurancePriceInCents / 100).toFixed(2),
+          premiumOptionsTotal: (premiumOptionsTotal / 100).toFixed(2),
         }
       };
 
@@ -188,11 +210,20 @@ export class StripeService {
           sellerFeePercent: SELLER_FEE_PERCENT,  // 5%
           buyerFee: buyerFeeInCents / 100,       // Commission acheteur
           sellerFee: sellerFeeInCents / 100,     // Commission vendeur
-          platformFee: platformFeeInCents / 100, // Commission totale Gearted
+          platformFee: platformFeeInCents / 100, // Commission totale Gearted (incluant options)
           sellerAmount: sellerAmountInCents / 100, // Montant vendeur
           totalPaid: totalChargeInCents / 100,   // Total payé par l'acheteur
           paymentIntentId: paymentIntent.id,
           status: 'PENDING',
+          // Options premium - utiliser les champs existants
+          hasExpert: premiumOptions?.wantExpertise || false,
+          hasProtection: premiumOptions?.wantInsurance || false,
+          // Stocker les prix dans metadata
+          metadata: {
+            expertisePrice: expertisePriceInCents / 100,
+            insurancePrice: insurancePriceInCents / 100,
+            premiumOptionsTotal: premiumOptionsTotal / 100,
+          }
         }
       });
 
@@ -201,10 +232,16 @@ export class StripeService {
         paymentIntentId: paymentIntent.id,
         productPrice: productPrice,
         buyerFee: buyerFeeInCents / 100,
-        totalCharge: totalChargeInCents / 100,  // Ce que l'acheteur paie
+        totalCharge: totalChargeInCents / 100,  // Ce que l'acheteur paie (avec options)
         sellerFee: sellerFeeInCents / 100,
         sellerAmount: sellerAmountInCents / 100,  // Ce que le vendeur reçoit
-        platformFee: platformFeeInCents / 100,    // Commission totale Gearted
+        platformFee: platformFeeInCents / 100,    // Commission totale Gearted (incluant options)
+        // Options premium
+        wantExpertise: premiumOptions?.wantExpertise || false,
+        wantInsurance: premiumOptions?.wantInsurance || false,
+        expertisePrice: expertisePriceInCents / 100,
+        insurancePrice: insurancePriceInCents / 100,
+        premiumOptionsTotal: premiumOptionsTotal / 100,
       };
     } catch (error: any) {
       console.error('[Stripe] Failed to create payment intent:', error);

@@ -194,8 +194,10 @@ function mapDbProductToListingShape(p: any) {
     rating: 4.7, // TODO: brancher sur reviews quand dispo
     images: imageUrls.length ? imageUrls : [firstImage],
     category: p.category?.slug || 'autre',
-    featured: false,
+    featured: p.featured || false,
+    status: p.status || 'ACTIVE',
     createdAt: p.createdAt?.toISOString?.() ?? new Date().toISOString(),
+    handDelivery: p.handDelivery || false,
   };
 }
 

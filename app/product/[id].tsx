@@ -6,6 +6,7 @@ import { Alert, Dimensions, ScrollView, StatusBar, Text, TouchableOpacity, View 
 import { SafeAreaView } from "react-native-safe-area-context";
 import RatingModal from "../../components/RatingModal";
 import { useTheme } from "../../components/ThemeProvider";
+import { useUser } from "../../components/UserProvider";
 import { useProduct } from "../../hooks/useProducts";
 import stripeService from "../../services/stripe";
 import { THEMES } from "../../themes";
@@ -15,9 +16,13 @@ const { width } = Dimensions.get('window');
 export default function ProductDetailScreen() {
   const { theme } = useTheme();
   const t = THEMES[theme];
+  const { user } = useUser();
   const params = useLocalSearchParams();
   const productId = String(params.id || "");
   const { data: product, isLoading, isError } = useProduct(productId);
+
+  // Vérifier si l'utilisateur actuel est le vendeur
+  const isOwnProduct = user?.id && product?.sellerId && user.id === product.sellerId;
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [hasPurchased, setHasPurchased] = useState(false);
@@ -25,11 +30,26 @@ export default function ProductDetailScreen() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [wantExpertise, setWantExpertise] = useState(false);
+  const [wantInsurance, setWantInsurance] = useState(false);
+
+  const EXPERTISE_PRICE = 19.90;
+  const INSURANCE_PRICE = 4.99;
 
   const purchaseSummary = useMemo(() => {
     if (!product) return null;
-    return stripeService.calculateTotalWithFees(product.price);
-  }, [product]);
+    const baseSummary = stripeService.calculateTotalWithFees(product.price);
+    const expertiseCost = wantExpertise ? EXPERTISE_PRICE : 0;
+    const insuranceCost = wantInsurance ? INSURANCE_PRICE : 0;
+    const optionsTotal = expertiseCost + insuranceCost;
+    return {
+      ...baseSummary,
+      expertiseCost,
+      insuranceCost,
+      optionsTotal,
+      grandTotal: baseSummary.total + optionsTotal
+    };
+  }, [product, wantExpertise, wantInsurance]);
 
   const images = useMemo(() => {
     const arr = product?.images || [];
@@ -45,16 +65,23 @@ export default function ProductDetailScreen() {
   };
 
   const processPayment = async () => {
-    if (!product) return;
+    if (!product || !purchaseSummary) return;
     setShowPurchaseModal(false);
     setIsProcessingPayment(true);
 
     try {
-      // 1. Créer le Payment Intent sur le backend
+      // 1. Créer le Payment Intent sur le backend avec les options
       const paymentData = await stripeService.createPaymentIntent(
         product.id,
         product.price,
-        'eur'
+        'eur',
+        {
+          wantExpertise,
+          wantInsurance,
+          expertisePrice: wantExpertise ? EXPERTISE_PRICE : 0,
+          insurancePrice: wantInsurance ? INSURANCE_PRICE : 0,
+          grandTotal: purchaseSummary.grandTotal
+        }
       );
 
       // 2. Initialiser le Payment Sheet
@@ -315,38 +342,6 @@ export default function ProductDetailScreen() {
                 {`${Number(product.price).toFixed(2)} €`}
               </Text>
 
-              {/* Protection Acheteur Badge */}
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: t.cardBg,
-                padding: 12,
-                borderRadius: 12,
-                marginBottom: 24,
-                borderWidth: 1,
-                borderColor: '#4CAF50' + '40'
-              }}>
-                <View style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor: '#4CAF50' + '20',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  marginRight: 12
-                }}>
-                  <Text style={{ fontSize: 16 }}>🛡️</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: t.heading }}>
-                    Protection Acheteur incluse
-                  </Text>
-                  <Text style={{ fontSize: 12, color: t.muted }}>
-                    Remboursement garanti si l'article n'est pas conforme.
-                  </Text>
-                </View>
-              </View>
-
               {/* Infos localisation et date */}
               <View style={{
                 flexDirection: 'row',
@@ -490,8 +485,8 @@ export default function ProductDetailScreen() {
         )}
       </ScrollView>
 
-      {/* Actions Bottom Bar - Design moderne */}
-      {!isLoading && !isError && product && (
+      {/* Actions Bottom Bar - Design moderne (caché si c'est son propre produit) */}
+      {!isLoading && !isError && product && !isOwnProduct && (
         <View style={{
           backgroundColor: t.navBg,
           borderTopWidth: 1,
@@ -602,10 +597,83 @@ export default function ProductDetailScreen() {
                 <Text style={{ fontSize: 16, color: t.muted }}>Protection acheteur & Frais</Text>
                 <Text style={{ fontSize: 16, color: t.heading, fontWeight: '600' }}>{purchaseSummary.buyerFee.toFixed(2)} €</Text>
               </View>
+
+              {/* Options Premium */}
+              <View style={{ height: 1, backgroundColor: t.border, marginVertical: 8 }} />
+              <Text style={{ fontSize: 14, fontWeight: '700', color: t.heading, marginBottom: 4 }}>Options Premium</Text>
+
+              {/* Expertise Gearted */}
+              <TouchableOpacity
+                onPress={() => setWantExpertise(!wantExpertise)}
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  backgroundColor: wantExpertise ? t.primaryBtn + '15' : 'transparent',
+                  padding: 12,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor: wantExpertise ? t.primaryBtn : t.border
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, color: t.heading, fontWeight: '600' }}>🔍 Expertise Gearted</Text>
+                  <Text style={{ fontSize: 12, color: t.muted, marginTop: 2 }}>Vérification complète par nos experts</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 15, color: t.primaryBtn, fontWeight: '700' }}>{EXPERTISE_PRICE.toFixed(2)} €</Text>
+                  <View style={{
+                    width: 24, height: 24, borderRadius: 12,
+                    backgroundColor: wantExpertise ? t.primaryBtn : t.border,
+                    justifyContent: 'center', alignItems: 'center'
+                  }}>
+                    {wantExpertise && <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>✓</Text>}
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              {/* Assurance Gearted */}
+              <TouchableOpacity
+                onPress={() => setWantInsurance(!wantInsurance)}
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  backgroundColor: wantInsurance ? t.primaryBtn + '15' : 'transparent',
+                  padding: 12,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor: wantInsurance ? t.primaryBtn : t.border
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, color: t.heading, fontWeight: '600' }}>🛡️ Assurance Casse & Perte</Text>
+                  <Text style={{ fontSize: 12, color: t.muted, marginTop: 2 }}>Protection complète pendant l'expédition</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 15, color: t.primaryBtn, fontWeight: '700' }}>{INSURANCE_PRICE.toFixed(2)} €</Text>
+                  <View style={{
+                    width: 24, height: 24, borderRadius: 12,
+                    backgroundColor: wantInsurance ? t.primaryBtn : t.border,
+                    justifyContent: 'center', alignItems: 'center'
+                  }}>
+                    {wantInsurance && <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>✓</Text>}
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              {/* Total options si sélectionnées */}
+              {purchaseSummary.optionsTotal > 0 && (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={{ fontSize: 16, color: t.muted }}>Options sélectionnées</Text>
+                  <Text style={{ fontSize: 16, color: t.primaryBtn, fontWeight: '600' }}>+{purchaseSummary.optionsTotal.toFixed(2)} €</Text>
+                </View>
+              )}
+
               <View style={{ height: 1, backgroundColor: t.border, marginVertical: 8 }} />
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                 <Text style={{ fontSize: 18, color: t.heading, fontWeight: '800' }}>Total à payer</Text>
-                <Text style={{ fontSize: 24, color: t.primaryBtn, fontWeight: '800' }}>{purchaseSummary.total.toFixed(2)} €</Text>
+                <Text style={{ fontSize: 24, color: t.primaryBtn, fontWeight: '800' }}>{purchaseSummary.grandTotal.toFixed(2)} €</Text>
               </View>
             </View>
 
@@ -623,7 +691,7 @@ export default function ProductDetailScreen() {
               onPress={processPayment}
             >
               <Text style={{ fontSize: 16, fontWeight: '700', color: t.white }}>
-                Payer {purchaseSummary.total.toFixed(2)} €
+                Payer {purchaseSummary.grandTotal.toFixed(2)} €
               </Text>
             </TouchableOpacity>
             <Text style={{ textAlign: 'center', marginTop: 12, color: t.muted, fontSize: 12 }}>

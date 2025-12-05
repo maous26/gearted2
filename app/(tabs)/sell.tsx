@@ -43,8 +43,6 @@ const listingSchema = z.object({
   images: z.array(z.string()).min(1, "Au moins une photo est requise").max(5, "Maximum 5 photos"),
   handDelivery: z.boolean().optional(),
   boost: z.boolean().optional(),
-  expertVerification: z.boolean().optional(),
-  insurance: z.boolean().optional(),
 });
 
 type ListingFormData = z.infer<typeof listingSchema>;
@@ -228,9 +226,7 @@ export default function SellScreen() {
       brand: "",
       images: [],
       handDelivery: false,
-      boost: false,
-      expertVerification: false,
-      insurance: false
+      boost: false
     }
   });
 
@@ -252,8 +248,6 @@ export default function SellScreen() {
         images,
         handDelivery: Boolean(data.handDelivery),
         featured: Boolean(data.boost), // Boost = featured listing
-        expertVerified: Boolean(data.expertVerification),
-        insured: Boolean(data.insurance),
       };
       const created = await api.post<{ id: string }>("/api/products", {
         ...payload,
@@ -758,108 +752,8 @@ export default function SellScreen() {
               )}
             />
 
-            {/* Expertise Gearted */}
-            <Controller
-              control={control}
-              name="expertVerification"
-              render={({ field: { value, onChange } }) => (
-                <View style={{ marginBottom: 16 }}>
-                  <TouchableOpacity
-                    onPress={() => onChange(!value)}
-                    style={{
-                      backgroundColor: value ? '#3B82F6' : t.cardBg,
-                      borderRadius: 12,
-                      padding: 16,
-                      borderWidth: 2,
-                      borderColor: value ? '#3B82F6' : t.border,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={{
-                        color: value ? '#fff' : t.heading,
-                        fontWeight: '700',
-                        fontSize: 16,
-                        marginBottom: 4
-                      }}>
-                        {value ? '🎯 Expertise activée' : '🎯 Expertise Gearted'}
-                      </Text>
-                      <Text style={{ color: value ? '#E0E7FF' : t.muted, fontSize: 13 }}>
-                        Vérification par un expert certifié
-                      </Text>
-                      <Text style={{ color: value ? '#93C5FD' : t.muted, fontSize: 11, marginTop: 4 }}>
-                        Badge "Vérifié" + rapport d'expertise
-                      </Text>
-                    </View>
-                    <View style={{
-                      backgroundColor: value ? '#1E40AF' : '#3B82F6',
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 8
-                    }}>
-                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
-                        19,90 €
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              )}
-            />
-
-            {/* Assurance Gearted */}
-            <Controller
-              control={control}
-              name="insurance"
-              render={({ field: { value, onChange } }) => (
-                <View style={{ marginBottom: 16 }}>
-                  <TouchableOpacity
-                    onPress={() => onChange(!value)}
-                    style={{
-                      backgroundColor: value ? '#10B981' : t.cardBg,
-                      borderRadius: 12,
-                      padding: 16,
-                      borderWidth: 2,
-                      borderColor: value ? '#10B981' : t.border,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={{
-                        color: value ? '#fff' : t.heading,
-                        fontWeight: '700',
-                        fontSize: 16,
-                        marginBottom: 4
-                      }}>
-                        {value ? '🛡️ Assurance activée' : '🛡️ Assurance Gearted'}
-                      </Text>
-                      <Text style={{ color: value ? '#D1FAE5' : t.muted, fontSize: 13 }}>
-                        Protection contre casse et perte
-                      </Text>
-                      <Text style={{ color: value ? '#6EE7B7' : t.muted, fontSize: 11, marginTop: 4 }}>
-                        Remboursement jusqu'à 500€
-                      </Text>
-                    </View>
-                    <View style={{
-                      backgroundColor: value ? '#047857' : '#10B981',
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 8
-                    }}>
-                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
-                        4,99 €
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              )}
-            />
-
             <Text style={{ color: t.muted, fontSize: 11, marginBottom: 16, textAlign: 'center' }}>
-              Le paiement des options sera effectué après la publication
+              Le paiement du boost sera effectué après la publication
             </Text>
 
             {/* Submit Button */}

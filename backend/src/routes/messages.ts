@@ -84,6 +84,50 @@ router.post('/conversations', async (req: Request, res: Response) => {
   }
 });
 
+// Get a single conversation by ID
+router.get('/conversations/:conversationId', async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const { conversationId } = req.params;
+
+  try {
+    // Verify user is participant in this conversation
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        participants: {
+          some: { id: req.user.userId }
+        }
+      },
+      include: {
+        participants: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            avatar: true
+          }
+        },
+        messages: {
+          orderBy: { sentAt: 'desc' },
+          take: 1
+        }
+      }
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+
+    return res.json(conversation);
+  } catch (error) {
+    console.error('[messages] Failed to fetch conversation', error);
+    return res.status(500).json({ error: 'Failed to fetch conversation' });
+  }
+});
+
 // Get all messages in a conversation
 router.get('/conversations/:conversationId/messages', async (req: Request, res: Response) => {
   if (!req.user) {
