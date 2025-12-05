@@ -11,8 +11,8 @@ import morgan from 'morgan';
 import path from 'path';
 import { Server } from 'socket.io';
 
-// BUILD VERSION: 2024-12-04-v2 - Added test-cancel endpoint
-console.log('🚀 [SERVER] Build version: 2024-12-04-v2');
+// BUILD VERSION: 2024-12-05-v3 - Fixed DATABASE_URL
+console.log('🚀 [SERVER] Build version: 2024-12-05-v3');
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
