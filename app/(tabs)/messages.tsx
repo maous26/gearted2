@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../components/ThemeProvider";
-import { UserBadge } from "../../components/UserBadge";
 import { THEMES } from "../../themes";
 
 import { useUser } from '../../components/UserProvider';
@@ -227,7 +226,14 @@ export default function MessagesScreen() {
             // Ouvrir le chat seulement si ce n'est pas une notification Hugo
             // Les notifications Hugo (isSystemMessage) ne doivent pas ouvrir de chat
             if (!conversation.isSystemMessage) {
-              router.push({ pathname: '/chat/[id]', params: { id: conversation.id } });
+              router.push({
+                pathname: '/chat/[id]',
+                params: {
+                  id: conversation.id,
+                  otherUsername: other?.username || '',
+                  otherAvatar: other?.avatar || ''
+                }
+              });
             }
           }}
           onLongPress={() => {
@@ -244,23 +250,22 @@ export default function MessagesScreen() {
           </View>
           {/* Contenu */}
           <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
-                  {other?.username || 'Utilisateur'}
-                </Text>
-                <UserBadge role={other?.role} badge={other?.badge} size="small" />
-              </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading, flex: 1 }} numberOfLines={1}>
+                {other?.username || 'Utilisateur'}
+              </Text>
               <Text style={{ fontSize: 12, color: t.muted }}>
                 {lastMsg ? formatTimestamp(lastMsg.sentAt) : ''}
               </Text>
             </View>
-            <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }} numberOfLines={1}>
-              {conversation.productTitle || ''}
-            </Text>
+            {conversation.productTitle ? (
+              <Text style={{ fontSize: 13, color: t.muted, marginBottom: 4 }} numberOfLines={1}>
+                {conversation.productTitle}
+              </Text>
+            ) : null}
             <Text
-              style={{ fontSize: 14, color: t.heading, fontWeight: '400' }}
-              numberOfLines={1}
+              style={{ fontSize: 14, color: t.muted }}
+              numberOfLines={2}
             >
               {lastMsg ? lastMsg.content : 'Nouvelle conversation'}
             </Text>

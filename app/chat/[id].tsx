@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -27,58 +27,101 @@ interface Message {
   timestamp: Date;
   isMine: boolean;
   isSystem?: boolean;
+  isRead?: boolean;
 }
 
-// Messages système de Hugo pour les différentes étapes
-const HUGO_SYSTEM_MESSAGES: Message[] = [
-  {
-    id: 'hugo-welcome',
-    text: "Bienvenue sur Gearted ! 🎯 Je suis Hugo, fondateur de la plateforme. N'hésitez pas à me contacter si vous avez des questions. Bonnes ventes !",
-    senderId: 'hugo-gearted',
-    timestamp: new Date(),
-    isMine: false,
-    isSystem: true
-  },
-  {
-    id: 'hugo-tip-1',
-    text: "💡 Conseil : Ajoutez des photos de qualité pour vendre plus vite ! Les annonces avec plusieurs photos se vendent 3x plus rapidement.",
-    senderId: 'hugo-gearted',
-    timestamp: new Date(Date.now() - 60000),
-    isMine: false,
-    isSystem: true
-  },
-  {
-    id: 'hugo-tip-2', 
-    text: "🔒 Sécurité : Utilisez toujours le système de paiement Gearted pour être protégé. Ne partagez jamais vos coordonnées bancaires en message.",
-    senderId: 'hugo-gearted',
-    timestamp: new Date(Date.now() - 120000),
-    isMine: false,
-    isSystem: true
-  }
-];
+// Structure pour afficher les messages groupés
+interface DisplayItem {
+  type: 'date' | 'message';
+  date?: string;
+  message?: Message;
+  isFirstInGroup?: boolean;
+  isLastInGroup?: boolean;
+}
 
 const HUGO_AVATAR = 'https://ui-avatars.com/api/?name=Hugo+Gearted&background=4B5D3A&color=fff&size=100';
+
+// Formater la date pour les séparateurs
+const formatDateSeparator = (date: Date): string => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+  const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+  if (messageDate.getTime() === today.getTime()) {
+    return "Aujourd'hui";
+  } else if (messageDate.getTime() === yesterday.getTime()) {
+    return "Hier";
+  } else {
+    return date.toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long'
+    });
+  }
+};
 
 export default function ChatScreen() {
   const { theme } = useTheme();
   const t = THEMES[theme];
   const params = useLocalSearchParams();
   const { user } = useUser();
-  
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
+  const [otherUser, setOtherUser] = useState<{ username: string; avatar: string } | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   const conversationId = params.id as string;
   const isHugoChat = conversationId === 'gearted-welcome' || conversationId.startsWith('hugo-');
 
-  // Récupération des infos du vendeur depuis les params (facultatif)
-  const sellerName = isHugoChat ? "Hugo de Gearted" : (params.sellerName as string) || "Vendeur";
-  const sellerAvatar = isHugoChat ? HUGO_AVATAR : (params.sellerAvatar as string) || "https://via.placeholder.com/40/4B5D3A/FFFFFF?text=U";
+  // Récupération des infos du vendeur depuis les params ou l'API
+  const sellerName = isHugoChat
+    ? "Hugo de Gearted"
+    : otherUser?.username || (params.sellerName as string) || (params.otherUsername as string) || "";
+  const sellerAvatar = isHugoChat
+    ? HUGO_AVATAR
+    : otherUser?.avatar || (params.sellerAvatar as string) || (params.otherAvatar as string) || "";
 
   // Message Hugo basé sur les params ou le message par défaut
   const hugoMessageContent = params.hugoMessage as string || "Bienvenue sur Gearted ! 🎯 Je suis Hugo, fondateur de la plateforme. N'hésitez pas à me contacter si vous avez des questions.";
+
+  // Grouper les messages par date et par expéditeur consécutif
+  const displayItems = useMemo((): DisplayItem[] => {
+    const items: DisplayItem[] = [];
+    let lastDate = '';
+    let lastSenderId = '';
+
+    messages.forEach((msg, index) => {
+      const msgDate = formatDateSeparator(msg.timestamp);
+
+      // Ajouter un séparateur de date si nouvelle journée
+      if (msgDate !== lastDate) {
+        items.push({ type: 'date', date: msgDate });
+        lastDate = msgDate;
+        lastSenderId = ''; // Reset pour nouveau groupe
+      }
+
+      // Déterminer si c'est le premier/dernier d'un groupe
+      const isFirstInGroup = msg.senderId !== lastSenderId;
+      const nextMsg = messages[index + 1];
+      const isLastInGroup = !nextMsg ||
+        nextMsg.senderId !== msg.senderId ||
+        formatDateSeparator(nextMsg.timestamp) !== msgDate;
+
+      items.push({
+        type: 'message',
+        message: msg,
+        isFirstInGroup,
+        isLastInGroup
+      });
+
+      lastSenderId = msg.senderId;
+    });
+
+    return items;
+  }, [messages]);
 
   useEffect(() => {
     // Chat spécial Hugo - messages locaux (pas d'appel API)
@@ -97,6 +140,24 @@ export default function ChatScreen() {
 
     if (!conversationId || !user?.id) return;
 
+    const fetchConversation = async () => {
+      try {
+        // Récupérer les infos de la conversation pour avoir le nom du vendeur
+        const convData = await api.get<any>(`/api/messages/conversations/${conversationId}`);
+        if (convData?.participants) {
+          const other = convData.participants.find((p: any) => p.id !== user.id);
+          if (other) {
+            setOtherUser({
+              username: other.username || other.firstName || 'Utilisateur',
+              avatar: other.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(other.username || 'U')}&background=4B5D3A&color=fff`
+            });
+          }
+        }
+      } catch (error) {
+        console.error("[chat] Failed to load conversation info", error);
+      }
+    };
+
     const fetchMessages = async () => {
       try {
         const data = await api.get<any[]>(`/api/messages/conversations/${conversationId}/messages`);
@@ -106,6 +167,7 @@ export default function ChatScreen() {
           senderId: m.senderId,
           timestamp: new Date(m.sentAt),
           isMine: m.senderId === user.id,
+          isRead: m.isRead
         }));
         setMessages(mapped);
         setTimeout(() => {
@@ -118,17 +180,12 @@ export default function ChatScreen() {
 
     const markNotificationsAsRead = async () => {
       try {
-        // Get all notifications for this conversation
         const { notifications } = await notificationService.getNotifications();
-        
-        // Find MESSAGE notifications related to this conversation
         const conversationNotifications = notifications.filter(
-          (n) => n.type === 'MESSAGE' && 
+          (n) => n.type === 'MESSAGE' &&
                  n.data?.conversationId === conversationId &&
                  !n.isRead
         );
-
-        // Mark each as read
         for (const notification of conversationNotifications) {
           await notificationService.markAsRead(notification.id);
         }
@@ -137,6 +194,7 @@ export default function ChatScreen() {
       }
     };
 
+    fetchConversation();
     fetchMessages();
     markNotificationsAsRead();
   }, [conversationId, user?.id, isHugoChat]);
@@ -156,8 +214,7 @@ export default function ChatScreen() {
       };
       setMessages(prev => [...prev, userMsg]);
       setInputText("");
-      
-      // Réponse automatique de Hugo après 1 seconde
+
       setTimeout(() => {
         const hugoResponse: Message = {
           id: (Date.now() + 1).toString(),
@@ -169,23 +226,18 @@ export default function ChatScreen() {
         };
         setMessages(prev => [...prev, hugoResponse]);
       }, 1000);
-      
+
       return;
     }
 
     // Filter message content for phone numbers and emails
     const filterResult = filterMessageContent(inputText);
-    
+
     if (!filterResult.isAllowed) {
       Alert.alert(
         "Message bloqué",
         getBlockedContentWarning(filterResult.violations),
-        [
-          {
-            text: "Compris",
-            style: "cancel"
-          }
-        ]
+        [{ text: "Compris", style: "cancel" }]
       );
       return;
     }
@@ -229,125 +281,165 @@ export default function ChatScreen() {
     return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   };
 
-  const MessageBubble = ({ message }: { message: Message }) => {
-    // Couleurs distinctes pour chaque type de message
+  // Composant séparateur de date
+  const DateSeparator = ({ date }: { date: string }) => (
+    <View style={{
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: 16,
+      paddingHorizontal: 16
+    }}>
+      <View style={{ flex: 1, height: 1, backgroundColor: t.border }} />
+      <Text style={{
+        paddingHorizontal: 12,
+        fontSize: 12,
+        color: t.muted,
+        fontWeight: '500'
+      }}>
+        {date}
+      </Text>
+      <View style={{ flex: 1, height: 1, backgroundColor: t.border }} />
+    </View>
+  );
+
+  // Composant bulle de message optimisé pour le groupage
+  const MessageBubble = ({
+    message,
+    isFirstInGroup,
+    isLastInGroup
+  }: {
+    message: Message;
+    isFirstInGroup: boolean;
+    isLastInGroup: boolean;
+  }) => {
     const getBubbleStyle = () => {
       if (message.isMine) {
-        // Messages envoyés par moi - vert/olive (couleur de la marque)
         return {
           backgroundColor: '#4B5D3A',
           textColor: '#FFFFFF',
           timeColor: 'rgba(255,255,255,0.7)',
-          borderColor: 'transparent',
-          borderWidth: 0
         };
       } else if (message.isSystem) {
-        // Messages système de Hugo - bleu
         return {
           backgroundColor: '#3B82F6',
           textColor: '#FFFFFF',
           timeColor: 'rgba(255,255,255,0.7)',
-          borderColor: 'transparent',
-          borderWidth: 0
         };
       } else {
-        // Messages reçus - gris clair avec bordure
         return {
           backgroundColor: theme === 'night' ? '#2D2D2D' : '#F3F4F6',
           textColor: t.heading,
           timeColor: t.muted,
-          borderColor: t.border,
-          borderWidth: 1
         };
       }
     };
 
     const bubbleStyle = getBubbleStyle();
+    const showAvatar = !message.isMine && isLastInGroup;
+    const avatarPlaceholder = !message.isMine && !isLastInGroup;
 
     return (
       <View style={{
         flexDirection: message.isMine ? 'row-reverse' : 'row',
-        marginBottom: 12,
+        marginBottom: isLastInGroup ? 8 : 2,
         paddingHorizontal: 16,
         alignItems: 'flex-end'
       }}>
+        {/* Avatar ou espace réservé */}
         {!message.isMine && (
-          <View style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            marginRight: 8,
-            overflow: 'hidden',
-            backgroundColor: message.isSystem ? '#3B82F6' : t.primaryBtn
-          }}>
-            <Image
-              source={{ uri: sellerAvatar }}
-              style={{ width: '100%', height: '100%' }}
-            />
+          <View style={{ width: 32, marginRight: 8 }}>
+            {showAvatar ? (
+              <View style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                overflow: 'hidden',
+                backgroundColor: message.isSystem ? '#3B82F6' : t.primaryBtn
+              }}>
+                <Image
+                  source={{ uri: sellerAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(sellerName || 'U')}&background=4B5D3A&color=fff` }}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </View>
+            ) : avatarPlaceholder ? (
+              <View style={{ width: 32, height: 32 }} />
+            ) : null}
           </View>
         )}
-        
+
         <View style={{
-          maxWidth: '70%',
+          maxWidth: '75%',
           backgroundColor: bubbleStyle.backgroundColor,
-          borderRadius: 16,
-          padding: 12,
-          borderWidth: bubbleStyle.borderWidth,
-          borderColor: bubbleStyle.borderColor,
-          // Ajouter un coin arrondi différent selon le sens
-          borderTopLeftRadius: message.isMine ? 16 : 4,
-          borderTopRightRadius: message.isMine ? 4 : 16,
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+          // Coins arrondis dynamiques selon position dans le groupe
+          borderTopLeftRadius: message.isMine ? 18 : (isFirstInGroup ? 18 : 6),
+          borderTopRightRadius: message.isMine ? (isFirstInGroup ? 18 : 6) : 18,
+          borderBottomLeftRadius: message.isMine ? 18 : (isLastInGroup ? 18 : 6),
+          borderBottomRightRadius: message.isMine ? (isLastInGroup ? 18 : 6) : 18,
         }}>
           <Text style={{
             fontSize: 16,
             color: bubbleStyle.textColor,
-            marginBottom: 4
+            lineHeight: 22
           }}>
             {message.text}
           </Text>
-          <Text style={{
-            fontSize: 11,
-            color: bubbleStyle.timeColor,
-            textAlign: 'right'
-          }}>
-            {formatTime(message.timestamp)}
-          </Text>
-        </View>
-        
-        {/* Avatar pour mes messages */}
-        {message.isMine && (
-          <View style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            marginLeft: 8,
-            overflow: 'hidden',
-            backgroundColor: '#4B5D3A'
-          }}>
+
+          {/* Heure + indicateur de lecture (seulement sur le dernier message du groupe) */}
+          {isLastInGroup && (
             <View style={{
-              width: '100%',
-              height: '100%',
-              justifyContent: 'center',
+              flexDirection: 'row',
+              justifyContent: 'flex-end',
               alignItems: 'center',
-              backgroundColor: '#4B5D3A'
+              marginTop: 4
             }}>
-              <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>
-                {(user?.username || 'M')[0].toUpperCase()}
+              <Text style={{
+                fontSize: 11,
+                color: bubbleStyle.timeColor,
+              }}>
+                {formatTime(message.timestamp)}
               </Text>
+              {/* Indicateur de lecture pour mes messages */}
+              {message.isMine && (
+                <Text style={{
+                  fontSize: 12,
+                  color: bubbleStyle.timeColor,
+                  marginLeft: 4
+                }}>
+                  {message.isRead ? '✓✓' : '✓'}
+                </Text>
+              )}
             </View>
-          </View>
-        )}
+          )}
+        </View>
+
+        {/* Espace pour aligner mes messages */}
+        {message.isMine && <View style={{ width: 8 }} />}
       </View>
+    );
+  };
+
+  const renderItem = ({ item }: { item: DisplayItem }) => {
+    if (item.type === 'date') {
+      return <DateSeparator date={item.date!} />;
+    }
+    return (
+      <MessageBubble
+        message={item.message!}
+        isFirstInGroup={item.isFirstInGroup!}
+        isLastInGroup={item.isLastInGroup!}
+      />
     );
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }} edges={['top']}>
       <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
-      
-      {/* Header */}
+
+      {/* Header - Design épuré sans badge */}
       <View style={{
-        backgroundColor: t.navBg + 'CC',
+        backgroundColor: t.navBg,
         borderBottomWidth: 1,
         borderBottomColor: t.border,
         paddingHorizontal: 16,
@@ -357,63 +449,60 @@ export default function ChatScreen() {
       }}>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={{ marginRight: 12 }}
+          style={{ marginRight: 12, padding: 4 }}
         >
           <Text style={{ fontSize: 24, color: t.primaryBtn }}>←</Text>
         </TouchableOpacity>
 
         <View style={{
-          width: 40,
-          height: 40,
-          borderRadius: 20,
+          width: 44,
+          height: 44,
+          borderRadius: 22,
           marginRight: 12,
           overflow: 'hidden',
           backgroundColor: t.primaryBtn
         }}>
           <Image
-            source={{ uri: sellerAvatar }}
+            source={{ uri: sellerAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(sellerName || 'U')}&background=4B5D3A&color=fff` }}
             style={{ width: '100%', height: '100%' }}
           />
         </View>
 
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
-            {sellerName}
+          <Text style={{ fontSize: 17, fontWeight: '600', color: t.heading }}>
+            {sellerName || 'Conversation'}
           </Text>
-          <Text style={{ fontSize: 12, color: t.muted }}>En ligne</Text>
         </View>
 
         <TouchableOpacity style={{ padding: 8 }}>
-          <Text style={{ fontSize: 20 }}>⋮</Text>
+          <Text style={{ fontSize: 20, color: t.muted }}>⋮</Text>
         </TouchableOpacity>
       </View>
 
       {/* Messages */}
       <FlatList
         ref={flatListRef}
-        data={messages}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <MessageBubble message={item} />}
-        contentContainerStyle={{ paddingVertical: 16 }}
+        data={displayItems}
+        keyExtractor={(item) => item.type === 'date' ? `date-${item.date}` : item.message!.id}
+        renderItem={renderItem}
+        contentContainerStyle={{ paddingVertical: 8 }}
         ListHeaderComponent={() => (
           <View style={{
             marginHorizontal: 16,
-            marginBottom: 16,
-            backgroundColor: '#FFF3CD',
+            marginVertical: 12,
+            backgroundColor: theme === 'night' ? 'rgba(255, 243, 205, 0.1)' : '#FFF3CD',
             borderRadius: 12,
-            padding: 14,
+            padding: 12,
             borderWidth: 1,
-            borderColor: '#FFC107'
+            borderColor: theme === 'night' ? 'rgba(255, 193, 7, 0.3)' : '#FFC107'
           }}>
             <Text style={{
               fontSize: 13,
-              color: '#856404',
+              color: theme === 'night' ? '#FFC107' : '#856404',
               textAlign: 'center',
-              lineHeight: 18,
-              fontWeight: '500'
+              lineHeight: 18
             }}>
-              ⚠️ Ne partagez jamais votre numéro de téléphone ou email. 
-              Toutes les conversations doivent se faire via la messagerie Gearted.
+              🔒 Vos échanges sont sécurisés. Ne partagez jamais vos coordonnées personnelles.
             </Text>
           </View>
         )}
@@ -430,24 +519,25 @@ export default function ChatScreen() {
           borderTopWidth: 1,
           borderTopColor: t.border,
           paddingHorizontal: 16,
-          paddingVertical: 12,
+          paddingVertical: 10,
           flexDirection: 'row',
-          alignItems: 'center'
+          alignItems: 'flex-end'
         }}>
           <TextInput
             style={{
               flex: 1,
               backgroundColor: t.cardBg,
-              borderRadius: 20,
-              paddingHorizontal: 16,
-              paddingVertical: 10,
+              borderRadius: 24,
+              paddingHorizontal: 18,
+              paddingVertical: 12,
               fontSize: 16,
               color: t.heading,
               borderWidth: 1,
               borderColor: t.border,
-              marginRight: 8
+              marginRight: 10,
+              maxHeight: 100
             }}
-            placeholder="Votre message..."
+            placeholder="Écrire un message..."
             value={inputText}
             onChangeText={setInputText}
             placeholderTextColor={t.muted}
@@ -460,15 +550,15 @@ export default function ChatScreen() {
             onPress={sendMessage}
             style={{
               backgroundColor: inputText.trim() && !sending ? t.primaryBtn : t.border,
-              width: 40,
-              height: 40,
-              borderRadius: 20,
+              width: 44,
+              height: 44,
+              borderRadius: 22,
               justifyContent: 'center',
               alignItems: 'center'
             }}
             disabled={!inputText.trim() || sending}
           >
-            <Text style={{ fontSize: 20 }}>
+            <Text style={{ fontSize: 18, color: '#FFF' }}>
               {sending ? '⏳' : '➤'}
             </Text>
           </TouchableOpacity>
