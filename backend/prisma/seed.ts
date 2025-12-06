@@ -261,6 +261,47 @@ async function main() {
     }
   }
 
+  // ==========================================
+  // PLATFORM SETTINGS - Gearted Expert, Commissions, etc.
+  // ==========================================
+  console.log('⚙️ Creating platform settings...');
+
+  // Expert settings avec adresse Gearted par defaut
+  await (prisma as any).platformSettings.upsert({
+    where: { key: 'expert_settings' },
+    update: {},
+    create: {
+      key: 'expert_settings',
+      value: {
+        enabled: true,
+        price: 19.90,
+        address: {
+          name: 'Gearted - Service Expert',
+          street: '', // A configurer dans l'admin
+          city: '',
+          postalCode: '',
+          country: 'FR',
+          phone: '',
+          email: 'expert@gearted.com',
+        },
+      },
+    },
+  });
+
+  // Commission settings
+  await (prisma as any).platformSettings.upsert({
+    where: { key: 'commissions' },
+    update: {},
+    create: {
+      key: 'commissions',
+      value: {
+        enabled: true,
+        buyerFeePercent: 5,
+        sellerFeePercent: 5,
+      },
+    },
+  });
+
   console.log('✅ Database seeded successfully!');
 }
 

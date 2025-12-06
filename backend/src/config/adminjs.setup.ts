@@ -130,6 +130,144 @@ export async function setupAdminJS(app: Express) {
             },
           },
         },
+        // ==========================================
+        // GEARTED EXPERT - Services & Configuration
+        // ==========================================
+        {
+          resource: { model: (prisma as any).expertService, client: prisma },
+          options: {
+            navigation: {
+              name: 'Gearted Expert',
+              icon: 'Shield',
+            },
+            listProperties: ['id', 'status', 'price', 'createdAt', 'sellerTrackingNumber', 'buyerTrackingNumber'],
+            filterProperties: ['status', 'createdAt', 'verificationPassed'],
+            editProperties: ['status', 'sellerTrackingNumber', 'buyerTrackingNumber', 'verificationNotes', 'verificationPassed', 'issueDescription'],
+            showProperties: ['id', 'transactionId', 'status', 'price', 'paymentIntentId', 'sellerTrackingNumber', 'sellerShippedAt', 'receivedByGeartedAt', 'verifiedAt', 'verificationPassed', 'verificationNotes', 'buyerTrackingNumber', 'shippedToBuyerAt', 'deliveredToBuyerAt', 'issueDetected', 'issueDescription', 'createdAt'],
+            actions: {
+              // Action: Marquer comme recu par Gearted
+              markReceived: {
+                actionType: 'record',
+                icon: 'Package',
+                label: 'Marquer recu',
+                guard: 'Confirmer la reception du colis chez Gearted?',
+                handler: async (request: any, response: any, context: any) => {
+                  const { record, currentAdmin } = context;
+                  if (record.params.status !== 'IN_TRANSIT_TO_GEARTED') {
+                    return {
+                      record: record.toJSON(),
+                      notice: { message: 'Ce service n\'est pas en transit vers Gearted', type: 'error' }
+                    };
+                  }
+                  await (prisma as any).expertService.update({
+                    where: { id: record.params.id },
+                    data: { status: 'RECEIVED_BY_GEARTED', receivedByGeartedAt: new Date() }
+                  });
+                  return {
+                    record: record.toJSON(),
+                    redirectUrl: context.h.resourceUrl({ resourceId: 'ExpertService' }),
+                    notice: { message: 'Colis marque comme recu!', type: 'success' }
+                  };
+                },
+                isVisible: (context: any) => context.record?.params?.status === 'IN_TRANSIT_TO_GEARTED',
+              },
+              // Action: Generer etiquette vers acheteur
+              generateBuyerLabel: {
+                actionType: 'record',
+                icon: 'Truck',
+                label: 'Generer etiquette acheteur',
+                guard: 'Generer l\'etiquette d\'expedition vers l\'acheteur?',
+                handler: async (request: any, response: any, context: any) => {
+                  const { record } = context;
+                  if (record.params.status !== 'VERIFIED') {
+                    return {
+                      record: record.toJSON(),
+                      notice: { message: 'Le produit doit etre verifie avant expedition', type: 'error' }
+                    };
+                  }
+                  // Generer un tracking number fictif (en prod: API transporteur)
+                  const trackingNumber = `GE-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
+                  await (prisma as any).expertService.update({
+                    where: { id: record.params.id },
+                    data: {
+                      status: 'IN_TRANSIT_TO_BUYER',
+                      buyerTrackingNumber: trackingNumber,
+                      shippedToBuyerAt: new Date()
+                    }
+                  });
+                  // Mettre a jour la transaction
+                  await prisma.transaction.update({
+                    where: { id: record.params.transactionId },
+                    data: { trackingNumber }
+                  });
+                  return {
+                    record: record.toJSON(),
+                    redirectUrl: context.h.resourceUrl({ resourceId: 'ExpertService' }),
+                    notice: { message: `Etiquette generee! Tracking: ${trackingNumber}`, type: 'success' }
+                  };
+                },
+                isVisible: (context: any) => context.record?.params?.status === 'VERIFIED',
+              },
+              // Action: Marquer comme livre
+              markDelivered: {
+                actionType: 'record',
+                icon: 'Check',
+                label: 'Marquer livre',
+                guard: 'Confirmer la livraison a l\'acheteur?',
+                handler: async (request: any, response: any, context: any) => {
+                  const { record } = context;
+                  if (record.params.status !== 'IN_TRANSIT_TO_BUYER') {
+                    return {
+                      record: record.toJSON(),
+                      notice: { message: 'Le colis n\'est pas en transit vers l\'acheteur', type: 'error' }
+                    };
+                  }
+                  await (prisma as any).expertService.update({
+                    where: { id: record.params.id },
+                    data: { status: 'DELIVERED', deliveredToBuyerAt: new Date() }
+                  });
+                  return {
+                    record: record.toJSON(),
+                    redirectUrl: context.h.resourceUrl({ resourceId: 'ExpertService' }),
+                    notice: { message: 'Colis marque comme livre!', type: 'success' }
+                  };
+                },
+                isVisible: (context: any) => context.record?.params?.status === 'IN_TRANSIT_TO_BUYER',
+              },
+            },
+          },
+        },
+        {
+          resource: { model: (prisma as any).platformSettings, client: prisma },
+          options: {
+            navigation: {
+              name: 'Configuration',
+              icon: 'Settings',
+            },
+            listProperties: ['key', 'updatedAt'],
+            editProperties: ['key', 'value'],
+            showProperties: ['id', 'key', 'value', 'createdAt', 'updatedAt'],
+            properties: {
+              key: {
+                isTitle: true,
+              },
+              value: {
+                type: 'mixed',
+                description: 'Configuration JSON (adresse Gearted, prix, etc.)',
+              },
+            },
+          },
+        },
+        {
+          resource: { model: (prisma as any).advertisement, client: prisma },
+          options: {
+            navigation: {
+              name: 'Marketing',
+              icon: 'Zap',
+            },
+            listProperties: ['title', 'placement', 'isActive', 'startDate', 'endDate'],
+          },
+        },
       ],
       rootPath: '/admin',
       branding: {
