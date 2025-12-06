@@ -14,7 +14,8 @@ export const errorHandler = (
   // Skip error handling for AdminJS - let it handle its own errors
   if (req.path.startsWith('/admin')) {
     console.error('[AdminJS Error]:', err.message, err.stack);
-    return next(err);
+    // Don't call next(err) - just return and let AdminJS handle it
+    return;
   }
 
   let statusCode = err.statusCode || 500;
