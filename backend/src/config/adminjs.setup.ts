@@ -257,6 +257,61 @@ export async function setupAdminJS(app: Express) {
               },
             },
             actions: {
+              // Action: Configurer l'adresse Gearted Expert
+              configureGeartedAddress: {
+                actionType: 'record',
+                icon: 'Home',
+                label: 'Configurer Adresse Gearted',
+                guard: 'Modifier l\'adresse de réception Gearted Expert?',
+                handler: async (request: any, response: any, context: any) => {
+                  const { record, h } = context;
+                  if (record.params.key !== 'expert_settings') {
+                    return {
+                      record: record.toJSON(),
+                      notice: { message: 'Cette action est réservée aux paramètres expert', type: 'error' }
+                    };
+                  }
+
+                  // Si c'est une requête POST avec les données du formulaire
+                  if (request.method === 'post' && request.payload) {
+                    const { street, city, postalCode, country, phone, email, name } = request.payload;
+                    const currentValue = typeof record.params.value === 'string'
+                      ? JSON.parse(record.params.value)
+                      : record.params.value;
+
+                    await (prisma as any).platformSettings.update({
+                      where: { key: 'expert_settings' },
+                      data: {
+                        value: {
+                          ...currentValue,
+                          address: {
+                            name: name || currentValue.address?.name || 'Gearted - Service Expert',
+                            street: street || '',
+                            city: city || '',
+                            postalCode: postalCode || '',
+                            country: country || 'FR',
+                            phone: phone || '',
+                            email: email || 'expert@gearted.com',
+                          }
+                        }
+                      }
+                    });
+
+                    return {
+                      record: record.toJSON(),
+                      redirectUrl: h.resourceUrl({ resourceId: 'PlatformSettings' }),
+                      notice: { message: 'Adresse Gearted mise à jour avec succès!', type: 'success' }
+                    };
+                  }
+
+                  // Afficher le formulaire (page edit standard)
+                  return {
+                    record: record.toJSON(),
+                  };
+                },
+                isVisible: (context: any) => context.record?.params?.key === 'expert_settings',
+                component: false, // Utilise le formulaire d'édition standard
+              },
               // Action: Activer le boost
               enableBoost: {
                 actionType: 'record',
