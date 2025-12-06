@@ -241,7 +241,11 @@ export class WebhookController {
 
     try {
       const transaction = await prisma.transaction.findUnique({
-        where: { paymentIntentId: paymentIntent.id }
+        where: { paymentIntentId: paymentIntent.id },
+        include: {
+          product: { include: { seller: true } },
+          buyer: true
+        }
       });
 
       if (!transaction) {
@@ -261,7 +265,39 @@ export class WebhookController {
         }
       });
 
+      // Remettre le produit en vente (ACTIVE) et réinitialiser les champs de vente
+      await prisma.product.update({
+        where: { id: transaction.productId },
+        data: {
+          status: 'ACTIVE',
+          paymentCompleted: false,
+          paymentCompletedAt: null,
+          deletionScheduledAt: null,
+          soldAt: null
+        }
+      });
+
       console.log(`[Webhook] ❌ Transaction ${transaction.id} marked as FAILED`);
+      console.log(`[Webhook] 🔄 Product ${transaction.productId} back to ACTIVE (payment failed)`);
+
+      // 🔔 Notifier l'acheteur de l'échec
+      try {
+        await NotificationController.createNotification({
+          userId: transaction.buyerId,
+          title: '❌ Paiement échoué',
+          message: `Votre paiement pour "${transaction.product.title}" a échoué. Le produit est de nouveau disponible à l'achat.`,
+          type: 'PAYMENT_UPDATE',
+          data: {
+            transactionId: transaction.id,
+            productId: transaction.productId,
+            productTitle: transaction.product.title,
+            role: 'BUYER',
+            step: 'PAYMENT_FAILED'
+          }
+        });
+      } catch (notifError) {
+        console.error(`[Webhook] Failed to send buyer notification:`, notifError);
+      }
     } catch (error) {
       console.error('[Webhook] Error handling payment failure:', error);
       throw error;
@@ -276,7 +312,11 @@ export class WebhookController {
 
     try {
       const transaction = await prisma.transaction.findUnique({
-        where: { paymentIntentId: paymentIntent.id }
+        where: { paymentIntentId: paymentIntent.id },
+        include: {
+          product: { include: { seller: true } },
+          buyer: true
+        }
       });
 
       if (!transaction) {
@@ -287,11 +327,66 @@ export class WebhookController {
       await prisma.transaction.update({
         where: { id: transaction.id },
         data: {
-          status: 'CANCELLED'
+          status: 'CANCELLED',
+          metadata: {
+            ...((transaction.metadata as any) || {}),
+            cancelledAt: new Date().toISOString()
+          }
+        }
+      });
+
+      // Remettre le produit en vente (ACTIVE) et réinitialiser les champs de vente
+      await prisma.product.update({
+        where: { id: transaction.productId },
+        data: {
+          status: 'ACTIVE',
+          paymentCompleted: false,
+          paymentCompletedAt: null,
+          deletionScheduledAt: null,
+          soldAt: null
         }
       });
 
       console.log(`[Webhook] ⚠️ Transaction ${transaction.id} marked as CANCELLED`);
+      console.log(`[Webhook] 🔄 Product ${transaction.productId} back to ACTIVE (payment cancelled)`);
+
+      // 🔔 Notifier l'acheteur de l'annulation
+      try {
+        await NotificationController.createNotification({
+          userId: transaction.buyerId,
+          title: '⚠️ Paiement annulé',
+          message: `Votre paiement pour "${transaction.product.title}" a été annulé. Le produit est de nouveau disponible à l'achat.`,
+          type: 'PAYMENT_UPDATE',
+          data: {
+            transactionId: transaction.id,
+            productId: transaction.productId,
+            productTitle: transaction.product.title,
+            role: 'BUYER',
+            step: 'PAYMENT_CANCELLED'
+          }
+        });
+      } catch (notifError) {
+        console.error(`[Webhook] Failed to send buyer notification:`, notifError);
+      }
+
+      // 🔔 Notifier le vendeur de l'annulation
+      try {
+        await NotificationController.createNotification({
+          userId: transaction.product.sellerId,
+          title: '⚠️ Vente annulée',
+          message: `La vente de "${transaction.product.title}" a été annulée. Votre produit est de nouveau visible sur le marketplace.`,
+          type: 'PAYMENT_UPDATE',
+          data: {
+            transactionId: transaction.id,
+            productId: transaction.productId,
+            productTitle: transaction.product.title,
+            role: 'SELLER',
+            step: 'SALE_CANCELLED'
+          }
+        });
+      } catch (notifError) {
+        console.error(`[Webhook] Failed to send seller notification:`, notifError);
+      }
     } catch (error) {
       console.error('[Webhook] Error handling payment cancellation:', error);
       throw error;
@@ -308,7 +403,10 @@ export class WebhookController {
       // Trouver la transaction via le PaymentIntent
       const transaction = await prisma.transaction.findUnique({
         where: { paymentIntentId: charge.payment_intent as string },
-        include: { product: true }
+        include: {
+          product: { include: { seller: true } },
+          buyer: true
+        }
       });
 
       if (!transaction) {
@@ -329,16 +427,60 @@ export class WebhookController {
         }
       });
 
-      // Remettre le produit en vente (ACTIVE)
+      // Remettre le produit en vente (ACTIVE) et réinitialiser les champs de vente
       await prisma.product.update({
         where: { id: transaction.productId },
         data: {
-          status: 'ACTIVE'
+          status: 'ACTIVE',
+          paymentCompleted: false,
+          paymentCompletedAt: null,
+          deletionScheduledAt: null,
+          soldAt: null
         }
       });
 
       console.log(`[Webhook] 💰 Transaction ${transaction.id} marked as REFUNDED`);
-      console.log(`[Webhook] 🔄 Product ${transaction.productId} marked as ACTIVE again`);
+      console.log(`[Webhook] 🔄 Product ${transaction.productId} back to ACTIVE (refunded)`);
+
+      // 🔔 Notifier l'acheteur du remboursement
+      try {
+        const refundAmountEuros = (charge.amount_refunded / 100).toFixed(2);
+        await NotificationController.createNotification({
+          userId: transaction.buyerId,
+          title: '💰 Remboursement effectué',
+          message: `Vous avez été remboursé de ${refundAmountEuros}€ pour "${transaction.product.title}". Le montant sera crédité sur votre moyen de paiement sous quelques jours.`,
+          type: 'PAYMENT_UPDATE',
+          data: {
+            transactionId: transaction.id,
+            productId: transaction.productId,
+            productTitle: transaction.product.title,
+            refundAmount: refundAmountEuros,
+            role: 'BUYER',
+            step: 'REFUNDED'
+          }
+        });
+      } catch (notifError) {
+        console.error(`[Webhook] Failed to send buyer refund notification:`, notifError);
+      }
+
+      // 🔔 Notifier le vendeur du remboursement
+      try {
+        await NotificationController.createNotification({
+          userId: transaction.product.sellerId,
+          title: '💸 Vente remboursée',
+          message: `La vente de "${transaction.product.title}" a été remboursée à l'acheteur. Votre produit est de nouveau visible sur le marketplace.`,
+          type: 'PAYMENT_UPDATE',
+          data: {
+            transactionId: transaction.id,
+            productId: transaction.productId,
+            productTitle: transaction.product.title,
+            role: 'SELLER',
+            step: 'SALE_REFUNDED'
+          }
+        });
+      } catch (notifError) {
+        console.error(`[Webhook] Failed to send seller refund notification:`, notifError);
+      }
     } catch (error) {
       console.error('[Webhook] Error handling refund:', error);
       throw error;
