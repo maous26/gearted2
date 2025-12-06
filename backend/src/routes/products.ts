@@ -362,6 +362,11 @@ router.post(
       category,
       location,
       images = [],
+      // Dimensions du colis (optionnelles)
+      parcelLength,
+      parcelWidth,
+      parcelHeight,
+      parcelWeight,
     } = req.body;
 
     if (!title || !description || !condition || !category) {
@@ -398,6 +403,20 @@ router.post(
       .replace(/^-+|-+$/g, '');
     const slug = `${baseSlug}-${Date.now().toString(36)}`;
 
+    // Créer les dimensions du colis si fournies
+    let parcelDimensionsId: string | null = null;
+    if (parcelLength && parcelWidth && parcelHeight && parcelWeight) {
+      const parcelDimensions = await prisma.parcelDimensions.create({
+        data: {
+          length: Number(parcelLength),
+          width: Number(parcelWidth),
+          height: Number(parcelHeight),
+          weight: Number(parcelWeight),
+        },
+      });
+      parcelDimensionsId = parcelDimensions.id;
+    }
+
     const product = await prisma.product.create({
       data: {
         title,
@@ -413,6 +432,7 @@ router.post(
         location: location || 'Paris, 75001',
         shippingIncluded: false,
         shippingCost: null,
+        parcelDimensionsId,
       },
       include: {
         images: true,

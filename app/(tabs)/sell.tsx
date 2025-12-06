@@ -43,6 +43,11 @@ const listingSchema = z.object({
   images: z.array(z.string()).min(1, "Au moins une photo est requise").max(5, "Maximum 5 photos"),
   handDelivery: z.boolean().optional(),
   boost: z.boolean().optional(),
+  // Dimensions du colis (optionnelles - peuvent être saisies ultérieurement)
+  parcelLength: z.string().optional(),
+  parcelWidth: z.string().optional(),
+  parcelHeight: z.string().optional(),
+  parcelWeight: z.string().optional(),
 });
 
 type ListingFormData = z.infer<typeof listingSchema>;
@@ -215,7 +220,7 @@ export default function SellScreen() {
   const t = THEMES[theme];
 
   // React Hook Form setup
-  const { control, handleSubmit, formState: { errors }, setValue, reset } = useForm<ListingFormData>({
+  const { control, handleSubmit, formState: { errors }, setValue, reset, watch } = useForm<ListingFormData>({
     resolver: zodResolver(listingSchema),
     defaultValues: {
       title: "",
@@ -226,9 +231,16 @@ export default function SellScreen() {
       brand: "",
       images: [],
       handDelivery: false,
-      boost: false
+      boost: false,
+      parcelLength: "",
+      parcelWidth: "",
+      parcelHeight: "",
+      parcelWeight: ""
     }
   });
+
+  // Watch handDelivery to show/hide parcel dimensions
+  const handDeliveryEnabled = watch("handDelivery");
 
   // Update images in form when state changes
   React.useEffect(() => {
@@ -250,6 +262,11 @@ export default function SellScreen() {
         images,
         handDelivery: Boolean(data.handDelivery),
         featured: false, // Le boost sera activé après paiement
+        // Dimensions du colis (optionnelles)
+        parcelLength: data.parcelLength ? Number(data.parcelLength) : null,
+        parcelWidth: data.parcelWidth ? Number(data.parcelWidth) : null,
+        parcelHeight: data.parcelHeight ? Number(data.parcelHeight) : null,
+        parcelWeight: data.parcelWeight ? Number(data.parcelWeight) : null,
       };
       const created = await api.post<{ id: string }>("/api/products", {
         ...payload,
@@ -711,6 +728,142 @@ export default function SellScreen() {
                 <HandDeliveryToggle value={!!value} onChange={onChange} />
               )}
             />
+
+            {/* Dimensions du colis - visible uniquement si pas de remise en main propre */}
+            {!handDeliveryEnabled && (
+              <View style={{ marginTop: 8 }}>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading, marginBottom: 8 }}>
+                  Dimensions du colis (optionnel)
+                </Text>
+
+                {/* Info box explicatif */}
+                <View style={{ backgroundColor: '#3498db' + '15', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+                  <Text style={{ color: '#2980b9', fontSize: 13, lineHeight: 18 }}>
+                    📦 Si vous ne connaissez pas les dimensions maintenant, vous pourrez les saisir plus tard depuis votre profil.{'\n'}
+                    L'acheteur ne pourra finaliser son achat qu'une fois les dimensions renseignées.
+                  </Text>
+                </View>
+
+                {/* Dimensions inputs - 2 colonnes */}
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <Controller
+                      control={control}
+                      name="parcelLength"
+                      render={({ field: { onChange, value } }) => (
+                        <View>
+                          <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Longueur (cm)</Text>
+                          <TextInput
+                            style={{
+                              backgroundColor: t.cardBg,
+                              borderRadius: 8,
+                              paddingHorizontal: 12,
+                              paddingVertical: 10,
+                              borderWidth: 1,
+                              borderColor: t.border,
+                              fontSize: 16,
+                              color: t.heading,
+                            }}
+                            value={value}
+                            onChangeText={onChange}
+                            placeholder="30"
+                            placeholderTextColor={t.muted}
+                            keyboardType="numeric"
+                          />
+                        </View>
+                      )}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Controller
+                      control={control}
+                      name="parcelWidth"
+                      render={({ field: { onChange, value } }) => (
+                        <View>
+                          <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Largeur (cm)</Text>
+                          <TextInput
+                            style={{
+                              backgroundColor: t.cardBg,
+                              borderRadius: 8,
+                              paddingHorizontal: 12,
+                              paddingVertical: 10,
+                              borderWidth: 1,
+                              borderColor: t.border,
+                              fontSize: 16,
+                              color: t.heading,
+                            }}
+                            value={value}
+                            onChangeText={onChange}
+                            placeholder="20"
+                            placeholderTextColor={t.muted}
+                            keyboardType="numeric"
+                          />
+                        </View>
+                      )}
+                    />
+                  </View>
+                </View>
+
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <Controller
+                      control={control}
+                      name="parcelHeight"
+                      render={({ field: { onChange, value } }) => (
+                        <View>
+                          <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Hauteur (cm)</Text>
+                          <TextInput
+                            style={{
+                              backgroundColor: t.cardBg,
+                              borderRadius: 8,
+                              paddingHorizontal: 12,
+                              paddingVertical: 10,
+                              borderWidth: 1,
+                              borderColor: t.border,
+                              fontSize: 16,
+                              color: t.heading,
+                            }}
+                            value={value}
+                            onChangeText={onChange}
+                            placeholder="15"
+                            placeholderTextColor={t.muted}
+                            keyboardType="numeric"
+                          />
+                        </View>
+                      )}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Controller
+                      control={control}
+                      name="parcelWeight"
+                      render={({ field: { onChange, value } }) => (
+                        <View>
+                          <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Poids (kg)</Text>
+                          <TextInput
+                            style={{
+                              backgroundColor: t.cardBg,
+                              borderRadius: 8,
+                              paddingHorizontal: 12,
+                              paddingVertical: 10,
+                              borderWidth: 1,
+                              borderColor: t.border,
+                              fontSize: 16,
+                              color: t.heading,
+                            }}
+                            value={value}
+                            onChangeText={onChange}
+                            placeholder="2.5"
+                            placeholderTextColor={t.muted}
+                            keyboardType="decimal-pad"
+                          />
+                        </View>
+                      )}
+                    />
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
 
           {/* Section 4: Options Premium */}

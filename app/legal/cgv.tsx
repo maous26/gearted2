@@ -32,7 +32,7 @@ export default function CGVScreen() {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
         <Text style={{ fontSize: 12, color: t.muted, marginBottom: 20 }}>
-          Derniere mise a jour : 5 decembre 2024
+          Derniere mise a jour : 6 decembre 2024
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
@@ -111,19 +111,22 @@ export default function CGVScreen() {
         </Text>
         <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
           4.1. Le processus de livraison est organise comme suit :
-          {'\n'}- Le VENDEUR prend en charge les frais de transport (inclus dans le prix ou ajoutes)
-          {'\n'}- L'ACHETEUR genere l'etiquette d'expedition via la plateforme GEARTED
+          {'\n'}- Le VENDEUR renseigne les dimensions et le poids du colis lors de la creation de l'annonce (ou ulterieurement avant achat)
+          {'\n'}- L'ACHETEUR choisit le mode de livraison et paye les frais de transport lors de l'achat
+          {'\n'}- Le VENDEUR genere l'etiquette d'expedition via la plateforme GEARTED
           {'\n'}- Le VENDEUR emballe et depose le colis au point de collecte indique
           {'\n\n'}
           4.2. Le vendeur doit :
-          {'\n'}- Renseigner les dimensions et le poids du colis apres la vente
+          {'\n'}- Renseigner les dimensions et le poids du colis lors de la creation de l'annonce ou avant la finalisation de l'achat
+          {'\n'}- Generer l'etiquette d'expedition une fois l'achat finalise
           {'\n'}- Emballer soigneusement l'article
           {'\n'}- Deposer le colis dans les 5 jours ouvrables suivant la generation de l'etiquette
           {'\n\n'}
           4.3. L'acheteur doit :
           {'\n'}- Renseigner son adresse de livraison
-          {'\n'}- Generer l'etiquette d'expedition une fois les dimensions renseignees par le vendeur
-          {'\n'}- Communiquer les instructions de depot au vendeur si necessaire
+          {'\n'}- Choisir le mode de livraison parmi les options proposees
+          {'\n'}- Payer les frais de transport lors de l'achat
+          {'\n'}- L'achat ne peut etre finalise que si le vendeur a renseigne les dimensions du colis
           {'\n\n'}
           4.4. Modes de livraison possibles :
           {'\n'}- Point relais (Mondial Relay)
