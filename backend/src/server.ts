@@ -71,8 +71,9 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Admin console - serve static HTML page
-app.get('/admin', (_req, res) => {
+// Admin console - AdminJS will be mounted at /admin after server starts
+// Old static HTML admin is available at /admin-legacy if needed
+app.get('/admin-legacy', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
