@@ -314,8 +314,13 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// Compression middleware
-app.use(compression());
+// Compression middleware - Skip for AdminJS to avoid HTTP/2 protocol errors
+app.use((req, res, next) => {
+  if (req.path.startsWith('/admin')) {
+    return next();
+  }
+  compression()(req, res, next);
+});
 
 // Logging middleware
 if (process.env.NODE_ENV === 'development') {
