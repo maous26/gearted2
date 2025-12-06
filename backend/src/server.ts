@@ -391,21 +391,12 @@ io.on('connection', (socket) => {
   });
 });
 
-// 404 handler
-app.use(notFound);
-
-// Global error handler
-app.use(errorHandler);
-
+// AdminJS and 404/error handlers will be set up after async initialization
 // Start server
 const PORT = process.env.PORT || 3000;
 
-server.listen(Number(PORT), '0.0.0.0', async () => {
-  console.log(`🚀 Gearted API server running on port ${PORT}`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN}`);
-  console.log(`💾 Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
-
+// Async initialization function
+async function initializeServer() {
   // Initialize platform settings if they don't exist
   try {
     const { PrismaClient } = await import('@prisma/client');
@@ -456,7 +447,7 @@ server.listen(Number(PORT), '0.0.0.0', async () => {
     console.error('[Server] Error initializing platform settings:', error);
   }
 
-  // Setup AdminJS after server starts using ts-node to load TypeScript file
+  // Setup AdminJS BEFORE 404 handler
   try {
     console.log('[Server] Loading ts-node with custom config...');
     require('ts-node').register({
@@ -466,8 +457,6 @@ server.listen(Number(PORT), '0.0.0.0', async () => {
     console.log('[Server] ts-node registered successfully');
 
     console.log('[Server] Requiring adminjs.setup.ts...');
-    // In production, the file is copied to dist/config/ by build.sh
-    // In dev with nodemon, we're running from dist/ so use ./config/
     const configPath = './config/adminjs.setup.ts';
     console.log('[Server] Loading from:', configPath);
     const { setupAdminJS } = require(configPath);
@@ -482,6 +471,25 @@ server.listen(Number(PORT), '0.0.0.0', async () => {
       console.error('[Server] Error stack:', error.stack);
     }
   }
+
+  // NOW add 404 and error handlers AFTER AdminJS is mounted
+  app.use(notFound);
+  app.use(errorHandler);
+  console.log('[Server] 404 and error handlers mounted');
+
+  // Start listening
+  server.listen(Number(PORT), '0.0.0.0', () => {
+    console.log(`🚀 Gearted API server running on port ${PORT}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV}`);
+    console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN}`);
+    console.log(`💾 Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
+  });
+}
+
+// Run initialization
+initializeServer().catch(err => {
+  console.error('[Server] Failed to initialize:', err);
+  process.exit(1);
 });
 
 // Graceful shutdown
