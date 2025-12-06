@@ -215,20 +215,11 @@ router.get('/', async (req, res) => {
       | undefined;
 
     // 1) Récupérer les produits persistés en base
-    // Exclure les produits SOLD et ceux avec paiement en cours
-    const now = new Date();
+    // Exclure les produits vendus (paymentCompleted = true) et les produits non actifs
     const dbProductsRaw = await prisma.product.findMany({
       where: {
-        AND: [
-          { status: 'ACTIVE' }, // Seulement les produits actifs
-          { paymentCompleted: false }, // Pas de paiement en cours
-          {
-            OR: [
-              { deletionScheduledAt: null }, // Produits non vendus
-              { deletionScheduledAt: { gt: now } } // Produits vendus mais encore dans la période de 3 jours
-            ]
-          }
-        ]
+        status: 'ACTIVE',           // Seulement les produits actifs
+        paymentCompleted: false,    // Exclure dès que le paiement est effectué
       },
       include: {
         images: true,

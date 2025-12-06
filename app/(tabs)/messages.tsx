@@ -16,7 +16,11 @@ import { THEMES } from "../../themes";
 
 import { useUser } from '../../components/UserProvider';
 import api from '../../services/api';
-import { useMessagesStore } from '../../stores/messagesStore';
+import {
+  useMessagesStore,
+  TransactionThread,
+  getHugoMessageContent
+} from '../../stores/messagesStore';
 
 type User = {
   id: string;
@@ -56,7 +60,7 @@ const WELCOME_MESSAGE: Conversation = {
   messages: [
     {
       id: 'welcome-msg-1',
-      content: "Bienvenue sur Gearted ! 🎯 Je suis Hugo, fondateur de la plateforme. N'hésitez pas à me contacter si vous avez des questions. Bonnes ventes !",
+      content: "Bienvenue sur Gearted ! 🎯 Je suis Hugo, fondateur de la plateforme. N'hesitez pas a me contacter si vous avez des questions. Bonnes ventes !",
       sentAt: new Date().toISOString(),
       senderId: 'hugo-gearted'
     }
@@ -70,32 +74,34 @@ function formatTimestamp(dateString: string): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "À l'instant";
+  if (diffMin < 1) return "A l'instant";
   if (diffMin < 60) return `Il y a ${diffMin} min`;
   const diffH = Math.floor(diffMin / 60);
   if (diffH < 24) return `Il y a ${diffH}h`;
-  return date.toLocaleDateString();
+  return date.toLocaleDateString('fr-FR');
 }
 
 export default function MessagesScreen() {
   const { theme } = useTheme();
   const t = THEMES[theme];
   const { user } = useUser();
-  const { 
-    deletedMessageIds, 
-    loadFromStorage, 
-    markAsRead, 
+  const {
+    deletedMessageIds,
+    readMessageIds,
+    loadFromStorage,
+    markAsRead,
     deleteConversation: deleteFromStore,
-    hugoMessages,
+    deleteTransactionThread,
+    getTransactionThreads,
     cleanDuplicates
   } = useMessagesStore();
-  
+
   const [searchText, setSearchText] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([WELCOME_MESSAGE]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Charger les données du store au démarrage et nettoyer les doublons
+  // Charger les donnees du store au demarrage et nettoyer les doublons
   useEffect(() => {
     const init = async () => {
       await loadFromStorage();
@@ -104,52 +110,22 @@ export default function MessagesScreen() {
     init();
   }, []);
 
-  // Importer la fonction de génération de contenu
-  const { getHugoMessageContent } = require('../../stores/messagesStore');
-
-  // Générer les conversations Hugo pour les transactions
-  const hugoTransactionConversations: Conversation[] = hugoMessages.map((msg: any) => {
-    const content = getHugoMessageContent(msg);
-    return {
-      id: `hugo-${msg.type}-${msg.transactionId}`,
-      participants: [
-        {
-          id: 'hugo-gearted',
-          username: 'Hugo de Gearted',
-          avatar: 'https://ui-avatars.com/api/?name=Hugo+Gearted&background=3B82F6&color=fff&size=100',
-          role: 'ADMIN',
-          badge: 'admin'
-        }
-      ],
-      messages: [
-        {
-          id: `msg-${msg.type}-${msg.transactionId}`,
-          content: `${content.emoji} ${content.title}\n\n${content.content}`,
-          sentAt: msg.createdAt,
-          senderId: 'hugo-gearted'
-        }
-      ],
-      isSystemMessage: true
-    };
-  });
+  // Recuperer les threads de transaction regroupes
+  const transactionThreads = getTransactionThreads();
 
   // Fonction pour regrouper les conversations par interlocuteur
   const groupConversationsByUser = (convs: Conversation[], currentUserId: string): Conversation[] => {
     const grouped: Record<string, Conversation> = {};
 
     for (const conv of convs) {
-      // Ignorer les messages système (Hugo)
       if (conv.isSystemMessage) continue;
 
-      // Trouver l'autre participant
       const other = conv.participants?.find((u: User) => u.id !== currentUserId);
       if (!other) continue;
 
       const otherUserId = other.id;
 
-      // Si on a déjà une conversation avec cet utilisateur
       if (grouped[otherUserId]) {
-        // Comparer les dates du dernier message et garder la plus récente
         const existingLastMsg = grouped[otherUserId].messages?.[0];
         const newLastMsg = conv.messages?.[0];
 
@@ -157,17 +133,11 @@ export default function MessagesScreen() {
           const existingDate = new Date(existingLastMsg.sentAt).getTime();
           const newDate = new Date(newLastMsg.sentAt).getTime();
 
-          // Si le nouveau message est plus récent, utiliser cette conversation
           if (newDate > existingDate) {
-            // Stocker l'ID de toutes les conversations avec cet utilisateur
             const existingConvIds = (grouped[otherUserId] as any).allConversationIds || [grouped[otherUserId].id];
-            grouped[otherUserId] = {
-              ...conv,
-              // Garder tous les IDs de conversations pour le chat
-            };
+            grouped[otherUserId] = { ...conv };
             (grouped[otherUserId] as any).allConversationIds = [...existingConvIds, conv.id];
           } else {
-            // Ajouter l'ID de cette conversation à la liste
             (grouped[otherUserId] as any).allConversationIds = [
               ...((grouped[otherUserId] as any).allConversationIds || [grouped[otherUserId].id]),
               conv.id
@@ -175,7 +145,6 @@ export default function MessagesScreen() {
           }
         }
       } else {
-        // Première conversation avec cet utilisateur
         grouped[otherUserId] = conv;
         (grouped[otherUserId] as any).allConversationIds = [conv.id];
       }
@@ -186,8 +155,7 @@ export default function MessagesScreen() {
 
   useEffect(() => {
     if (!user?.id) {
-      // Même sans utilisateur, afficher le message de bienvenue (si non supprimé)
-      setConversations([WELCOME_MESSAGE, ...hugoTransactionConversations]);
+      setConversations([WELCOME_MESSAGE]);
       setLoading(false);
       return;
     }
@@ -196,33 +164,27 @@ export default function MessagesScreen() {
       .get<Conversation[]>('/api/messages/conversations')
       .then((data) => {
         const apiConversations = Array.isArray(data) ? data : [];
-        // Regrouper les conversations par interlocuteur
         const groupedConversations = groupConversationsByUser(apiConversations, user.id);
-        // Trier par date du dernier message (plus récent en premier)
         groupedConversations.sort((a, b) => {
           const dateA = a.messages?.[0]?.sentAt ? new Date(a.messages[0].sentAt).getTime() : 0;
           const dateB = b.messages?.[0]?.sentAt ? new Date(b.messages[0].sentAt).getTime() : 0;
           return dateB - dateA;
         });
-        // Ajouter le message de bienvenue de Hugo en premier, puis les notifications, puis les conversations groupées
-        setConversations([WELCOME_MESSAGE, ...hugoTransactionConversations, ...groupedConversations]);
+        setConversations([WELCOME_MESSAGE, ...groupedConversations]);
         setError('');
       })
       .catch((err) => {
         console.warn('[MessagesScreen] Failed to load conversations:', err);
         if ((err as any)?.response?.status === 401) {
-          setError("Vous devez être connecté pour voir vos messages.");
-          // Même en cas d'erreur d'auth, afficher le message de bienvenue
-          setConversations([WELCOME_MESSAGE, ...hugoTransactionConversations]);
+          setError("Vous devez etre connecte pour voir vos messages.");
         } else {
-          setError("Impossible de charger les conversations. Veuillez réessayer plus tard.");
-          setConversations([WELCOME_MESSAGE, ...hugoTransactionConversations]);
+          setError("Impossible de charger les conversations.");
         }
+        setConversations([WELCOME_MESSAGE]);
       })
       .finally(() => setLoading(false));
-  }, [user?.id, hugoMessages]);
+  }, [user?.id]);
 
-  // Supprimer une conversation (avec confirmation)
   const deleteConversation = (conversationId: string) => {
     Alert.alert(
       "Supprimer la conversation",
@@ -232,24 +194,36 @@ export default function MessagesScreen() {
         {
           text: "Supprimer",
           style: "destructive",
-          onPress: () => {
-            deleteFromStore(conversationId);
-          }
+          onPress: () => deleteFromStore(conversationId)
         }
       ]
     );
   };
 
-  // Filtrer les conversations (exclure les supprimées)
+  const deleteThread = (transactionId: string) => {
+    Alert.alert(
+      "Supprimer le fil",
+      "Voulez-vous vraiment supprimer ce fil de transaction ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: () => deleteTransactionThread(transactionId)
+        }
+      ]
+    );
+  };
+
+  // Filtrer les conversations (exclure les supprimees)
   const filteredConversations = conversations
     .filter(conv => !deletedMessageIds.includes(conv.id))
     .filter(conv => {
-      // Pour le message de bienvenue, toujours l'afficher
       if (conv.isSystemMessage) {
-        return searchText === "" || 
+        return searchText === "" ||
           conv.participants?.[0]?.username?.toLowerCase().includes(searchText.toLowerCase());
       }
-      
+
       if (!user?.id) return false;
       const other = conv.participants?.find((u: User) => u.id !== user.id);
       return (
@@ -259,58 +233,193 @@ export default function MessagesScreen() {
       );
     });
 
+  // Filtrer les threads de transaction par recherche
+  const filteredThreads = transactionThreads.filter(thread => {
+    if (searchText === "") return true;
+    const q = searchText.toLowerCase();
+    return thread.productTitle.toLowerCase().includes(q) ||
+      thread.otherPartyName.toLowerCase().includes(q);
+  });
+
+  // Card pour un fil de transaction
+  const TransactionThreadCard = ({ thread }: { thread: TransactionThread }) => {
+    const lastMessage = thread.messages[thread.messages.length - 1];
+    const lastContent = lastMessage ? getHugoMessageContent(lastMessage) : null;
+
+    return (
+      <TouchableOpacity
+        onPress={() => {
+          router.push({
+            pathname: '/transaction-thread' as any,
+            params: { transactionId: thread.transactionId }
+          });
+        }}
+        onLongPress={() => deleteThread(thread.transactionId)}
+        style={{
+          backgroundColor: t.cardBg,
+          borderRadius: 12,
+          padding: 12,
+          marginBottom: 12,
+          borderWidth: 2,
+          borderColor: thread.hasUnread ? '#3B82F6' : t.border,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {/* Avatar Hugo */}
+          <View style={{ position: 'relative', marginRight: 12 }}>
+            <Image
+              source={{ uri: 'https://ui-avatars.com/api/?name=Hugo+Gearted&background=3B82F6&color=fff&size=100' }}
+              style={{ width: 50, height: 50, borderRadius: 25 }}
+            />
+            {/* Badge non lu */}
+            {thread.hasUnread && (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: -2,
+                  right: -2,
+                  width: 14,
+                  height: 14,
+                  borderRadius: 7,
+                  backgroundColor: '#3B82F6',
+                  borderWidth: 2,
+                  borderColor: t.cardBg,
+                }}
+              />
+            )}
+          </View>
+
+          {/* Contenu */}
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+              <Text
+                style={{
+                  fontSize: 15,
+                  fontWeight: thread.hasUnread ? '700' : '600',
+                  color: t.heading,
+                  flex: 1
+                }}
+                numberOfLines={1}
+              >
+                {thread.productTitle}
+              </Text>
+              <Text style={{ fontSize: 11, color: t.muted }}>
+                {formatTimestamp(thread.lastMessageAt)}
+              </Text>
+            </View>
+
+            <Text style={{ fontSize: 12, color: t.muted, marginBottom: 4 }}>
+              {thread.forRole === 'SELLER' ? '💼 Vente a' : '🛒 Achat de'} {thread.otherPartyName}
+            </Text>
+
+            {lastContent && (
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: thread.hasUnread ? t.heading : t.muted,
+                  fontWeight: thread.hasUnread ? '500' : 'normal'
+                }}
+                numberOfLines={1}
+              >
+                {lastContent.emoji} {lastContent.title}
+              </Text>
+            )}
+
+            {/* Badge nombre de messages */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+              <View
+                style={{
+                  backgroundColor: t.primaryBtn + '20',
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: 10,
+                }}
+              >
+                <Text style={{ fontSize: 11, color: t.primaryBtn, fontWeight: '500' }}>
+                  {thread.messages.length} etape{thread.messages.length > 1 ? 's' : ''}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Chevron */}
+          <Text style={{ fontSize: 18, color: t.muted, marginLeft: 8 }}>›</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // Card pour une conversation normale
   const ConversationCard = ({ conversation }: { conversation: Conversation }) => {
-    // Pour les messages système, utiliser le premier participant
     const isSystem = conversation.isSystemMessage;
-    const other = isSystem 
-      ? conversation.participants?.[0] 
+    const other = isSystem
+      ? conversation.participants?.[0]
       : conversation.participants?.find((u: User) => u.id !== user?.id);
     const lastMsg = conversation.messages?.[0];
-    
+    const isRead = readMessageIds.includes(conversation.id);
+
     return (
-      <View style={{
-        backgroundColor: isSystem ? t.cardBg : t.cardBg,
-        borderRadius: 12,
-        padding: 12,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: isSystem ? t.primaryBtn : t.border,
-        ...(isSystem && { borderWidth: 2 })
-      }}>
-        <TouchableOpacity
-          style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}
-          onPress={async () => {
-            // Marquer comme lu
-            await markAsRead(conversation.id);
-            // Ouvrir le chat seulement si ce n'est pas une notification Hugo
-            // Les notifications Hugo (isSystemMessage) ne doivent pas ouvrir de chat
-            if (!conversation.isSystemMessage) {
-              router.push({
-                pathname: '/chat/[id]',
-                params: {
-                  id: conversation.id,
-                  otherUsername: other?.username || '',
-                  otherAvatar: other?.avatar || ''
-                }
-              });
-            }
-          }}
-          onLongPress={() => {
-            // Appui long pour supprimer
-            deleteConversation(conversation.id);
-          }}
-        >
+      <TouchableOpacity
+        onPress={async () => {
+          await markAsRead(conversation.id);
+          if (!conversation.isSystemMessage) {
+            router.push({
+              pathname: '/chat/[id]',
+              params: {
+                id: conversation.id,
+                otherUsername: other?.username || '',
+                otherAvatar: other?.avatar || ''
+              }
+            });
+          }
+        }}
+        onLongPress={() => deleteConversation(conversation.id)}
+        style={{
+          backgroundColor: t.cardBg,
+          borderRadius: 12,
+          padding: 12,
+          marginBottom: 12,
+          borderWidth: isSystem ? 2 : 1,
+          borderColor: isSystem ? t.primaryBtn : (!isRead ? '#3B82F6' : t.border),
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           {/* Avatar */}
           <View style={{ position: 'relative', marginRight: 12 }}>
             <Image
               source={{ uri: other?.avatar || 'https://via.placeholder.com/50/888/fff?text=U' }}
               style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: t.primaryBtn }}
             />
+            {/* Badge non lu */}
+            {!isRead && !isSystem && (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: -2,
+                  right: -2,
+                  width: 14,
+                  height: 14,
+                  borderRadius: 7,
+                  backgroundColor: '#3B82F6',
+                  borderWidth: 2,
+                  borderColor: t.cardBg,
+                }}
+              />
+            )}
           </View>
+
           {/* Contenu */}
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading, flex: 1 }} numberOfLines={1}>
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: !isRead ? '700' : '600',
+                  color: t.heading,
+                  flex: 1
+                }}
+                numberOfLines={1}
+              >
                 {other?.username || 'Utilisateur'}
               </Text>
               <Text style={{ fontSize: 12, color: t.muted }}>
@@ -323,21 +432,25 @@ export default function MessagesScreen() {
               </Text>
             ) : null}
             <Text
-              style={{ fontSize: 14, color: t.muted }}
+              style={{
+                fontSize: 14,
+                color: !isRead ? t.heading : t.muted,
+                fontWeight: !isRead ? '500' : 'normal'
+              }}
               numberOfLines={2}
             >
               {lastMsg ? lastMsg.content : 'Nouvelle conversation'}
             </Text>
           </View>
-          {/* Rating: TODO - backend rating */}
-        </TouchableOpacity>
-      </View>
+        </View>
+      </TouchableOpacity>
     );
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
       <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
+
       {/* Search Bar */}
       <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
         <View style={{
@@ -361,18 +474,21 @@ export default function MessagesScreen() {
           <Text style={{ fontSize: 16 }}>🔍</Text>
         </View>
       </View>
+
       {/* Hint for deletion */}
       <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
         <Text style={{ fontSize: 12, color: t.muted, textAlign: 'center' }}>
-          💡 Appui long sur une conversation pour la supprimer
+          💡 Appui long pour supprimer • Point bleu = non lu
         </Text>
       </View>
+
       {/* Error message */}
       {error ? (
         <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
           <Text style={{ color: '#DC2626', fontSize: 16 }}>{error}</Text>
         </View>
       ) : null}
+
       {/* Loading indicator */}
       {loading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -383,10 +499,32 @@ export default function MessagesScreen() {
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
         >
-          {filteredConversations.map((conversation) => (
-            <ConversationCard key={conversation.id} conversation={conversation} />
-          ))}
-          {filteredConversations.length === 0 && (
+          {/* Section: Transactions */}
+          {filteredThreads.length > 0 && (
+            <>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: t.muted, marginBottom: 12, marginTop: 8 }}>
+                📦 SUIVI DE TRANSACTIONS
+              </Text>
+              {filteredThreads.map((thread) => (
+                <TransactionThreadCard key={thread.transactionId} thread={thread} />
+              ))}
+            </>
+          )}
+
+          {/* Section: Conversations */}
+          {filteredConversations.length > 0 && (
+            <>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: t.muted, marginBottom: 12, marginTop: 16 }}>
+                💬 CONVERSATIONS
+              </Text>
+              {filteredConversations.map((conversation) => (
+                <ConversationCard key={conversation.id} conversation={conversation} />
+              ))}
+            </>
+          )}
+
+          {/* Empty state */}
+          {filteredConversations.length === 0 && filteredThreads.length === 0 && (
             <View style={{
               backgroundColor: t.cardBg,
               borderRadius: 12,
@@ -401,7 +539,7 @@ export default function MessagesScreen() {
                 Aucune conversation
               </Text>
               <Text style={{ fontSize: 14, color: t.muted, textAlign: 'center' }}>
-                Contactez un vendeur pour démarrer une discussion
+                Contactez un vendeur pour demarrer une discussion
               </Text>
             </View>
           )}

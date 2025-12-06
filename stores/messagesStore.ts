@@ -5,7 +5,7 @@ const UNREAD_MESSAGES_KEY = '@gearted_unread_messages';
 const DELETED_MESSAGES_KEY = '@gearted_deleted_messages';
 const HUGO_MESSAGES_KEY = '@gearted_hugo_transaction_messages';
 
-export type HugoMessageType = 
+export type HugoMessageType =
   | 'SALE_COMPLETED'           // Vendeur: quelqu'un a acheté
   | 'PURCHASE_COMPLETED'       // Acheteur: achat confirmé
   | 'DIMENSIONS_SET'           // Acheteur: vendeur a saisi les dimensions
@@ -17,12 +17,79 @@ export interface HugoTransactionMessage {
   id: string;
   type: HugoMessageType;
   transactionId: string;
+  productId?: string;
   productTitle: string;
   productPrice?: number;
   otherPartyName: string; // Nom de l'autre partie (acheteur ou vendeur)
   trackingNumber?: string;
   createdAt: string;
   forRole: 'BUYER' | 'SELLER';
+}
+
+// Groupe tous les messages d'une transaction ensemble
+export interface TransactionThread {
+  transactionId: string;
+  productId?: string;
+  productTitle: string;
+  otherPartyName: string;
+  forRole: 'BUYER' | 'SELLER';
+  messages: HugoTransactionMessage[];
+  lastMessageAt: string;
+  hasUnread: boolean;
+}
+
+// Regroupe les messages Hugo par transaction
+export function groupMessagesByTransaction(
+  messages: HugoTransactionMessage[],
+  readMessageIds: string[],
+  deletedMessageIds: string[]
+): TransactionThread[] {
+  const threads: Record<string, TransactionThread> = {};
+
+  for (const msg of messages) {
+    const threadId = msg.transactionId;
+    const msgId = `hugo-${msg.type}-${msg.transactionId}`;
+
+    // Ignorer les messages supprimés
+    if (deletedMessageIds.includes(msgId)) continue;
+
+    if (!threads[threadId]) {
+      threads[threadId] = {
+        transactionId: msg.transactionId,
+        productId: msg.productId,
+        productTitle: msg.productTitle,
+        otherPartyName: msg.otherPartyName,
+        forRole: msg.forRole,
+        messages: [],
+        lastMessageAt: msg.createdAt,
+        hasUnread: false,
+      };
+    }
+
+    threads[threadId].messages.push(msg);
+
+    // Vérifier si non lu
+    if (!readMessageIds.includes(msgId)) {
+      threads[threadId].hasUnread = true;
+    }
+
+    // Mettre à jour la date du dernier message
+    if (new Date(msg.createdAt) > new Date(threads[threadId].lastMessageAt)) {
+      threads[threadId].lastMessageAt = msg.createdAt;
+    }
+  }
+
+  // Trier les messages dans chaque thread par date (du plus ancien au plus récent)
+  Object.values(threads).forEach(thread => {
+    thread.messages.sort((a, b) =>
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  });
+
+  // Retourner triés par dernier message (plus récent en premier)
+  return Object.values(threads).sort((a, b) =>
+    new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+  );
 }
 
 // Génère le contenu du message Hugo selon le type
@@ -78,15 +145,18 @@ interface MessagesStore {
   deletedMessageIds: string[];
   hugoMessages: HugoTransactionMessage[];
   unreadCount: number;
-  
+
   // Actions
   loadFromStorage: () => Promise<void>;
   markAsRead: (conversationId: string) => Promise<void>;
+  markTransactionThreadAsRead: (transactionId: string) => Promise<void>;
   deleteConversation: (conversationId: string) => Promise<void>;
+  deleteTransactionThread: (transactionId: string) => Promise<void>;
   setUnreadCount: (count: number) => void;
   refreshUnreadCount: (conversationIds: string[]) => void;
   addHugoMessage: (message: HugoTransactionMessage) => Promise<void>;
   getHugoMessages: () => HugoTransactionMessage[];
+  getTransactionThreads: () => TransactionThread[];
   hasHugoMessage: (transactionId: string, type: HugoMessageType) => boolean;
   cleanDuplicates: () => Promise<number>;
   clearAllHugoMessages: () => Promise<void>;
@@ -247,6 +317,79 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
 
   getHugoMessages: () => {
     return get().hugoMessages;
+  },
+
+  getTransactionThreads: () => {
+    const { hugoMessages, readMessageIds, deletedMessageIds } = get();
+    return groupMessagesByTransaction(hugoMessages, readMessageIds, deletedMessageIds);
+  },
+
+  markTransactionThreadAsRead: async (transactionId: string) => {
+    const { hugoMessages, readMessageIds } = get();
+
+    // Trouver tous les messages de cette transaction
+    const messagesInThread = hugoMessages.filter(m => m.transactionId === transactionId);
+    const newReadIds = [...readMessageIds];
+    let markedCount = 0;
+
+    for (const msg of messagesInThread) {
+      const msgId = `hugo-${msg.type}-${msg.transactionId}`;
+      if (!newReadIds.includes(msgId)) {
+        newReadIds.push(msgId);
+        markedCount++;
+      }
+    }
+
+    if (markedCount > 0) {
+      set({ readMessageIds: newReadIds });
+      try {
+        await AsyncStorage.setItem(UNREAD_MESSAGES_KEY, JSON.stringify(newReadIds));
+      } catch (e) {
+        console.warn('Failed to save read messages', e);
+      }
+
+      // Décrémenter le compteur
+      const { unreadCount } = get();
+      set({ unreadCount: Math.max(0, unreadCount - markedCount) });
+    }
+  },
+
+  deleteTransactionThread: async (transactionId: string) => {
+    const { hugoMessages, deletedMessageIds, readMessageIds } = get();
+
+    // Trouver tous les messages de cette transaction
+    const messagesInThread = hugoMessages.filter(m => m.transactionId === transactionId);
+    const newDeletedIds = [...deletedMessageIds];
+    const newReadIds = [...readMessageIds];
+    let deletedCount = 0;
+
+    for (const msg of messagesInThread) {
+      const msgId = `hugo-${msg.type}-${msg.transactionId}`;
+      if (!newDeletedIds.includes(msgId)) {
+        newDeletedIds.push(msgId);
+        if (!newReadIds.includes(msgId)) {
+          newReadIds.push(msgId);
+          deletedCount++;
+        }
+      }
+    }
+
+    set({ deletedMessageIds: newDeletedIds, readMessageIds: newReadIds });
+
+    try {
+      await Promise.all([
+        AsyncStorage.setItem(DELETED_MESSAGES_KEY, JSON.stringify(newDeletedIds)),
+        AsyncStorage.setItem(UNREAD_MESSAGES_KEY, JSON.stringify(newReadIds))
+      ]);
+    } catch (e) {
+      console.warn('Failed to save deleted messages', e);
+    }
+
+    // Décrémenter le compteur
+    const { unreadCount } = get();
+    if (deletedCount > 0) {
+      set({ unreadCount: Math.max(0, unreadCount - deletedCount) });
+    }
   },
 
   hasHugoMessage: (transactionId: string, type: HugoMessageType) => {
