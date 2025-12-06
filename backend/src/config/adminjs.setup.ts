@@ -1,12 +1,20 @@
-import bcrypt from 'bcryptjs';
-import { Express } from 'express';
+// All imports are dynamic to avoid ESM/CJS conflicts with ts-node
+// Express type is only used for typing, not runtime
+type ExpressApp = import('express').Express;
 
-// Prisma will be imported dynamically to avoid ESM/CJS conflicts
+// These will be imported dynamically
 let prisma: any;
+let bcrypt: any;
 
-export async function setupAdminJS(app: Express) {
+export async function setupAdminJS(app: ExpressApp) {
   try {
     console.log('[AdminJS] Starting setup...');
+
+    // Import bcryptjs dynamically
+    console.log('[AdminJS] Importing bcryptjs...');
+    const bcryptModule = await import('bcryptjs');
+    bcrypt = bcryptModule.default || bcryptModule;
+    console.log('[AdminJS] bcryptjs imported');
 
     // Import Prisma dynamically to avoid ESM/CJS conflicts
     console.log('[AdminJS] Importing @prisma/client...');
