@@ -256,6 +256,156 @@ export async function setupAdminJS(app: Express) {
                 description: 'Configuration JSON (adresse Gearted, prix, etc.)',
               },
             },
+            actions: {
+              // Action: Activer le boost
+              enableBoost: {
+                actionType: 'record',
+                icon: 'Zap',
+                label: 'Activer Boost',
+                guard: 'Activer le système de boost? Les produits boostés seront mis en avant.',
+                handler: async (request: any, response: any, context: any) => {
+                  const { record } = context;
+                  if (record.params.key !== 'boost_settings') {
+                    return {
+                      record: record.toJSON(),
+                      notice: { message: 'Cette action est réservée aux paramètres boost', type: 'error' }
+                    };
+                  }
+                  const currentValue = typeof record.params.value === 'string'
+                    ? JSON.parse(record.params.value)
+                    : record.params.value;
+                  await (prisma as any).platformSettings.update({
+                    where: { key: 'boost_settings' },
+                    data: {
+                      value: { ...currentValue, enabled: true }
+                    }
+                  });
+                  return {
+                    record: record.toJSON(),
+                    redirectUrl: context.h.resourceUrl({ resourceId: 'PlatformSettings' }),
+                    notice: { message: 'Boost activé! Les produits boostés sont maintenant mis en avant.', type: 'success' }
+                  };
+                },
+                isVisible: (context: any) => {
+                  if (context.record?.params?.key !== 'boost_settings') return false;
+                  const value = typeof context.record.params.value === 'string'
+                    ? JSON.parse(context.record.params.value)
+                    : context.record.params.value;
+                  return !value?.enabled;
+                },
+              },
+              // Action: Désactiver le boost
+              disableBoost: {
+                actionType: 'record',
+                icon: 'ZapOff',
+                label: 'Désactiver Boost',
+                guard: 'Désactiver le système de boost? Les produits affichés seront aléatoires.',
+                handler: async (request: any, response: any, context: any) => {
+                  const { record } = context;
+                  if (record.params.key !== 'boost_settings') {
+                    return {
+                      record: record.toJSON(),
+                      notice: { message: 'Cette action est réservée aux paramètres boost', type: 'error' }
+                    };
+                  }
+                  const currentValue = typeof record.params.value === 'string'
+                    ? JSON.parse(record.params.value)
+                    : record.params.value;
+                  await (prisma as any).platformSettings.update({
+                    where: { key: 'boost_settings' },
+                    data: {
+                      value: { ...currentValue, enabled: false }
+                    }
+                  });
+                  return {
+                    record: record.toJSON(),
+                    redirectUrl: context.h.resourceUrl({ resourceId: 'PlatformSettings' }),
+                    notice: { message: 'Boost désactivé! Les produits aléatoires sont affichés à la une.', type: 'success' }
+                  };
+                },
+                isVisible: (context: any) => {
+                  if (context.record?.params?.key !== 'boost_settings') return false;
+                  const value = typeof context.record.params.value === 'string'
+                    ? JSON.parse(context.record.params.value)
+                    : context.record.params.value;
+                  return value?.enabled === true;
+                },
+              },
+              // Action: Afficher section Dernières annonces
+              showLatestSection: {
+                actionType: 'record',
+                icon: 'Eye',
+                label: 'Afficher Dernières Annonces',
+                guard: 'Afficher la section "Dernières annonces" sur la page d\'accueil?',
+                handler: async (request: any, response: any, context: any) => {
+                  const { record } = context;
+                  if (record.params.key !== 'boost_settings') {
+                    return {
+                      record: record.toJSON(),
+                      notice: { message: 'Cette action est réservée aux paramètres boost', type: 'error' }
+                    };
+                  }
+                  const currentValue = typeof record.params.value === 'string'
+                    ? JSON.parse(record.params.value)
+                    : record.params.value;
+                  await (prisma as any).platformSettings.update({
+                    where: { key: 'boost_settings' },
+                    data: {
+                      value: { ...currentValue, showLatestSection: true }
+                    }
+                  });
+                  return {
+                    record: record.toJSON(),
+                    redirectUrl: context.h.resourceUrl({ resourceId: 'PlatformSettings' }),
+                    notice: { message: 'Section "Dernières annonces" visible!', type: 'success' }
+                  };
+                },
+                isVisible: (context: any) => {
+                  if (context.record?.params?.key !== 'boost_settings') return false;
+                  const value = typeof context.record.params.value === 'string'
+                    ? JSON.parse(context.record.params.value)
+                    : context.record.params.value;
+                  return !value?.showLatestSection;
+                },
+              },
+              // Action: Masquer section Dernières annonces
+              hideLatestSection: {
+                actionType: 'record',
+                icon: 'EyeOff',
+                label: 'Masquer Dernières Annonces',
+                guard: 'Masquer la section "Dernières annonces"? (Recommandé quand le boost est activé)',
+                handler: async (request: any, response: any, context: any) => {
+                  const { record } = context;
+                  if (record.params.key !== 'boost_settings') {
+                    return {
+                      record: record.toJSON(),
+                      notice: { message: 'Cette action est réservée aux paramètres boost', type: 'error' }
+                    };
+                  }
+                  const currentValue = typeof record.params.value === 'string'
+                    ? JSON.parse(record.params.value)
+                    : record.params.value;
+                  await (prisma as any).platformSettings.update({
+                    where: { key: 'boost_settings' },
+                    data: {
+                      value: { ...currentValue, showLatestSection: false }
+                    }
+                  });
+                  return {
+                    record: record.toJSON(),
+                    redirectUrl: context.h.resourceUrl({ resourceId: 'PlatformSettings' }),
+                    notice: { message: 'Section "Dernières annonces" masquée!', type: 'success' }
+                  };
+                },
+                isVisible: (context: any) => {
+                  if (context.record?.params?.key !== 'boost_settings') return false;
+                  const value = typeof context.record.params.value === 'string'
+                    ? JSON.parse(context.record.params.value)
+                    : context.record.params.value;
+                  return value?.showLatestSection === true;
+                },
+              },
+            },
           },
         },
         {

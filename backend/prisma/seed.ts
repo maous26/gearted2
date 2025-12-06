@@ -302,6 +302,19 @@ async function main() {
     },
   });
 
+  // Boost settings - Désactivé par défaut (pas assez d'annonces au lancement)
+  await (prisma as any).platformSettings.upsert({
+    where: { key: 'boost_settings' },
+    update: {},
+    create: {
+      key: 'boost_settings',
+      value: {
+        enabled: false,              // Boost désactivé = produits aléatoires à la une
+        showLatestSection: false,    // Section "Dernières annonces" masquée
+      },
+    },
+  });
+
   console.log('✅ Database seeded successfully!');
 }
 

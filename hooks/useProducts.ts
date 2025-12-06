@@ -70,7 +70,7 @@ export const useCreateProduct = () => {
   });
 };
 
-// Hook pour mettre à jour un produit
+// Hook pour mettre à jour un produit (vendeur uniquement)
 export const useUpdateProduct = () => {
   const queryClient = useQueryClient();
 
@@ -80,28 +80,39 @@ export const useUpdateProduct = () => {
       data,
     }: {
       id: string;
-      data: Partial<Product>;
+      data: Partial<Product> & {
+        parcelLength?: number;
+        parcelWidth?: number;
+        parcelHeight?: number;
+        parcelWeight?: number;
+      };
     }) => {
       const response = await api.put<Product>(`/api/products/${id}`, data);
       return response;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
+      queryClient.invalidateQueries({ queryKey: ['featured-products'] });
       queryClient.invalidateQueries({ queryKey: ['product', data.id] });
     },
   });
 };
 
-// Hook pour supprimer un produit
+// Hook pour supprimer un produit (vendeur uniquement, avant achat)
 export const useDeleteProduct = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (productId: string) => {
-      await api.delete(`/api/products/${productId}`);
+      const response = await api.delete<{ success: boolean; message: string }>(`/api/products/${productId}`);
+      return response;
     },
-    onSuccess: () => {
+    onSuccess: (_data, productId) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
+      queryClient.invalidateQueries({ queryKey: ['featured-products'] });
+      queryClient.removeQueries({ queryKey: ['product', productId] });
     },
   });
 };
@@ -172,6 +183,43 @@ export const useCategoryStats = () => {
     queryFn: async () => {
       const response = await api.get<{ categories: Array<{ category: string; count: number }> }>('/api/products/stats/categories');
       return response.categories;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+// Hook pour les produits à la une (boosted ou random)
+interface FeaturedProductsResponse {
+  products: Product[];
+  boostEnabled: boolean;
+  total: number;
+}
+
+export const useFeaturedProducts = (limit: number = 6) => {
+  return useQuery({
+    queryKey: ['featured-products', limit],
+    queryFn: async () => {
+      const response = await api.get<FeaturedProductsResponse>('/api/products/featured', { limit });
+      return response;
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes - plus court car random
+  });
+};
+
+// Hook pour les paramètres publics de la plateforme
+interface PublicSettings {
+  boost: {
+    enabled: boolean;
+    showLatestSection: boolean;
+  };
+}
+
+export const usePublicSettings = () => {
+  return useQuery({
+    queryKey: ['public-settings'],
+    queryFn: async () => {
+      const response = await api.get<PublicSettings>('/api/settings/public');
+      return response;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

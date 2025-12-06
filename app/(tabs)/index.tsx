@@ -16,7 +16,7 @@ import { CompatDrawer } from "../../components/CompatDrawer";
 import LegalFooter from "../../components/LegalFooter";
 import { useTheme } from "../../components/ThemeProvider";
 import { CATEGORIES } from "../../data";
-import { useCategoryStats, useProducts } from "../../hooks/useProducts";
+import { useCategoryStats, useFeaturedProducts, useProducts, usePublicSettings } from "../../hooks/useProducts";
 import { THEMES } from "../../themes";
 
 const { width } = Dimensions.get('window');
@@ -34,21 +34,22 @@ export default function AuthenticatedHome() {
 
   const { data: productsData, isLoading: isLoadingProducts } = useProducts({ sortBy: 'recent' });
   const { data: categoryStats } = useCategoryStats();
+  const { data: featuredData, isLoading: isLoadingFeatured } = useFeaturedProducts(3);
+  const { data: publicSettings } = usePublicSettings();
 
-  // Use real products from the database for featured listings
+  // Use featured products from dedicated endpoint (boosted or random)
   const featuredListings = React.useMemo(() => {
-    if (!productsData?.products) return [];
-    // Filter featured products, otherwise take the 3 most recent
-    const featured = productsData.products.filter((p: any) => p.featured).slice(0, 3);
-    if (featured.length > 0) return featured;
-    return productsData.products.slice(0, 3);
-  }, [productsData]);
+    return featuredData?.products ?? [];
+  }, [featuredData]);
 
   // Get recent listings from the database
   const recentListings = React.useMemo(() => {
     const all = productsData?.products ?? [];
     return all.slice(0, 5);
   }, [productsData]);
+
+  // Check if "Dernières annonces" section should be shown
+  const showLatestSection = publicSettings?.boost?.showLatestSection ?? false;
 
   const popularCategories = React.useMemo(() => {
     if (!categoryStats || categoryStats.length === 0) return CATEGORIES.slice(0, 6);
@@ -139,7 +140,7 @@ export default function AuthenticatedHome() {
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={{ flexDirection: 'row' }}>
-              {isLoadingProducts ? (
+              {isLoadingFeatured ? (
                 // Loading skeleton
                 [1, 2, 3].map((idx) => (
                   <View
@@ -319,125 +320,127 @@ export default function AuthenticatedHome() {
           </View>
         </View>
 
-        {/* Recent Listings */}
-        <View style={{ paddingHorizontal: 16, paddingBottom: 32 }}>
-          <Text style={{
-            fontSize: 18,
-            fontWeight: '700',
-            color: t.heading,
-            marginBottom: 16,
-            fontFamily: 'Oswald-Bold',
-            letterSpacing: 0.5,
-            textTransform: 'uppercase'
-          }}>
-            DERNIÈRES ANNONCES
-          </Text>
-
-          {isLoadingProducts ? (
-            <View style={{
-              backgroundColor: t.cardBg,
-              borderRadius: 12,
-              padding: 16,
-              borderWidth: 1,
-              borderColor: t.border
+        {/* Recent Listings - Only shown if enabled in admin settings */}
+        {showLatestSection && (
+          <View style={{ paddingHorizontal: 16, paddingBottom: 32 }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: '700',
+              color: t.heading,
+              marginBottom: 16,
+              fontFamily: 'Oswald-Bold',
+              letterSpacing: 0.5,
+              textTransform: 'uppercase'
             }}>
-              <Text style={{ fontSize: 16, color: t.muted, textAlign: 'center' }}>
-                Chargement...
-              </Text>
-            </View>
-          ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={{ flexDirection: 'row' }}>
-                {recentListings.map((product, index) => (
-                  <Pressable
-                    key={`${product.id}-${index}`}
-                    style={{
-                      width: 180,
-                      backgroundColor: t.cardBg,
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: t.border,
-                      overflow: 'hidden',
-                      marginRight: index < 4 ? 12 : 0
-                    }}
-                    onPress={() => {
-                      // ...existing code...
-                      router.push(`/product/${product.id}` as any);
-                    }}
-                  >
-                    <View style={{ backgroundColor: '#f5f5f5' }}>
-                      <Image
-                        source={{ uri: product.images[0] }}
-                        style={{ width: '100%', height: 140 }}
-                        contentFit="contain"
-                        cachePolicy="memory-disk"
-                      />
+              DERNIÈRES ANNONCES
+            </Text>
 
-                      {/* Badge VENDU */}
-                      {product.status === 'SOLD' && (
-                        <View style={{
-                          position: 'absolute',
-                          top: 8,
-                          right: 8,
-                          backgroundColor: '#EF4444',
-                          paddingHorizontal: 10,
-                          paddingVertical: 5,
-                          borderRadius: 8,
-                          shadowColor: '#000',
-                          shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: 0.3,
-                          shadowRadius: 4,
-                          elevation: 5
-                        }}>
-                          <Text style={{ fontSize: 11, fontWeight: '700', color: 'white', letterSpacing: 0.5 }}>
-                            VENDU
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                    <View style={{ padding: 12 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                        <Text style={{
-                          fontSize: 14,
-                          fontWeight: '600',
-                          color: t.heading,
-                          flex: 1
-                        }} numberOfLines={2}>
-                          {product.title}
-                        </Text>
-                      </View>
-                      {product.listingType && product.listingType !== 'SALE' && (
-                        <View style={{ alignSelf: 'flex-start', marginVertical: 4 }}>
+            {isLoadingProducts ? (
+              <View style={{
+                backgroundColor: t.cardBg,
+                borderRadius: 12,
+                padding: 16,
+                borderWidth: 1,
+                borderColor: t.border
+              }}>
+                <Text style={{ fontSize: 16, color: t.muted, textAlign: 'center' }}>
+                  Chargement...
+                </Text>
+              </View>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={{ flexDirection: 'row' }}>
+                  {recentListings.map((product, index) => (
+                    <Pressable
+                      key={`${product.id}-${index}`}
+                      style={{
+                        width: 180,
+                        backgroundColor: t.cardBg,
+                        borderRadius: 12,
+                        borderWidth: 1,
+                        borderColor: t.border,
+                        overflow: 'hidden',
+                        marginRight: index < 4 ? 12 : 0
+                      }}
+                      onPress={() => {
+                        // ...existing code...
+                        router.push(`/product/${product.id}` as any);
+                      }}
+                    >
+                      <View style={{ backgroundColor: '#f5f5f5' }}>
+                        <Image
+                          source={{ uri: product.images[0] }}
+                          style={{ width: '100%', height: 140 }}
+                          contentFit="contain"
+                          cachePolicy="memory-disk"
+                        />
+
+                        {/* Badge VENDU */}
+                        {product.status === 'SOLD' && (
                           <View style={{
-                            paddingHorizontal: 6,
-                            paddingVertical: 2,
-                            backgroundColor: product.listingType === 'TRADE' ? '#FF6B35' : '#4ECDC4',
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            backgroundColor: '#EF4444',
+                            paddingHorizontal: 10,
+                            paddingVertical: 5,
                             borderRadius: 8,
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 4,
+                            elevation: 5
                           }}>
-                            <Text style={{ fontSize: 8, fontWeight: 'bold', color: '#FFF', letterSpacing: 0.3 }}>
-                              {product.listingType === 'TRADE' ? '🔄 ÉCHANGE' : '💰 V/E'}
+                            <Text style={{ fontSize: 11, fontWeight: '700', color: 'white', letterSpacing: 0.5 }}>
+                              VENDU
                             </Text>
                           </View>
+                        )}
+                      </View>
+                      <View style={{ padding: 12 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                          <Text style={{
+                            fontSize: 14,
+                            fontWeight: '600',
+                            color: t.heading,
+                            flex: 1
+                          }} numberOfLines={2}>
+                            {product.title}
+                          </Text>
                         </View>
-                      )}
-                      <Text style={{
-                        fontSize: 16,
-                        fontWeight: 'bold',
-                        color: t.primaryBtn,
-                        marginBottom: 4
-                      }}>
-                        {product.listingType === 'TRADE' ? '—' : `${product.price.toFixed(2)} €`}
-                      </Text>
-                      <Text style={{ fontSize: 12, color: t.muted }}>
-                        {product.location}
-                      </Text>
-                    </View>
-                  </Pressable>
-                ))}
-              </View>
-            </ScrollView>
-          )}
-        </View>
+                        {product.listingType && product.listingType !== 'SALE' && (
+                          <View style={{ alignSelf: 'flex-start', marginVertical: 4 }}>
+                            <View style={{
+                              paddingHorizontal: 6,
+                              paddingVertical: 2,
+                              backgroundColor: product.listingType === 'TRADE' ? '#FF6B35' : '#4ECDC4',
+                              borderRadius: 8,
+                            }}>
+                              <Text style={{ fontSize: 8, fontWeight: 'bold', color: '#FFF', letterSpacing: 0.3 }}>
+                                {product.listingType === 'TRADE' ? '🔄 ÉCHANGE' : '💰 V/E'}
+                              </Text>
+                            </View>
+                          </View>
+                        )}
+                        <Text style={{
+                          fontSize: 16,
+                          fontWeight: 'bold',
+                          color: t.primaryBtn,
+                          marginBottom: 4
+                        }}>
+                          {product.listingType === 'TRADE' ? '—' : `${product.price.toFixed(2)} €`}
+                        </Text>
+                        <Text style={{ fontSize: 12, color: t.muted }}>
+                          {product.location}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        )}
 
         {/* Quick Actions */}
         <View style={{ paddingHorizontal: 16, paddingBottom: 32 }}>

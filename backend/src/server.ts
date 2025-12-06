@@ -31,6 +31,7 @@ import notificationRoutes from './routes/notifications';
 import premiumRoutes from './routes/premium';
 import productRoutes from './routes/products';
 import reviewRoutes from './routes/reviews';
+import settingsRoutes from './routes/settings';
 import searchRoutes from './routes/search';
 import shippingRoutes from './routes/shipping';
 import shippoAdminRoutes from './routes/shippoAdmin.routes';
@@ -344,6 +345,7 @@ app.use('/api/admin/shippo', shippoAdminRoutes);
 app.use('/api/mondialrelay', mondialrelayRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/premium', premiumRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Serve static files (uploads)
 app.use('/uploads', express.static('uploads'));

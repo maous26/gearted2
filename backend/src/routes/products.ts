@@ -307,6 +307,88 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Get featured products (boosted if enabled, random otherwise)
+router.get('/featured', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 6;
+
+    // Check boost settings
+    const boostSettings = await (prisma as any).platformSettings?.findUnique({
+      where: { key: 'boost_settings' }
+    });
+
+    const settings = boostSettings?.value || { enabled: false };
+    const boostEnabled = settings.enabled === true;
+
+    let featuredProducts: any[] = [];
+
+    if (boostEnabled) {
+      // Get boosted products
+      const boostedProducts = await (prisma as any).productBoost?.findMany({
+        where: {
+          status: 'ACTIVE',
+          endsAt: { gt: new Date() },
+        },
+        include: {
+          product: {
+            include: {
+              images: true,
+              category: true,
+              seller: true,
+            },
+          },
+        },
+        orderBy: { startsAt: 'desc' },
+        take: limit,
+      });
+
+      featuredProducts = (boostedProducts || []).map((boost: any) => ({
+        ...mapDbProductToListingShape(boost.product),
+        boost: {
+          id: boost.id,
+          type: boost.boostType,
+          endsAt: boost.endsAt,
+        },
+      }));
+    }
+
+    // If no boosted products or boost disabled, get random products
+    if (featuredProducts.length < limit) {
+      const remaining = limit - featuredProducts.length;
+      const boostedIds = featuredProducts.map(p => p.id);
+
+      // Get random products (excluding already boosted ones)
+      const randomProducts = await prisma.product.findMany({
+        where: {
+          status: 'ACTIVE',
+          paymentCompleted: false,
+          id: { notIn: boostedIds },
+        },
+        include: {
+          images: true,
+          category: true,
+          seller: true,
+        },
+      });
+
+      // Shuffle and take remaining
+      const shuffled = randomProducts.sort(() => Math.random() - 0.5);
+      const randomMapped = shuffled.slice(0, remaining).map(mapDbProductToListingShape);
+
+      featuredProducts = [...featuredProducts, ...randomMapped];
+    }
+
+    res.json({
+      products: featuredProducts,
+      boostEnabled,
+      total: featuredProducts.length,
+    });
+  } catch (error) {
+    console.error('[products] Failed to get featured products', error);
+    res.status(500).json({ error: 'Failed to get featured products' });
+  }
+});
+
 // Get category statistics (product count per category)
 router.get('/stats/categories', async (_req, res) => {
   const categoryCounts: Record<string, number> = {};
@@ -474,6 +556,228 @@ router.post(
   } catch (e) {
     console.error('[products] Failed to create product', e);
     return res.status(500).json({ error: 'Failed to create product' });
+  }
+});
+
+// Update product (only by seller, before purchase)
+router.put(
+  '/:id',
+  authenticate,
+  sanitizeFields('title', 'description', 'location'),
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { id } = req.params;
+      const userId = req.user.userId;
+
+      // Vérifier que le produit existe et appartient au vendeur
+      const existingProduct = await prisma.product.findUnique({
+        where: { id },
+        include: { parcelDimensions: true }
+      });
+
+      if (!existingProduct) {
+        return res.status(404).json({ error: 'Product not found' });
+      }
+
+      if (existingProduct.sellerId !== userId) {
+        return res.status(403).json({ error: 'You can only edit your own products' });
+      }
+
+      // Vérifier que le produit n'a pas été acheté
+      if (existingProduct.paymentCompleted || existingProduct.status === 'SOLD') {
+        return res.status(400).json({ error: 'Cannot edit a sold product' });
+      }
+
+      const {
+        title,
+        description,
+        price,
+        condition,
+        category,
+        location,
+        images = [],
+        parcelLength,
+        parcelWidth,
+        parcelHeight,
+        parcelWeight,
+      } = req.body;
+
+      // Préparer les données de mise à jour
+      const updateData: any = {};
+
+      if (title) updateData.title = title;
+      if (description) updateData.description = description;
+      if (location) updateData.location = location;
+      if (price !== undefined) {
+        updateData.price = typeof price === 'number' ? price : Number(price);
+      }
+      if (condition) {
+        updateData.condition = mapConditionLabelToEnum(condition);
+      }
+
+      // Mise à jour de la catégorie si fournie
+      if (category) {
+        const categoryRecord = await prisma.category.upsert({
+          where: { slug: category },
+          update: {},
+          create: { slug: category, name: category },
+        });
+        updateData.categoryId = categoryRecord.id;
+      }
+
+      // Mise à jour des dimensions du colis
+      if (parcelLength && parcelWidth && parcelHeight && parcelWeight) {
+        if (existingProduct.parcelDimensionsId) {
+          // Mettre à jour les dimensions existantes
+          await prisma.parcelDimensions.update({
+            where: { id: existingProduct.parcelDimensionsId },
+            data: {
+              length: Number(parcelLength),
+              width: Number(parcelWidth),
+              height: Number(parcelHeight),
+              weight: Number(parcelWeight),
+            },
+          });
+        } else {
+          // Créer de nouvelles dimensions
+          const parcelDimensions = await prisma.parcelDimensions.create({
+            data: {
+              length: Number(parcelLength),
+              width: Number(parcelWidth),
+              height: Number(parcelHeight),
+              weight: Number(parcelWeight),
+            },
+          });
+          updateData.parcelDimensionsId = parcelDimensions.id;
+        }
+      }
+
+      // Mettre à jour le produit
+      await prisma.product.update({
+        where: { id },
+        data: updateData,
+      });
+
+      // Mise à jour des images si fournies
+      if (images.length > 0) {
+        // Supprimer les anciennes images
+        await prisma.productImage.deleteMany({
+          where: { productId: id },
+        });
+        // Créer les nouvelles images
+        await prisma.productImage.createMany({
+          data: images.map((url: string, index: number) => ({
+            productId: id,
+            url,
+            sortOrder: index,
+            isPrimary: index === 0,
+          })),
+        });
+      }
+
+      // Recharger avec les nouvelles images
+      const productWithImages = await prisma.product.findUnique({
+        where: { id },
+        include: {
+          images: true,
+          category: true,
+          seller: true,
+        },
+      });
+
+      if (!productWithImages) {
+        return res.status(500).json({ error: 'Failed to reload product after update' });
+      }
+
+      const mapped = mapDbProductToListingShape(productWithImages);
+      return res.json(mapped);
+    } catch (e) {
+      console.error('[products] Failed to update product', e);
+      return res.status(500).json({ error: 'Failed to update product' });
+    }
+  }
+);
+
+// Delete product (only by seller, before purchase)
+router.delete('/:id', authenticate, async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    // Vérifier que le produit existe et appartient au vendeur
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+      include: { images: true, parcelDimensions: true }
+    });
+
+    if (!existingProduct) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    if (existingProduct.sellerId !== userId) {
+      return res.status(403).json({ error: 'You can only delete your own products' });
+    }
+
+    // Vérifier que le produit n'a pas été acheté
+    if (existingProduct.paymentCompleted || existingProduct.status === 'SOLD') {
+      return res.status(400).json({ error: 'Cannot delete a sold product' });
+    }
+
+    // Vérifier s'il y a une transaction en cours
+    const pendingTransaction = await prisma.transaction.findFirst({
+      where: {
+        productId: id,
+        status: { in: ['PENDING', 'PROCESSING'] }
+      }
+    });
+
+    if (pendingTransaction) {
+      return res.status(400).json({
+        error: 'Cannot delete a product with a pending transaction'
+      });
+    }
+
+    // Supprimer les favoris associés
+    await prisma.favorite.deleteMany({
+      where: { productId: id }
+    });
+
+    // Supprimer les images associées
+    await prisma.productImage.deleteMany({
+      where: { productId: id }
+    });
+
+    // Supprimer les dimensions du colis si présentes
+    if (existingProduct.parcelDimensionsId) {
+      // D'abord dissocier du produit
+      await prisma.product.update({
+        where: { id },
+        data: { parcelDimensionsId: null }
+      });
+      // Puis supprimer les dimensions
+      await prisma.parcelDimensions.delete({
+        where: { id: existingProduct.parcelDimensionsId }
+      });
+    }
+
+    // Supprimer le produit
+    await prisma.product.delete({
+      where: { id }
+    });
+
+    console.log(`[products] Product ${id} deleted by user ${userId}`);
+    return res.json({ success: true, message: 'Product deleted successfully' });
+  } catch (e) {
+    console.error('[products] Failed to delete product', e);
+    return res.status(500).json({ error: 'Failed to delete product' });
   }
 });
 

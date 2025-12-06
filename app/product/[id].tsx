@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import RatingModal from "../../components/RatingModal";
 import { useTheme } from "../../components/ThemeProvider";
 import { useUser } from "../../components/UserProvider";
-import { useProduct } from "../../hooks/useProducts";
+import { useDeleteProduct, useProduct } from "../../hooks/useProducts";
 import api from "../../services/api";
 import stripeService from "../../services/stripe";
 import { THEMES } from "../../themes";
@@ -33,6 +33,10 @@ export default function ProductDetailScreen() {
 
   // Vérifier si l'utilisateur actuel est le vendeur
   const isOwnProduct = user?.id && product?.sellerId && user.id === product.sellerId;
+  const canEditOrDelete = isOwnProduct && product?.status !== 'SOLD';
+
+  const deleteProductMutation = useDeleteProduct();
+  const [isDeleting, setIsDeleting] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [hasPurchased, setHasPurchased] = useState(false);
@@ -220,6 +224,51 @@ export default function ProductDetailScreen() {
     } finally {
       setIsProcessingPayment(false);
     }
+  };
+
+  /**
+   * Gérer la modification de l'annonce
+   */
+  const handleEditPress = () => {
+    if (!product) return;
+    router.push({
+      pathname: '/edit-product' as any,
+      params: { productId: product.id }
+    });
+  };
+
+  /**
+   * Gérer la suppression de l'annonce
+   */
+  const handleDeletePress = () => {
+    if (!product) return;
+
+    Alert.alert(
+      'Supprimer l\'annonce',
+      `Êtes-vous sûr de vouloir supprimer "${product.title}" ? Cette action est irréversible.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              await deleteProductMutation.mutateAsync(product.id);
+              Alert.alert(
+                'Annonce supprimée',
+                'Votre annonce a été supprimée avec succès.',
+                [{ text: 'OK', onPress: () => router.back() }]
+              );
+            } catch (error: any) {
+              Alert.alert('Erreur', error.message || 'Impossible de supprimer l\'annonce');
+            } finally {
+              setIsDeleting(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -549,6 +598,60 @@ export default function ProductDetailScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* Actions Bottom Bar pour le VENDEUR - Modifier/Supprimer */}
+      {!isLoading && !isError && product && canEditOrDelete && (
+        <View style={{
+          backgroundColor: t.navBg,
+          borderTopWidth: 1,
+          borderTopColor: t.border + '20',
+          paddingHorizontal: 20,
+          paddingVertical: 16,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 12
+        }}>
+          <Text style={{ fontSize: 12, color: t.muted, marginBottom: 12, textAlign: 'center' }}>
+            C'est votre annonce
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                backgroundColor: t.primaryBtn,
+                borderRadius: 14,
+                paddingVertical: 16,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onPress={handleEditPress}
+            >
+              <Text style={{ fontSize: 15, fontWeight: '700', color: t.white }}>
+                ✏️ Modifier
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                backgroundColor: '#EF4444',
+                borderRadius: 14,
+                paddingVertical: 16,
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: isDeleting ? 0.6 : 1
+              }}
+              onPress={handleDeletePress}
+              disabled={isDeleting}
+            >
+              <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFF' }}>
+                {isDeleting ? '⏳ Suppression...' : '🗑️ Supprimer'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Actions Bottom Bar - Design moderne (caché si c'est son propre produit) */}
       {!isLoading && !isError && product && !isOwnProduct && (
