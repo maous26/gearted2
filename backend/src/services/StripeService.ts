@@ -13,13 +13,17 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 const SELLER_FEE_PERCENT = 5; // 5% prélevé au vendeur
 const BUYER_FEE_PERCENT = 5;  // 5% ajouté à l'acheteur
 
-// Interface pour les options premium
+// Interface pour les options premium + livraison
 interface PremiumOptions {
   wantExpertise: boolean;
   wantInsurance: boolean;
   expertisePrice: number;
   insurancePrice: number;
   grandTotal?: number;
+  // Livraison (payée par l'acheteur)
+  shippingRateId?: string | null;
+  shippingCost?: number;
+  shippingProvider?: string | null;
 }
 
 export class StripeService {
@@ -163,9 +167,12 @@ export class StripeService {
       const insurancePriceInCents = premiumOptions?.wantInsurance ? Math.round((premiumOptions.insurancePrice || 4.99) * 100) : 0;
       const premiumOptionsTotal = expertisePriceInCents + insurancePriceInCents;
 
+      // Livraison (payée par l'acheteur, 100% reversé au transporteur via Gearted)
+      const shippingCostInCents = Math.round((premiumOptions?.shippingCost || 0) * 100);
+
       const sellerAmountInCents = productPriceInCents - sellerFeeInCents; // Ce que le vendeur reçoit
-      const totalChargeInCents = productPriceInCents + buyerFeeInCents + premiumOptionsTotal;   // Ce que l'acheteur paie (avec options)
-      const platformFeeInCents = sellerFeeInCents + buyerFeeInCents + premiumOptionsTotal;      // Commission totale Gearted (incluant options)
+      const totalChargeInCents = productPriceInCents + buyerFeeInCents + premiumOptionsTotal + shippingCostInCents;   // Ce que l'acheteur paie (produit + frais + options + livraison)
+      const platformFeeInCents = sellerFeeInCents + buyerFeeInCents + premiumOptionsTotal;      // Commission totale Gearted (sans livraison qui est reversée)
 
       // Créer le Payment Intent
       const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
@@ -186,6 +193,10 @@ export class StripeService {
           expertisePrice: (expertisePriceInCents / 100).toFixed(2),
           insurancePrice: (insurancePriceInCents / 100).toFixed(2),
           premiumOptionsTotal: (premiumOptionsTotal / 100).toFixed(2),
+          // Livraison
+          shippingRateId: premiumOptions?.shippingRateId || '',
+          shippingCost: (shippingCostInCents / 100).toFixed(2),
+          shippingProvider: premiumOptions?.shippingProvider || '',
         }
       };
 
@@ -218,11 +229,18 @@ export class StripeService {
           // Options premium - utiliser les champs existants
           hasExpert: premiumOptions?.wantExpertise || false,
           hasProtection: premiumOptions?.wantInsurance || false,
+          // Livraison
+          shippingRateId: premiumOptions?.shippingRateId || null,
+          shippingCost: shippingCostInCents / 100,
+          shippingProvider: premiumOptions?.shippingProvider || null,
           // Stocker les prix dans metadata
           metadata: {
             expertisePrice: expertisePriceInCents / 100,
             insurancePrice: insurancePriceInCents / 100,
             premiumOptionsTotal: premiumOptionsTotal / 100,
+            shippingRateId: premiumOptions?.shippingRateId || null,
+            shippingCost: shippingCostInCents / 100,
+            shippingProvider: premiumOptions?.shippingProvider || null,
           }
         }
       });
@@ -232,7 +250,7 @@ export class StripeService {
         paymentIntentId: paymentIntent.id,
         productPrice: productPrice,
         buyerFee: buyerFeeInCents / 100,
-        totalCharge: totalChargeInCents / 100,  // Ce que l'acheteur paie (avec options)
+        totalCharge: totalChargeInCents / 100,  // Ce que l'acheteur paie (produit + frais + options + livraison)
         sellerFee: sellerFeeInCents / 100,
         sellerAmount: sellerAmountInCents / 100,  // Ce que le vendeur reçoit
         platformFee: platformFeeInCents / 100,    // Commission totale Gearted (incluant options)
@@ -242,6 +260,10 @@ export class StripeService {
         expertisePrice: expertisePriceInCents / 100,
         insurancePrice: insurancePriceInCents / 100,
         premiumOptionsTotal: premiumOptionsTotal / 100,
+        // Livraison
+        shippingRateId: premiumOptions?.shippingRateId || null,
+        shippingCost: shippingCostInCents / 100,
+        shippingProvider: premiumOptions?.shippingProvider || null,
       };
     } catch (error: any) {
       console.error('[Stripe] Failed to create payment intent:', error);

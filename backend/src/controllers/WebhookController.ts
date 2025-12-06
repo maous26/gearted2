@@ -164,11 +164,20 @@ export class WebhookController {
       console.log(`[Webhook] ✅ Transaction ${transaction.id} marked as SUCCEEDED`);
 
       // 🔔 NOTIFICATION ACHETEUR : Paiement confirmé
+      // L'acheteur a déjà choisi son mode de livraison au checkout
       try {
+        // Récupérer les infos de livraison depuis metadata ou champs directs
+        const txAny = transaction as any;
+        const shippingProvider = txAny.shippingProvider || (txAny.metadata as any)?.shippingProvider || null;
+        const shippingRateId = txAny.shippingRateId || (txAny.metadata as any)?.shippingRateId || null;
+        const shippingInfo = shippingProvider
+          ? `\n\n📦 Mode de livraison : ${shippingProvider}`
+          : '';
+
         await NotificationController.createNotification({
           userId: transaction.buyerId,
           title: '✅ Achat confirmé !',
-          message: `Votre achat de "${transaction.product.title}" auprès de ${transaction.product.seller.username} a été confirmé !\n\nLe vendeur va maintenant préparer votre colis et renseigner ses dimensions. Vous serez notifié dès que vous pourrez générer l'étiquette d'expédition.`,
+          message: `Votre achat de "${transaction.product.title}" auprès de ${transaction.product.seller.username} a été confirmé !${shippingInfo}\n\nLe vendeur va maintenant préparer votre colis et générer l'étiquette d'expédition. Vous recevrez une notification avec le numéro de suivi dès que le colis sera expédié.`,
           type: 'PAYMENT_UPDATE',
           data: {
             transactionId: transaction.id,
@@ -177,7 +186,8 @@ export class WebhookController {
             amount: transaction.amount.toString(),
             role: 'BUYER',
             step: 'PURCHASE_COMPLETED',
-            sellerName: transaction.product.seller.username
+            sellerName: transaction.product.seller.username,
+            shippingProvider
           }
         });
         console.log(`[Webhook] 🔔 Notification sent to buyer ${transaction.buyerId}`);
@@ -185,12 +195,21 @@ export class WebhookController {
         console.error(`[Webhook] Failed to send buyer notification:`, notifError);
       }
 
-      // 🔔 NOTIFICATION VENDEUR : Produit vendu, renseigner dimensions
+      // 🔔 NOTIFICATION VENDEUR : Produit vendu, générer l'étiquette
+      // Le vendeur doit maintenant générer l'étiquette (les dimensions sont déjà renseignées si achat possible)
       try {
+        // Récupérer les infos de livraison depuis metadata ou champs directs
+        const txAny = transaction as any;
+        const shippingProvider = txAny.shippingProvider || (txAny.metadata as any)?.shippingProvider || null;
+        const shippingRateId = txAny.shippingRateId || (txAny.metadata as any)?.shippingRateId || null;
+        const shippingInfo = shippingProvider
+          ? `\n\n📦 Mode de livraison choisi : ${shippingProvider}`
+          : '';
+
         await NotificationController.createNotification({
           userId: transaction.product.sellerId,
           title: '🎉 Nouvelle vente !',
-          message: `Félicitations ! ${transaction.buyer.username} vient d'acheter "${transaction.product.title}" pour ${(Number(transaction.amount) / 100).toFixed(2)}€ !\n\n👉 Action requise : Rendez-vous dans "Mes ventes" pour renseigner les dimensions du colis et permettre à l'acheteur de générer l'étiquette d'expédition.`,
+          message: `Félicitations ! ${transaction.buyer.username} vient d'acheter "${transaction.product.title}" pour ${(Number(transaction.amount)).toFixed(2)}€ !${shippingInfo}\n\n👉 Action requise : Rendez-vous dans "Mes ventes" pour générer l'étiquette d'expédition et envoyer le colis.`,
           type: 'PAYMENT_UPDATE',
           data: {
             transactionId: transaction.id,
@@ -199,7 +218,9 @@ export class WebhookController {
             amount: transaction.amount.toString(),
             role: 'SELLER',
             step: 'SALE_COMPLETED',
-            buyerName: transaction.buyer.username
+            buyerName: transaction.buyer.username,
+            shippingProvider,
+            shippingRateId
           }
         });
         console.log(`[Webhook] 🔔 Notification sent to seller ${transaction.product.sellerId}`);

@@ -94,30 +94,33 @@ router.post('/products/:productId/parcel-dimensions', async (req: Request, res: 
       include: { parcelDimensions: true }
     });
 
-    // 🔔 NOTIFICATION ACHETEUR : Dimensions saisies, peut générer l'étiquette
+    // 🔔 NOTIFICATION : Dimensions mises à jour
+    // Note: Dans le nouveau flux, les dimensions doivent être renseignées AVANT l'achat
+    // Ce cas se produit si le vendeur met à jour les dimensions après la création de l'annonce
     try {
-      // Trouver la transaction liée au produit
+      // Trouver une transaction liée au produit (si achat déjà effectué)
       const transaction = await prisma.transaction.findFirst({
         where: { productId },
         include: { buyer: true, product: { include: { seller: true } } }
       });
 
       if (transaction) {
+        // Si une transaction existe, notifier l'acheteur que le vendeur peut maintenant générer l'étiquette
         await NotificationController.createNotification({
           userId: transaction.buyerId,
-          title: '📦 Colis prêt !',
-          message: `Bonne nouvelle ! ${transaction.product.seller.username} a renseigné les dimensions du colis pour "${transaction.product.title}".\n\n👉 Vous pouvez maintenant choisir votre mode de livraison et générer l'étiquette d'expédition dans "Mes achats".`,
+          title: '📦 Dimensions du colis mises à jour',
+          message: `${transaction.product.seller.username} a mis à jour les dimensions du colis pour "${transaction.product.title}".\n\nLe vendeur va maintenant pouvoir générer l'étiquette d'expédition.`,
           type: 'SHIPPING_UPDATE',
           data: {
             transactionId: transaction.id,
             productId: transaction.productId,
             productTitle: transaction.product.title,
             role: 'BUYER',
-            step: 'DIMENSIONS_SET',
+            step: 'DIMENSIONS_UPDATED',
             sellerName: transaction.product.seller.username
           }
         });
-        console.log(`[Shipping] 🔔 Notification sent to buyer ${transaction.buyerId} - dimensions set`);
+        console.log(`[Shipping] 🔔 Notification sent to buyer ${transaction.buyerId} - dimensions updated`);
       }
     } catch (notifError) {
       console.error('[Shipping] Failed to send dimension notification:', notifError);
@@ -244,6 +247,108 @@ router.get('/products/:productId/shipping-info', async (req: Request, res: Respo
     console.error('[Shipping] Error fetching shipping info:', error);
     return res.status(500).json({ 
       error: 'Erreur lors de la récupération des informations' 
+    });
+  }
+});
+
+/**
+ * Récupérer les tarifs de livraison pour un produit (AVANT ACHAT - pour le checkout)
+ * GET /api/shipping/rates/product/:productId
+ *
+ * Utilisé par l'acheteur pour choisir son mode de livraison pendant le checkout.
+ * Le vendeur doit avoir renseigné les dimensions du colis pour que ça fonctionne.
+ */
+router.get('/rates/product/:productId', async (req: Request, res: Response): Promise<any> => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const { productId } = req.params;
+
+  try {
+    // Récupérer le produit avec ses dimensions
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        parcelDimensions: true,
+        seller: true
+      }
+    });
+
+    if (!product) {
+      return res.status(404).json({ error: 'Produit non trouvé' });
+    }
+
+    // Vérifier que les dimensions sont définies
+    if (!product.parcelDimensions) {
+      return res.json({
+        success: false,
+        hasDimensions: false,
+        error: 'Le vendeur n\'a pas encore renseigné les dimensions du colis. L\'achat n\'est pas possible pour le moment.',
+        rates: []
+      });
+    }
+
+    const dimensions = product.parcelDimensions;
+    const basePrice = Math.max(5, (dimensions.weight * 3) + ((dimensions.length + dimensions.width + dimensions.height) / 100));
+
+    // Tarifs de livraison disponibles
+    const rates = [
+      {
+        rateId: 'mondial-relay-standard',
+        provider: 'Mondial Relay',
+        servicelevel: {
+          name: 'Point Relais',
+          token: 'mondial-relay-pr'
+        },
+        servicelevelName: 'Point Relais',
+        amount: (basePrice * 0.75).toFixed(2),
+        currency: 'EUR',
+        estimatedDays: 3
+      },
+      {
+        rateId: 'mondial-relay-domicile',
+        provider: 'Mondial Relay',
+        servicelevel: {
+          name: 'Domicile',
+          token: 'mondial-relay-dom'
+        },
+        servicelevelName: 'Livraison à domicile',
+        amount: (basePrice * 0.9).toFixed(2),
+        currency: 'EUR',
+        estimatedDays: 2
+      },
+      {
+        rateId: 'colissimo-standard',
+        provider: 'Colissimo',
+        servicelevel: {
+          name: 'Standard',
+          token: 'colissimo-std'
+        },
+        servicelevelName: 'Livraison standard',
+        amount: basePrice.toFixed(2),
+        currency: 'EUR',
+        estimatedDays: 2
+      }
+    ];
+
+    return res.json({
+      success: true,
+      hasDimensions: true,
+      rates,
+      dimensions: {
+        length: dimensions.length,
+        width: dimensions.width,
+        height: dimensions.height,
+        weight: dimensions.weight
+      },
+      sellerLocation: product.location || 'France'
+    });
+
+  } catch (error) {
+    console.error('[Shipping] Error getting rates for product:', error);
+    return res.status(500).json({
+      error: 'Erreur lors de la récupération des tarifs'
     });
   }
 });
@@ -562,17 +667,19 @@ router.post('/dimensions/:transactionId', async (req: Request, res: Response): P
     }
 
     // Créer une notification pour l'acheteur
+    // Note: Dans le nouveau flux, c'est le VENDEUR qui génère l'étiquette
     try {
       await prisma.notification.create({
         data: {
           userId: transaction.buyerId,
-          title: '📦 Dimensions du colis enregistrées',
-          message: `Les dimensions du colis pour "${transaction.product.title}" ont été renseignées. Vous pouvez maintenant générer votre étiquette d'expédition !`,
+          title: '📦 Dimensions du colis mises à jour',
+          message: `Les dimensions du colis pour "${transaction.product.title}" ont été mises à jour par le vendeur. Il va maintenant pouvoir générer l'étiquette d'expédition.`,
           type: 'SHIPPING_UPDATE',
           data: {
             transactionId: transaction.id,
             productId: transaction.product.id,
             productTitle: transaction.product.title,
+            step: 'DIMENSIONS_UPDATED'
           },
         },
       });

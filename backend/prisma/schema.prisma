@@ -442,6 +442,9 @@ model Transaction {
   // Shipping
   shippingAddress  Json?
   trackingNumber   String?
+  shippingRateId   String?  // ID du tarif choisi (mondial-relay-standard, etc.)
+  shippingCost     Decimal? // Coût de livraison payé par l'acheteur
+  shippingProvider String?  // Transporteur (Mondial Relay, Colissimo, etc.)
 
   // Premium services liés
   hasProtection    Boolean @default(false) // Gearted Protect

@@ -1,15 +1,25 @@
 import { PaymentSheet, useStripe } from "@stripe/stripe-react-native";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useMemo, useState } from "react";
-import { Alert, Dimensions, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Alert, Dimensions, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import RatingModal from "../../components/RatingModal";
 import { useTheme } from "../../components/ThemeProvider";
 import { useUser } from "../../components/UserProvider";
 import { useProduct } from "../../hooks/useProducts";
+import api from "../../services/api";
 import stripeService from "../../services/stripe";
 import { THEMES } from "../../themes";
+
+interface ShippingRate {
+  rateId: string;
+  provider: string;
+  servicelevelName: string;
+  amount: string;
+  currency: string;
+  estimatedDays: number;
+}
 
 const { width } = Dimensions.get('window');
 
@@ -33,8 +43,51 @@ export default function ProductDetailScreen() {
   const [wantExpertise, setWantExpertise] = useState(false);
   const [wantInsurance, setWantInsurance] = useState(false);
 
+  // Livraison
+  const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
+  const [selectedShippingRate, setSelectedShippingRate] = useState<ShippingRate | null>(null);
+  const [loadingRates, setLoadingRates] = useState(false);
+  const [hasDimensions, setHasDimensions] = useState<boolean | null>(null);
+
   const EXPERTISE_PRICE = 19.90;
   const INSURANCE_PRICE = 4.99;
+
+  // Charger les tarifs de livraison quand le modal s'ouvre
+  useEffect(() => {
+    if (showPurchaseModal && product && !product.handDelivery) {
+      loadShippingRates();
+    }
+  }, [showPurchaseModal, product]);
+
+  const loadShippingRates = async () => {
+    if (!product) return;
+    setLoadingRates(true);
+    try {
+      const response = await api.get<{ success: boolean; rates?: ShippingRate[]; error?: string; hasDimensions?: boolean }>(`/api/shipping/rates/product/${product.id}`);
+      if (response.success && response.rates) {
+        setShippingRates(response.rates);
+        setHasDimensions(true);
+        // Sélectionner le premier tarif par défaut
+        if (response.rates.length > 0) {
+          setSelectedShippingRate(response.rates[0]);
+        }
+      } else if (response.hasDimensions === false) {
+        setHasDimensions(false);
+      }
+    } catch (error: any) {
+      console.error('[Product] Failed to load shipping rates:', error);
+      if (error.message?.includes('dimensions')) {
+        setHasDimensions(false);
+      }
+    } finally {
+      setLoadingRates(false);
+    }
+  };
+
+  const shippingCost = useMemo(() => {
+    if (product?.handDelivery) return 0;
+    return selectedShippingRate ? parseFloat(selectedShippingRate.amount) : 0;
+  }, [product?.handDelivery, selectedShippingRate]);
 
   const purchaseSummary = useMemo(() => {
     if (!product) return null;
@@ -47,9 +100,10 @@ export default function ProductDetailScreen() {
       expertiseCost,
       insuranceCost,
       optionsTotal,
-      grandTotal: baseSummary.total + optionsTotal
+      shippingCost,
+      grandTotal: baseSummary.total + optionsTotal + shippingCost
     };
-  }, [product, wantExpertise, wantInsurance]);
+  }, [product, wantExpertise, wantInsurance, shippingCost]);
 
   const images = useMemo(() => {
     const arr = product?.images || [];
@@ -66,11 +120,18 @@ export default function ProductDetailScreen() {
 
   const processPayment = async () => {
     if (!product || !purchaseSummary) return;
+
+    // Vérifier que la livraison est sélectionnée si pas remise en main propre
+    if (!product.handDelivery && !selectedShippingRate) {
+      Alert.alert('Erreur', 'Veuillez sélectionner un mode de livraison');
+      return;
+    }
+
     setShowPurchaseModal(false);
     setIsProcessingPayment(true);
 
     try {
-      // 1. Créer le Payment Intent sur le backend avec les options
+      // 1. Créer le Payment Intent sur le backend avec les options et livraison
       const paymentData = await stripeService.createPaymentIntent(
         product.id,
         product.price,
@@ -80,6 +141,10 @@ export default function ProductDetailScreen() {
           wantInsurance,
           expertisePrice: wantExpertise ? EXPERTISE_PRICE : 0,
           insurancePrice: wantInsurance ? INSURANCE_PRICE : 0,
+          // Frais de livraison
+          shippingRateId: selectedShippingRate?.rateId || null,
+          shippingCost: shippingCost,
+          shippingProvider: selectedShippingRate?.provider || null,
           grandTotal: purchaseSummary.grandTotal
         }
       );
@@ -598,6 +663,108 @@ export default function ProductDetailScreen() {
                 <Text style={{ fontSize: 16, color: t.heading, fontWeight: '600' }}>{purchaseSummary.buyerFee.toFixed(2)} €</Text>
               </View>
 
+              {/* Section Livraison */}
+              {!product?.handDelivery && (
+                <>
+                  <View style={{ height: 1, backgroundColor: t.border, marginVertical: 8 }} />
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: t.heading, marginBottom: 4 }}>📦 Mode de livraison</Text>
+
+                  {loadingRates ? (
+                    <View style={{ padding: 16, alignItems: 'center' }}>
+                      <ActivityIndicator color={t.primaryBtn} />
+                      <Text style={{ color: t.muted, marginTop: 8 }}>Chargement des tarifs...</Text>
+                    </View>
+                  ) : hasDimensions === false ? (
+                    <View style={{
+                      backgroundColor: '#FFF3CD',
+                      padding: 12,
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: '#FFEEBA'
+                    }}>
+                      <Text style={{ color: '#856404', fontSize: 14, fontWeight: '600' }}>
+                        ⚠️ Dimensions non renseignées
+                      </Text>
+                      <Text style={{ color: '#856404', fontSize: 12, marginTop: 4 }}>
+                        Le vendeur n'a pas encore renseigné les dimensions du colis. L'achat sera possible une fois les dimensions saisies.
+                      </Text>
+                    </View>
+                  ) : shippingRates.length > 0 ? (
+                    shippingRates.map((rate) => (
+                      <TouchableOpacity
+                        key={rate.rateId}
+                        onPress={() => setSelectedShippingRate(rate)}
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          backgroundColor: selectedShippingRate?.rateId === rate.rateId ? t.primaryBtn + '15' : 'transparent',
+                          padding: 12,
+                          borderRadius: 10,
+                          borderWidth: 1,
+                          borderColor: selectedShippingRate?.rateId === rate.rateId ? t.primaryBtn : t.border,
+                          marginBottom: 8
+                        }}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 15, color: t.heading, fontWeight: '600' }}>
+                            {rate.provider}
+                          </Text>
+                          <Text style={{ fontSize: 12, color: t.muted, marginTop: 2 }}>
+                            {rate.servicelevelName} • {rate.estimatedDays} jour{rate.estimatedDays > 1 ? 's' : ''}
+                          </Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <Text style={{ fontSize: 15, color: t.primaryBtn, fontWeight: '700' }}>
+                            {parseFloat(rate.amount).toFixed(2)} €
+                          </Text>
+                          <View style={{
+                            width: 24, height: 24, borderRadius: 12,
+                            backgroundColor: selectedShippingRate?.rateId === rate.rateId ? t.primaryBtn : t.border,
+                            justifyContent: 'center', alignItems: 'center'
+                          }}>
+                            {selectedShippingRate?.rateId === rate.rateId && (
+                              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>✓</Text>
+                            )}
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    ))
+                  ) : (
+                    <Text style={{ color: t.muted, fontSize: 14 }}>Aucun tarif disponible</Text>
+                  )}
+
+                  {/* Afficher le coût de livraison sélectionné */}
+                  {selectedShippingRate && (
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+                      <Text style={{ fontSize: 16, color: t.muted }}>Livraison ({selectedShippingRate.provider})</Text>
+                      <Text style={{ fontSize: 16, color: t.heading, fontWeight: '600' }}>{shippingCost.toFixed(2)} €</Text>
+                    </View>
+                  )}
+                </>
+              )}
+
+              {/* Remise en main propre */}
+              {product?.handDelivery && (
+                <>
+                  <View style={{ height: 1, backgroundColor: t.border, marginVertical: 8 }} />
+                  <View style={{
+                    backgroundColor: '#D4EDDA',
+                    padding: 12,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor: '#C3E6CB'
+                  }}>
+                    <Text style={{ color: '#155724', fontSize: 14, fontWeight: '600' }}>
+                      🤝 Remise en main propre
+                    </Text>
+                    <Text style={{ color: '#155724', fontSize: 12, marginTop: 4 }}>
+                      Pas de frais de livraison. Vous devrez convenir d'un lieu de rencontre avec le vendeur.
+                    </Text>
+                  </View>
+                </>
+              )}
+
               {/* Options Premium */}
               <View style={{ height: 1, backgroundColor: t.border, marginVertical: 8 }} />
               <Text style={{ fontSize: 14, fontWeight: '700', color: t.heading, marginBottom: 4 }}>Options Premium</Text>
@@ -677,23 +844,48 @@ export default function ProductDetailScreen() {
               </View>
             </View>
 
-            <TouchableOpacity
-              style={{
-                backgroundColor: t.primaryBtn,
-                paddingVertical: 16,
-                borderRadius: 14,
-                alignItems: 'center',
-                shadowColor: t.primaryBtn,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-              }}
-              onPress={processPayment}
-            >
-              <Text style={{ fontSize: 16, fontWeight: '700', color: t.white }}>
-                Payer {purchaseSummary.grandTotal.toFixed(2)} €
-              </Text>
-            </TouchableOpacity>
+            {/* Bouton de paiement - désactivé si livraison requise mais non sélectionnée */}
+            {(() => {
+              const needsShipping = !product?.handDelivery;
+              const shippingNotReady = needsShipping && (hasDimensions === false || !selectedShippingRate);
+              const isDisabled = shippingNotReady || loadingRates;
+
+              return (
+                <>
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: isDisabled ? t.muted : t.primaryBtn,
+                      paddingVertical: 16,
+                      borderRadius: 14,
+                      alignItems: 'center',
+                      shadowColor: isDisabled ? 'transparent' : t.primaryBtn,
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: isDisabled ? 0 : 0.3,
+                      shadowRadius: 8,
+                      opacity: isDisabled ? 0.6 : 1,
+                    }}
+                    onPress={isDisabled ? undefined : processPayment}
+                    disabled={isDisabled}
+                  >
+                    <Text style={{ fontSize: 16, fontWeight: '700', color: t.white }}>
+                      {loadingRates
+                        ? 'Chargement...'
+                        : hasDimensions === false
+                          ? 'En attente des dimensions'
+                          : needsShipping && !selectedShippingRate
+                            ? 'Sélectionnez une livraison'
+                            : `Payer ${purchaseSummary.grandTotal.toFixed(2)} €`
+                      }
+                    </Text>
+                  </TouchableOpacity>
+                  {hasDimensions === false && (
+                    <Text style={{ textAlign: 'center', marginTop: 8, color: '#DC3545', fontSize: 12 }}>
+                      Le vendeur doit d'abord renseigner les dimensions du colis
+                    </Text>
+                  )}
+                </>
+              );
+            })()}
             <Text style={{ textAlign: 'center', marginTop: 12, color: t.muted, fontSize: 12 }}>
               Paiement sécurisé via Stripe
             </Text>

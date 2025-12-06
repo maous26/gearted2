@@ -19,6 +19,10 @@ export interface PremiumOptions {
   expertisePrice: number;
   insurancePrice: number;
   grandTotal: number;
+  // Livraison (payée par l'acheteur)
+  shippingRateId?: string | null;
+  shippingCost?: number;
+  shippingProvider?: string | null;
 }
 
 export interface StripePublicKeyResponse {
@@ -61,7 +65,11 @@ class StripeService {
           wantInsurance: premiumOptions.wantInsurance,
           expertisePrice: premiumOptions.expertisePrice,
           insurancePrice: premiumOptions.insurancePrice,
-          grandTotal: premiumOptions.grandTotal
+          grandTotal: premiumOptions.grandTotal,
+          // Livraison
+          shippingRateId: premiumOptions.shippingRateId,
+          shippingCost: premiumOptions.shippingCost,
+          shippingProvider: premiumOptions.shippingProvider,
         })
       });
 

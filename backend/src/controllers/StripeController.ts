@@ -172,7 +172,11 @@ export class StripeController {
         wantInsurance = false,
         expertisePrice = 0,
         insurancePrice = 0,
-        grandTotal
+        grandTotal,
+        // Livraison (payée par l'acheteur)
+        shippingRateId,
+        shippingCost = 0,
+        shippingProvider
       } = req.body;
 
       if (!productId || !amount) {
@@ -200,13 +204,17 @@ export class StripeController {
         return res.status(400).json({ error: 'This product is already sold' });
       }
 
-      // Options premium
+      // Options premium + livraison
       const premiumOptions = {
         wantExpertise,
         wantInsurance,
         expertisePrice: Number(expertisePrice) || 0,
         insurancePrice: Number(insurancePrice) || 0,
-        grandTotal: grandTotal ? Number(grandTotal) : undefined
+        grandTotal: grandTotal ? Number(grandTotal) : undefined,
+        // Livraison
+        shippingRateId: shippingRateId || null,
+        shippingCost: Number(shippingCost) || 0,
+        shippingProvider: shippingProvider || null
       };
 
       const result = await StripeService.createPaymentIntent(
