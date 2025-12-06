@@ -29,11 +29,13 @@ const BOOST_DURATIONS: Record<BoostType, number> = {
 export class BoostService {
   /**
    * Créer un PaymentIntent pour un boost
+   * @param skipBoostCheck - Ignorer la vérification de boost existant (pour nouveau produit)
    */
   static async createBoostPayment(
     userId: string,
     productId: string,
-    boostType: BoostType
+    boostType: BoostType,
+    skipBoostCheck: boolean = false
   ) {
     try {
       // Vérifier que le produit existe et appartient à l'utilisateur
@@ -41,7 +43,6 @@ export class BoostService {
         where: {
           id: productId,
           sellerId: userId,
-          status: 'ACTIVE',
         },
       });
 
@@ -49,17 +50,19 @@ export class BoostService {
         throw new Error('Produit non trouvé ou non autorisé');
       }
 
-      // Vérifier s'il y a déjà un boost actif sur ce produit
-      const existingBoost = await db.productBoost.findFirst({
-        where: {
-          productId,
-          status: 'ACTIVE',
-          endsAt: { gt: new Date() },
-        },
-      });
+      // Vérifier s'il y a déjà un boost actif sur ce produit (sauf si on skip)
+      if (!skipBoostCheck) {
+        const existingBoost = await db.productBoost.findFirst({
+          where: {
+            productId,
+            status: 'ACTIVE',
+            endsAt: { gt: new Date() },
+          },
+        });
 
-      if (existingBoost) {
-        throw new Error('Ce produit a déjà un boost actif');
+        if (existingBoost) {
+          throw new Error('Ce produit a déjà un boost actif');
+        }
       }
 
       const priceInCents = BOOST_PRICES[boostType];

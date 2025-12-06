@@ -38,7 +38,7 @@ export default function CGVScreen() {
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
           PREAMBULE
         </Text>
-        <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
+        <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
           Les presentes Conditions Generales de Vente (CGV) regissent les relations contractuelles entre :
           {'\n\n'}
           - GEARTED SAS, societe par actions simplifiee au capital de 1 000 euros, immatriculee au RCS de Paris sous le numero [A COMPLETER], dont le siege social est situe au [ADRESSE], ci-apres "GEARTED" ou "la Plateforme"
@@ -51,7 +51,7 @@ export default function CGVScreen() {
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
           ARTICLE 1 - SERVICES PROPOSES ET TARIFS
         </Text>
-        <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
+        <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
           1.1. Services gratuits :
           {'\n'}- Creation de compte
           {'\n'}- Publication d'annonces (limite : 10 annonces actives)
@@ -74,7 +74,7 @@ export default function CGVScreen() {
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
           ARTICLE 2 - PROCESSUS DE VENTE
         </Text>
-        <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
+        <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
           2.1. Le vendeur publie une annonce decrivant precisement l'article a vendre.
           {'\n\n'}
           2.2. L'acheteur interesse procede au paiement securise via la plateforme.
@@ -89,7 +89,7 @@ export default function CGVScreen() {
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
           ARTICLE 3 - PAIEMENT
         </Text>
-        <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
+        <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
           3.1. Les paiements sont traites par notre prestataire Stripe, certifie PCI-DSS niveau 1.
           {'\n\n'}
           3.2. Moyens de paiement acceptes :
@@ -109,26 +109,34 @@ export default function CGVScreen() {
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
           ARTICLE 4 - LIVRAISON
         </Text>
-        <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
-          4.1. La livraison est assuree par le vendeur, sous sa responsabilite.
+        <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
+          4.1. Le processus de livraison est organise comme suit :
+          {'\n'}- Le VENDEUR prend en charge les frais de transport (inclus dans le prix ou ajoutes)
+          {'\n'}- L'ACHETEUR genere l'etiquette d'expedition via la plateforme GEARTED
+          {'\n'}- Le VENDEUR emballe et depose le colis au point de collecte indique
           {'\n\n'}
           4.2. Le vendeur doit :
+          {'\n'}- Renseigner les dimensions et le poids du colis apres la vente
           {'\n'}- Emballer soigneusement l'article
-          {'\n'}- Utiliser un mode d'expedition avec suivi
-          {'\n'}- Fournir le numero de suivi dans les 48h suivant l'expedition
+          {'\n'}- Deposer le colis dans les 5 jours ouvrables suivant la generation de l'etiquette
           {'\n\n'}
-          4.3. Modes de livraison possibles :
-          {'\n'}- Envoi postal avec suivi
-          {'\n'}- Point relais
-          {'\n'}- Remise en main propre (aux risques des parties)
+          4.3. L'acheteur doit :
+          {'\n'}- Renseigner son adresse de livraison
+          {'\n'}- Generer l'etiquette d'expedition une fois les dimensions renseignees par le vendeur
+          {'\n'}- Communiquer les instructions de depot au vendeur si necessaire
           {'\n\n'}
-          4.4. En cas de perte ou dommage pendant le transport, l'assurance du transporteur s'applique. GEARTED n'est pas responsable des incidents de livraison.
+          4.4. Modes de livraison possibles :
+          {'\n'}- Point relais (Mondial Relay)
+          {'\n'}- Livraison a domicile
+          {'\n'}- Remise en main propre (aux risques des parties, sans frais de transport)
+          {'\n\n'}
+          4.5. En cas de perte ou dommage pendant le transport, l'assurance du transporteur s'applique. GEARTED n'est pas responsable des incidents de livraison.
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
           ARTICLE 5 - DROIT DE RETRACTATION
         </Text>
-        <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
+        <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
           5.1. Conformement a l'article L.221-18 du Code de la consommation, les transactions entre particuliers ne sont pas soumises au droit de retractation.
           {'\n\n'}
           5.2. Pour les ventes realisees par des professionnels sur la plateforme, l'acheteur dispose d'un delai de 14 jours a compter de la reception pour exercer son droit de retractation, sans avoir a justifier de motif.
@@ -141,7 +149,7 @@ export default function CGVScreen() {
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
           ARTICLE 6 - GARANTIES
         </Text>
-        <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
+        <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
           6.1. Garantie des vices caches (article 1641 du Code civil) :
           Le vendeur est tenu de la garantie des vices caches rendant l'article impropre a l'usage auquel on le destine.
           {'\n\n'}
@@ -155,7 +163,7 @@ export default function CGVScreen() {
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
           ARTICLE 7 - LITIGES ET RECLAMATIONS
         </Text>
-        <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
+        <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
           7.1. En cas de litige entre acheteur et vendeur, les parties doivent d'abord tenter de trouver une solution amiable via la messagerie GEARTED.
           {'\n\n'}
           7.2. Si aucun accord n'est trouve sous 7 jours, l'une des parties peut ouvrir un litige aupres de GEARTED.
@@ -171,7 +179,7 @@ export default function CGVScreen() {
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
           ARTICLE 8 - REMBOURSEMENTS
         </Text>
-        <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
+        <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
           8.1. En cas de remboursement valide par GEARTED :
           {'\n'}- L'acheteur est rembourse du prix de l'article et des frais de service
           {'\n'}- Les frais de livraison ne sont rembourses que si l'article n'a pas ete expedie
@@ -185,7 +193,7 @@ export default function CGVScreen() {
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
           ARTICLE 9 - RESPONSABILITE
         </Text>
-        <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
+        <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
           9.1. GEARTED agit en qualite d'intermediaire et ne peut etre tenue responsable :
           {'\n'}- De la qualite ou conformite des articles vendus
           {'\n'}- Du comportement des utilisateurs
@@ -198,7 +206,7 @@ export default function CGVScreen() {
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
           ARTICLE 10 - PROPRIETE INTELLECTUELLE
         </Text>
-        <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
+        <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
           10.1. En publiant du contenu sur GEARTED (photos, descriptions), l'utilisateur garantit qu'il dispose des droits necessaires.
           {'\n\n'}
           10.2. L'utilisateur accorde a GEARTED une licence non exclusive d'utilisation du contenu publie, aux fins de fonctionnement et promotion de la plateforme.
@@ -207,7 +215,7 @@ export default function CGVScreen() {
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
           ARTICLE 11 - DROIT APPLICABLE
         </Text>
-        <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
+        <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
           11.1. Les presentes CGV sont soumises au droit francais.
           {'\n\n'}
           11.2. En cas de litige, les tribunaux de Paris sont seuls competents, sous reserve des dispositions protectrices du Code de la consommation en faveur des consommateurs.
@@ -221,7 +229,7 @@ export default function CGVScreen() {
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
           ARTICLE 12 - CONTACT
         </Text>
-        <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 40 }}>
+        <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 40 }}>
           GEARTED SAS
           {'\n'}Email : contact@gearted.com
           {'\n'}Adresse : [A COMPLETER]

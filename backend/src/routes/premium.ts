@@ -22,7 +22,7 @@ router.post('/boost', authenticate, async (req: Request, res: Response): Promise
       return;
     }
 
-    const { productId, boostType } = req.body;
+    const { productId, boostType, isNewProduct } = req.body;
 
     if (!productId || !boostType) {
       res.status(400).json({ error: 'productId et boostType requis' });
@@ -34,7 +34,8 @@ router.post('/boost', authenticate, async (req: Request, res: Response): Promise
       return;
     }
 
-    const result = await BoostService.createBoostPayment(userId, productId, boostType);
+    // Si c'est un nouveau produit, on skip la vérification de boost existant
+    const result = await BoostService.createBoostPayment(userId, productId, boostType, !!isNewProduct);
     res.json(result);
   } catch (error: any) {
     console.error('[Premium] Boost error:', error);

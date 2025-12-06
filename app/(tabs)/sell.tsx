@@ -238,6 +238,8 @@ export default function SellScreen() {
   const onSubmit = async (data: ListingFormData) => {
     try {
       setSubmitting(true);
+      const wantsBoost = Boolean(data.boost);
+
       const payload = {
         title: data.title,
         description: data.description,
@@ -247,7 +249,7 @@ export default function SellScreen() {
         location: 'Paris, 75001',
         images,
         handDelivery: Boolean(data.handDelivery),
-        featured: Boolean(data.boost), // Boost = featured listing
+        featured: false, // Le boost sera activé après paiement
       };
       const created = await api.post<{ id: string }>("/api/products", {
         ...payload,
@@ -270,7 +272,7 @@ export default function SellScreen() {
         sellerId: user?.id || 'user-1',
         rating: 4.5,
         images,
-        featured: Boolean(data.boost),
+        featured: false,
         createdAt: new Date().toISOString(),
         handDelivery: Boolean(data.handDelivery),
       });
@@ -279,6 +281,22 @@ export default function SellScreen() {
       queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
 
+      // Si l'utilisateur veut booster, rediriger vers l'écran de paiement
+      if (wantsBoost) {
+        reset();
+        setImages([]);
+        router.replace({
+          pathname: '/boost-payment' as any,
+          params: {
+            productId: created.id,
+            productTitle: data.title,
+            boostType: 'BOOST_7D',
+          },
+        });
+        return;
+      }
+
+      // Sinon, afficher le message de succès normal
       Alert.alert(
         "Succès",
         "Votre annonce a été publiée!",
@@ -304,7 +322,7 @@ export default function SellScreen() {
       );
     } catch (e: any) {
       console.error('[Sell] Product creation failed:', e);
-      
+
       // Check for session expiration
       const errorMessage = e?.message || e?.response?.data?.error || '';
       if (errorMessage.includes('Session expired') || e?.response?.status === 401) {
@@ -753,7 +771,7 @@ export default function SellScreen() {
             />
 
             <Text style={{ color: t.muted, fontSize: 11, marginBottom: 16, textAlign: 'center' }}>
-              Le paiement du boost sera effectué après la publication
+              Le paiement du boost (4,99 €) sera demande avant la publication
             </Text>
 
             {/* Submit Button */}
