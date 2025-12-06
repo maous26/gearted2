@@ -405,6 +405,56 @@ server.listen(Number(PORT), '0.0.0.0', async () => {
   console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN}`);
   console.log(`💾 Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
 
+  // Initialize platform settings if they don't exist
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+
+    // Create boost_settings if not exists
+    const boostSettings = await (prisma as any).platformSettings.findUnique({
+      where: { key: 'boost_settings' }
+    });
+    if (!boostSettings) {
+      await (prisma as any).platformSettings.create({
+        data: {
+          key: 'boost_settings',
+          value: {
+            enabled: false,
+            showLatestSection: false,
+          }
+        }
+      });
+      console.log('[Server] ✅ Created boost_settings');
+    }
+
+    // Create expert_settings if not exists
+    const expertSettings = await (prisma as any).platformSettings.findUnique({
+      where: { key: 'expert_settings' }
+    });
+    if (!expertSettings) {
+      await (prisma as any).platformSettings.create({
+        data: {
+          key: 'expert_settings',
+          value: {
+            address: {
+              name: 'Gearted Expert',
+              street: '',
+              city: '',
+              postalCode: '',
+              country: 'FR'
+            }
+          }
+        }
+      });
+      console.log('[Server] ✅ Created expert_settings');
+    }
+
+    await prisma.$disconnect();
+    console.log('[Server] Platform settings initialized');
+  } catch (error) {
+    console.error('[Server] Error initializing platform settings:', error);
+  }
+
   // Setup AdminJS after server starts using ts-node to load TypeScript file
   try {
     console.log('[Server] Loading ts-node with custom config...');
