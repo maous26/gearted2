@@ -557,15 +557,14 @@ export async function setupAdminJS(app: ExpressApp) {
       },
       null,
       {
-        resave: false,
-        saveUninitialized: false,
+        resave: true,
+        saveUninitialized: true,
         secret: process.env.ADMIN_SESSION_SECRET || 'gearted-admin-secret-change-me-in-production-32chars!',
-        name: 'adminjs.sid',
+        name: 'adminjs',
         cookie: {
-          httpOnly: true,
-          secure: false, // Railway uses HTTPS but proxy terminates SSL
+          httpOnly: process.env.NODE_ENV === 'production',
+          secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax' as const,
-          maxAge: 1000 * 60 * 60 * 24, // 24 hours
         },
       }
     );
