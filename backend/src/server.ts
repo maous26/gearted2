@@ -233,20 +233,26 @@ app.delete('/admin-clean-db', async (req, res): Promise<any> => {
 // AdminJS setup will be done after server initialization (async)
 // Using dynamic require to avoid TypeScript compilation issues with ESM modules
 
-// Security middleware
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      connectSrc: ["'self'"],
+// Security middleware - Skip Helmet for AdminJS routes
+app.use((req, res, next) => {
+  // Disable Helmet for AdminJS routes (they need inline scripts/styles)
+  if (req.path.startsWith('/admin')) {
+    return next();
+  }
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        connectSrc: ["'self'"],
+      },
     },
-  },
-  crossOriginEmbedderPolicy: false
-}));
+    crossOriginEmbedderPolicy: false
+  })(req, res, next);
+});
 
 // CORS configuration
 const corsOptions = {
