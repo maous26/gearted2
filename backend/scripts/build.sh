@@ -21,5 +21,9 @@ echo "📁 Copying static files..."
 mkdir -p dist/public
 cp -r src/public/* dist/public/ 2>/dev/null || echo "No static files to copy"
 
+echo "📁 Copying AdminJS config (needs ts-node at runtime)..."
+mkdir -p dist/config
+cp src/config/adminjs.setup.ts dist/config/ 2>/dev/null || echo "No adminjs config to copy"
+
 echo "✅ Build completed successfully!"
 

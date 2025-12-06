@@ -466,7 +466,11 @@ server.listen(Number(PORT), '0.0.0.0', async () => {
     console.log('[Server] ts-node registered successfully');
 
     console.log('[Server] Requiring adminjs.setup.ts...');
-    const { setupAdminJS } = require('../src/config/adminjs.setup.ts');
+    // In production, the file is copied to dist/config/ by build.sh
+    // In dev with nodemon, we're running from dist/ so use ./config/
+    const configPath = './config/adminjs.setup.ts';
+    console.log('[Server] Loading from:', configPath);
+    const { setupAdminJS } = require(configPath);
     console.log('[Server] adminjs.setup.ts loaded, setupAdminJS type:', typeof setupAdminJS);
 
     console.log('[Server] Calling setupAdminJS...');
