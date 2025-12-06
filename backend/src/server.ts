@@ -290,8 +290,8 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Ne pas limiter les webhooks Stripe
-    return req.path.startsWith('/webhook');
+    // Ne pas limiter les webhooks Stripe et AdminJS (charge beaucoup d'assets)
+    return req.path.startsWith('/webhook') || req.path.startsWith('/admin');
   }
 });
 
@@ -300,7 +300,11 @@ const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000, // 15 minutes
   delayAfter: 200, // 200 requêtes avant ralentissement (au lieu de 50)
   delayMs: () => 100, // 100ms delay (au lieu de 500ms)
-  validate: { delayMs: false } // Disable deprecation warning
+  validate: { delayMs: false }, // Disable deprecation warning
+  skip: (req) => {
+    // Ne pas ralentir AdminJS (charge beaucoup d'assets)
+    return req.path.startsWith('/admin');
+  }
 });
 
 app.use(limiter);
