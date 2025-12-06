@@ -31,8 +31,8 @@ export async function setupAdminJS(app: ExpressApp) {
     // @ts-ignore - ESM module resolution issue, works at runtime
     console.log('[AdminJS] Importing @adminjs/prisma...');
     const AdminJSPrismaModule = await import('@adminjs/prisma');
-    const { Database, Resource } = AdminJSPrismaModule;
-    console.log('[AdminJS] @adminjs/prisma imported, Database:', typeof Database, 'Resource:', typeof Resource);
+    const { Database, Resource, getModelByName } = AdminJSPrismaModule;
+    console.log('[AdminJS] @adminjs/prisma imported, Database:', typeof Database, 'Resource:', typeof Resource, 'getModelByName:', typeof getModelByName);
 
     console.log('[AdminJS] Importing @adminjs/express...');
     const AdminJSExpressModule = await import('@adminjs/express');
@@ -53,7 +53,7 @@ export async function setupAdminJS(app: ExpressApp) {
     const adminJs = new AdminJS({
       resources: [
         {
-          resource: { model: prisma.user, client: prisma },
+          resource: { model: getModelByName('User'), client: prisma },
           options: {
             navigation: {
               name: 'Gestion des utilisateurs',
@@ -73,7 +73,7 @@ export async function setupAdminJS(app: ExpressApp) {
           },
         },
         {
-          resource: { model: prisma.product, client: prisma },
+          resource: { model: getModelByName('Product'), client: prisma },
           options: {
             navigation: {
               name: 'Marketplace',
@@ -82,7 +82,7 @@ export async function setupAdminJS(app: ExpressApp) {
           },
         },
         {
-          resource: { model: prisma.transaction, client: prisma },
+          resource: { model: getModelByName('Transaction'), client: prisma },
           options: {
             navigation: {
               name: 'Marketplace',
@@ -91,7 +91,7 @@ export async function setupAdminJS(app: ExpressApp) {
           },
         },
         {
-          resource: { model: prisma.category, client: prisma },
+          resource: { model: getModelByName('Category'), client: prisma },
           options: {
             navigation: {
               name: 'Catalogue',
@@ -100,7 +100,7 @@ export async function setupAdminJS(app: ExpressApp) {
           },
         },
         {
-          resource: { model: prisma.brand, client: prisma },
+          resource: { model: getModelByName('Brand'), client: prisma },
           options: {
             navigation: {
               name: 'Catalogue',
@@ -109,7 +109,7 @@ export async function setupAdminJS(app: ExpressApp) {
           },
         },
         {
-          resource: { model: prisma.conversation, client: prisma },
+          resource: { model: getModelByName('Conversation'), client: prisma },
           options: {
             navigation: {
               name: 'Communication',
@@ -118,7 +118,7 @@ export async function setupAdminJS(app: ExpressApp) {
           },
         },
         {
-          resource: { model: prisma.message, client: prisma },
+          resource: { model: getModelByName('Message'), client: prisma },
           options: {
             navigation: {
               name: 'Communication',
@@ -127,7 +127,7 @@ export async function setupAdminJS(app: ExpressApp) {
           },
         },
         {
-          resource: { model: prisma.stripeAccount, client: prisma },
+          resource: { model: getModelByName('StripeAccount'), client: prisma },
           options: {
             navigation: {
               name: 'Paiements',
@@ -136,7 +136,7 @@ export async function setupAdminJS(app: ExpressApp) {
           },
         },
         {
-          resource: { model: prisma.shipment, client: prisma },
+          resource: { model: getModelByName('Shipment'), client: prisma },
           options: {
             navigation: {
               name: 'Logistique',
@@ -148,7 +148,7 @@ export async function setupAdminJS(app: ExpressApp) {
         // GEARTED EXPERT - Services & Configuration
         // ==========================================
         {
-          resource: { model: (prisma as any).expertService, client: prisma },
+          resource: { model: getModelByName('ExpertService'), client: prisma },
           options: {
             navigation: {
               name: 'Gearted Expert',
@@ -252,7 +252,7 @@ export async function setupAdminJS(app: ExpressApp) {
           },
         },
         {
-          resource: { model: (prisma as any).platformSettings, client: prisma },
+          resource: { model: getModelByName('PlatformSettings'), client: prisma },
           options: {
             navigation: {
               name: 'Configuration',
@@ -478,7 +478,7 @@ export async function setupAdminJS(app: ExpressApp) {
           },
         },
         {
-          resource: { model: (prisma as any).advertisement, client: prisma },
+          resource: { model: getModelByName('Advertisement'), client: prisma },
           options: {
             navigation: {
               name: 'Marketing',
