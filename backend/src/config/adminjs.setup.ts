@@ -510,29 +510,37 @@ export async function setupAdminJS(app: ExpressApp) {
     console.log('[AdminJS] Configuration created');
 
     // Authentication router
+    console.log('[AdminJS] Building authenticated router...');
     const adminRouter = AdminJSExpress.buildAuthenticatedRouter(
       adminJs,
       {
         authenticate: async (email: string, password: string) => {
+          console.log('[AdminJS] Authentication attempt for:', email);
           try {
             const user = await prisma.user.findUnique({
               where: { email },
             });
 
+            console.log('[AdminJS] User found:', user ? 'yes' : 'no', user?.role);
+
             if (!user || user.role !== 'ADMIN') {
+              console.log('[AdminJS] Auth failed: not admin or not found');
               return null;
             }
 
             if (!user.password) {
+              console.log('[AdminJS] Auth failed: no password');
               return null;
             }
 
             const isPasswordValid = await bcrypt.compare(password, user.password);
+            console.log('[AdminJS] Password valid:', isPasswordValid);
 
             if (!isPasswordValid) {
               return null;
             }
 
+            console.log('[AdminJS] Auth success for:', user.username);
             return {
               email: user.email,
               id: user.id,
@@ -544,18 +552,20 @@ export async function setupAdminJS(app: ExpressApp) {
             return null;
           }
         },
-        cookiePassword: process.env.ADMIN_SESSION_SECRET || 'gearted-admin-secret-change-me-in-production',
+        cookiePassword: process.env.ADMIN_SESSION_SECRET || 'gearted-admin-secret-change-me-in-production-32chars!',
         cookieName: 'gearted-admin-session',
       },
       null,
       {
         resave: false,
-        saveUninitialized: true,
-        secret: process.env.ADMIN_SESSION_SECRET || 'gearted-admin-secret-change-me-in-production',
+        saveUninitialized: false,
+        secret: process.env.ADMIN_SESSION_SECRET || 'gearted-admin-secret-change-me-in-production-32chars!',
+        name: 'adminjs.sid',
         cookie: {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          maxAge: 1000 * 60 * 60 * 24,
+          secure: false, // Railway uses HTTPS but proxy terminates SSL
+          sameSite: 'lax' as const,
+          maxAge: 1000 * 60 * 60 * 24, // 24 hours
         },
       }
     );

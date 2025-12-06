@@ -11,6 +11,12 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
+  // Skip error handling for AdminJS - let it handle its own errors
+  if (req.path.startsWith('/admin')) {
+    console.error('[AdminJS Error]:', err.message, err.stack);
+    return next(err);
+  }
+
   let statusCode = err.statusCode || 500;
   let message = err.message || 'Internal Server Error';
 
