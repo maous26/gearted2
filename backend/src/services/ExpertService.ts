@@ -26,16 +26,31 @@ type ExpertServiceStatus =
 const EXPERT_PRICE_CENTS = 1990; // 19.90€
 const EXPERT_PRICE_EUROS = 19.90;
 
-// Adresse Gearted pour réception des colis
-const GEARTED_ADDRESS = {
+// Adresse Gearted par defaut (sera surchargee par les settings)
+const DEFAULT_GEARTED_ADDRESS = {
   name: 'Gearted Expert Service',
-  street1: '123 Rue de l\'Expertise', // À configurer avec la vraie adresse
-  city: 'Paris',
-  zip: '75001',
+  street: '', // A configurer dans l'admin
+  city: '',
+  postalCode: '',
   country: 'FR',
-  phone: '+33123456789',
+  phone: '',
   email: 'expert@gearted.com',
 };
+
+// Helper pour recuperer l'adresse Gearted depuis les settings
+async function getGeartedAddress() {
+  try {
+    const settings = await (prisma as any).platformSettings.findFirst({
+      where: { key: 'expert_settings' }
+    });
+    if (settings?.value?.address?.street) {
+      return settings.value.address;
+    }
+    return DEFAULT_GEARTED_ADDRESS;
+  } catch {
+    return DEFAULT_GEARTED_ADDRESS;
+  }
+}
 
 export class ExpertService {
   /**
@@ -158,18 +173,21 @@ export class ExpertService {
         },
       });
 
+      // Recuperer l'adresse Gearted depuis les settings
+      const geartedAddress = await getGeartedAddress();
+
       // Notifier le vendeur avec l'adresse d'expédition
       await prisma.notification.create({
         data: {
           userId: expertService.transaction.product.sellerId,
-          title: '📦 Service Expert - Expédition requise',
-          message: `L'acheteur a choisi le service Gearted Expert pour "${expertService.transaction.product.title}". Veuillez expédier l'article à notre adresse de vérification.`,
+          title: '📦 Service Expert - Etiquette a generer',
+          message: `L'acheteur a choisi le service Gearted Expert pour "${expertService.transaction.product.title}". Veuillez generer l'etiquette d'expedition vers nos locaux dans "Mes ventes".`,
           type: 'INFO',
           data: {
             expertServiceId: updatedExpert.id,
             transactionId: expertService.transactionId,
-            geartedAddress: GEARTED_ADDRESS,
-            instructions: 'Envoyez le colis à l\'adresse Gearted et renseignez le numéro de suivi.',
+            geartedAddress,
+            instructions: 'Generez l\'etiquette d\'expedition vers Gearted pour verification.',
           },
         },
       });
@@ -177,7 +195,7 @@ export class ExpertService {
       return {
         success: true,
         expertService: updatedExpert,
-        geartedAddress: GEARTED_ADDRESS,
+        geartedAddress,
       };
     } catch (error: any) {
       console.error('[Expert] Failed to activate expert service:', error);
@@ -588,6 +606,9 @@ export class ExpertService {
         throw new Error('Non autorisé');
       }
 
+      // Recuperer l'adresse Gearted depuis les settings
+      const geartedAddress = await getGeartedAddress();
+
       return {
         hasExpert: true,
         expertService: {
@@ -605,7 +626,7 @@ export class ExpertService {
           issueDetected: expertService.issueDetected,
           createdAt: expertService.createdAt,
         },
-        geartedAddress: GEARTED_ADDRESS,
+        geartedAddress,
       };
     } catch (error: any) {
       console.error('[Expert] Failed to get expert status:', error);

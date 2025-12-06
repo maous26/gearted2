@@ -593,6 +593,181 @@ router.delete('/advertisements/:adId', async (req, res) => {
 // - POST /api/premium/admin/expert/:expertServiceId/delivered
 // - GET /api/premium/admin/expert/pending
 
+// GET /api/admin/expert/settings - Get Gearted Expert settings (address, etc.)
+router.get('/expert/settings', async (req, res) => {
+  try {
+    const settings = await (prisma as any).platformSettings.findFirst({
+      where: { key: 'expert_settings' }
+    });
+
+    const defaultSettings = {
+      address: {
+        name: 'Gearted - Service Expert',
+        street: '',
+        city: '',
+        postalCode: '',
+        country: 'FR',
+        phone: '',
+        email: 'expert@gearted.com'
+      },
+      enabled: true,
+      price: 19.90
+    };
+
+    return res.json({
+      success: true,
+      settings: settings?.value || defaultSettings
+    });
+  } catch (error) {
+    console.error('[admin] Failed to get expert settings:', error);
+    return res.status(500).json({ error: 'Failed to get expert settings' });
+  }
+});
+
+// PUT /api/admin/expert/settings - Update Gearted Expert settings
+router.put('/expert/settings', async (req, res) => {
+  try {
+    const { address, enabled, price } = req.body;
+
+    if (!address || !address.street || !address.city || !address.postalCode) {
+      return res.status(400).json({ error: 'Adresse complete requise (street, city, postalCode)' });
+    }
+
+    const settings = await (prisma as any).platformSettings.upsert({
+      where: { key: 'expert_settings' },
+      update: {
+        value: { address, enabled, price }
+      },
+      create: {
+        key: 'expert_settings',
+        value: { address, enabled, price }
+      }
+    });
+
+    return res.json({
+      success: true,
+      settings: settings.value
+    });
+  } catch (error) {
+    console.error('[admin] Failed to update expert settings:', error);
+    return res.status(500).json({ error: 'Failed to update expert settings' });
+  }
+});
+
+// POST /api/admin/expert/:expertServiceId/generate-buyer-label - Generate shipping label from Gearted to buyer
+router.post('/expert/:expertServiceId/generate-buyer-label', async (req, res) => {
+  try {
+    const { expertServiceId } = req.params;
+    const { carrierId, serviceType } = req.body; // e.g., 'mondial_relay', 'point_relais'
+
+    // Get expert service with transaction and buyer info
+    const expertService = await (prisma as any).expertService.findUnique({
+      where: { id: expertServiceId },
+      include: {
+        transaction: {
+          include: {
+            buyer: true,
+            product: {
+              include: {
+                parcelDimensions: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!expertService) {
+      return res.status(404).json({ error: 'Service Expert introuvable' });
+    }
+
+    if (expertService.status !== 'VERIFIED') {
+      return res.status(400).json({ error: 'Le produit doit etre verifie avant de generer l\'etiquette' });
+    }
+
+    // Get Gearted address
+    const settingsRecord = await (prisma as any).platformSettings.findFirst({
+      where: { key: 'expert_settings' }
+    });
+
+    if (!settingsRecord?.value?.address?.street) {
+      return res.status(400).json({ error: 'Adresse Gearted non configuree. Veuillez la configurer dans les parametres.' });
+    }
+
+    const geartedAddress = settingsRecord.value.address;
+    const buyer = expertService.transaction.buyer;
+    const dimensions = expertService.transaction.product.parcelDimensions;
+
+    if (!buyer.address || !buyer.city || !buyer.postalCode) {
+      return res.status(400).json({ error: 'Adresse de l\'acheteur incomplete' });
+    }
+
+    // Generate mock tracking number (in production, use real shipping API)
+    const trackingNumber = `GE-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
+    const labelUrl = `https://gearted.com/labels/${trackingNumber}.pdf`;
+
+    // Update expert service with buyer tracking
+    await (prisma as any).expertService.update({
+      where: { id: expertServiceId },
+      data: {
+        buyerTrackingNumber: trackingNumber,
+        status: 'IN_TRANSIT_TO_BUYER',
+        shippedToBuyerAt: new Date()
+      }
+    });
+
+    // Update transaction
+    await prisma.transaction.update({
+      where: { id: expertService.transactionId },
+      data: {
+        trackingNumber,
+        status: 'PROCESSING'
+      }
+    });
+
+    // Notify buyer
+    await NotificationController.createNotification({
+      userId: buyer.id,
+      title: '📦 Colis expedie !',
+      message: `Votre article verifie "${expertService.transaction.product.title}" a ete expedie. Numero de suivi : ${trackingNumber}`,
+      type: 'SHIPPING_UPDATE',
+      data: {
+        transactionId: expertService.transactionId,
+        trackingNumber,
+        labelUrl,
+        step: 'SHIPPED_TO_BUYER'
+      }
+    });
+
+    return res.json({
+      success: true,
+      label: {
+        trackingNumber,
+        labelUrl,
+        carrier: carrierId || 'mondial_relay',
+        serviceType: serviceType || 'point_relais',
+        from: geartedAddress,
+        to: {
+          name: buyer.username,
+          street: buyer.address,
+          city: buyer.city,
+          postalCode: buyer.postalCode,
+          country: 'FR'
+        },
+        dimensions: dimensions ? {
+          length: dimensions.length,
+          width: dimensions.width,
+          height: dimensions.height,
+          weight: dimensions.weight
+        } : null
+      }
+    });
+  } catch (error) {
+    console.error('[admin] Failed to generate buyer label:', error);
+    return res.status(500).json({ error: 'Failed to generate label' });
+  }
+});
+
 // GET /api/admin/expert/all - Get all expert services with filters
 router.get('/expert/all', async (req, res) => {
   try {

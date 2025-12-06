@@ -833,4 +833,331 @@ router.delete('/addresses/:addressId', async (req: Request, res: Response): Prom
   }
 });
 
+/**
+ * GEARTED EXPERT - Vendeur génère étiquette vers Gearted pour expertise
+ * POST /api/shipping/expert/label-to-gearted/:expertServiceId
+ */
+router.post('/expert/label-to-gearted/:expertServiceId', async (req: Request, res: Response): Promise<any> => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const { expertServiceId } = req.params;
+  const { rateId } = req.body;
+
+  console.log(`[Shipping/Expert] START - Generate label to Gearted - expertServiceId: ${expertServiceId}, user: ${req.user.userId}`);
+
+  try {
+    // Récupérer le service Expert
+    const expertService = await (prisma as any).expertService.findUnique({
+      where: { id: expertServiceId },
+      include: {
+        product: {
+          include: {
+            seller: true,
+            parcelDimensions: true
+          }
+        }
+      }
+    });
+
+    if (!expertService) {
+      console.log(`[Shipping/Expert] Expert service ${expertServiceId} NOT FOUND`);
+      return res.status(404).json({ error: 'Service Expert non trouvé' });
+    }
+
+    // Vérifier que l'utilisateur est le vendeur
+    if (expertService.product.sellerId !== req.user.userId) {
+      console.log(`[Shipping/Expert] FORBIDDEN - user ${req.user.userId} is not seller ${expertService.product.sellerId}`);
+      return res.status(403).json({
+        error: 'Vous n\'êtes pas autorisé à effectuer cette action'
+      });
+    }
+
+    // Vérifier que le statut permet la génération d'étiquette
+    if (!['PENDING', 'AWAITING_SHIPMENT'].includes(expertService.status)) {
+      console.log(`[Shipping/Expert] Invalid status: ${expertService.status}`);
+      return res.status(400).json({
+        error: `Impossible de générer l'étiquette. Statut actuel: ${expertService.status}`
+      });
+    }
+
+    // Vérifier que les dimensions sont disponibles
+    if (!expertService.product.parcelDimensions) {
+      console.log(`[Shipping/Expert] No parcel dimensions set`);
+      return res.status(400).json({
+        error: 'Veuillez d\'abord renseigner les dimensions du colis'
+      });
+    }
+
+    // Vérifier qu'une étiquette n'existe pas déjà
+    if (expertService.sellerToGeartedTracking) {
+      console.log(`[Shipping/Expert] Label already exists: ${expertService.sellerToGeartedTracking}`);
+      return res.status(400).json({
+        error: 'Une étiquette a déjà été générée pour cet envoi'
+      });
+    }
+
+    // Récupérer l'adresse Gearted depuis les paramètres
+    let geartedAddress;
+    try {
+      const settings = await (prisma as any).platformSettings.findFirst({
+        where: { key: 'expert_settings' }
+      });
+      if (settings?.value?.address?.street) {
+        geartedAddress = settings.value.address;
+      }
+    } catch (e) {
+      console.warn('[Shipping/Expert] Could not fetch Gearted address from settings');
+    }
+
+    // Adresse par défaut si non configurée
+    if (!geartedAddress) {
+      geartedAddress = {
+        name: 'Gearted Expert',
+        street: '123 Rue de l\'Expertise',
+        city: 'Paris',
+        postalCode: '75001',
+        country: 'France'
+      };
+    }
+
+    // Générer le numéro de suivi
+    const carrierPrefix = rateId ? rateId.toUpperCase().split('-')[0] : 'GE';
+    const trackingNumber = `${carrierPrefix}-EXP-${Date.now().toString(36).toUpperCase()}`;
+    console.log(`[Shipping/Expert] Generated tracking: ${trackingNumber}`);
+
+    // Mettre à jour le service Expert
+    const updatedExpertService = await (prisma as any).expertService.update({
+      where: { id: expertServiceId },
+      data: {
+        status: 'IN_TRANSIT_TO_GEARTED',
+        sellerToGeartedTracking: trackingNumber,
+        shippedToGeartedAt: new Date()
+      },
+      include: {
+        product: {
+          include: {
+            seller: true,
+            parcelDimensions: true
+          }
+        }
+      }
+    });
+
+    console.log(`[Shipping/Expert] Expert service updated - status: IN_TRANSIT_TO_GEARTED`);
+
+    // Créer une notification
+    try {
+      await NotificationController.createNotification({
+        userId: req.user.userId,
+        title: '🏷️ Étiquette Expert générée',
+        message: `Votre étiquette d'envoi vers Gearted Expert a été générée pour "${expertService.product.title}".\n\nNuméro de suivi: ${trackingNumber}\n\n📦 Adresse de destination:\n${geartedAddress.name}\n${geartedAddress.street}\n${geartedAddress.postalCode} ${geartedAddress.city}\n${geartedAddress.country}`,
+        type: 'SHIPPING_UPDATE',
+        data: {
+          expertServiceId,
+          productId: expertService.product.id,
+          productTitle: expertService.product.title,
+          trackingNumber,
+          role: 'SELLER',
+          step: 'EXPERT_LABEL_TO_GEARTED'
+        }
+      });
+    } catch (notifError) {
+      console.error('[Shipping/Expert] Failed to send notification:', notifError);
+    }
+
+    // Créer l'URL fictive de l'étiquette
+    const labelUrl = `https://labels.gearted.com/expert/${trackingNumber}.pdf`;
+
+    console.log(`[Shipping/Expert] SUCCESS - Label created`);
+    return res.json({
+      success: true,
+      label: {
+        trackingNumber,
+        labelUrl,
+        carrier: carrierPrefix,
+        destination: geartedAddress
+      },
+      expertService: updatedExpertService,
+      message: 'Étiquette générée avec succès. Déposez votre colis au point relais.'
+    });
+
+  } catch (error) {
+    console.error('[Shipping/Expert] Error generating label:', error);
+    return res.status(500).json({
+      error: 'Erreur lors de la génération de l\'étiquette'
+    });
+  }
+});
+
+/**
+ * GEARTED EXPERT - Récupérer les tarifs pour envoi vers Gearted
+ * GET /api/shipping/expert/rates/:expertServiceId
+ */
+router.get('/expert/rates/:expertServiceId', async (req: Request, res: Response): Promise<any> => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const { expertServiceId } = req.params;
+
+  try {
+    const expertService = await (prisma as any).expertService.findUnique({
+      where: { id: expertServiceId },
+      include: {
+        product: {
+          include: {
+            seller: true,
+            parcelDimensions: true
+          }
+        }
+      }
+    });
+
+    if (!expertService) {
+      return res.status(404).json({ error: 'Service Expert non trouvé' });
+    }
+
+    if (expertService.product.sellerId !== req.user.userId) {
+      return res.status(403).json({ error: 'Non autorisé' });
+    }
+
+    if (!expertService.product.parcelDimensions) {
+      return res.status(400).json({
+        error: 'Les dimensions du colis doivent être renseignées'
+      });
+    }
+
+    const dimensions = expertService.product.parcelDimensions;
+    const basePrice = Math.max(5, (dimensions.weight * 3) + ((dimensions.length + dimensions.width + dimensions.height) / 100));
+
+    // Tarifs pour envoi vers Gearted (plus avantageux car B2B)
+    const rates = [
+      {
+        rateId: 'mondial-relay-expert',
+        provider: 'Mondial Relay',
+        servicelevel: {
+          name: 'Point Relais Pro',
+          token: 'mondial-relay-expert'
+        },
+        servicelevelName: 'Point Relais - Gearted Expert',
+        amount: (basePrice * 0.6).toFixed(2),
+        currency: 'EUR',
+        estimatedDays: 2
+      },
+      {
+        rateId: 'colissimo-expert',
+        provider: 'Colissimo',
+        servicelevel: {
+          name: 'Expert Pro',
+          token: 'colissimo-expert'
+        },
+        servicelevelName: 'Colissimo - Gearted Expert',
+        amount: (basePrice * 0.8).toFixed(2),
+        currency: 'EUR',
+        estimatedDays: 1
+      }
+    ];
+
+    return res.json({
+      success: true,
+      rates,
+      dimensions
+    });
+
+  } catch (error) {
+    console.error('[Shipping/Expert] Error getting rates:', error);
+    return res.status(500).json({
+      error: 'Erreur lors de la récupération des tarifs'
+    });
+  }
+});
+
+/**
+ * GEARTED EXPERT - Récupérer le statut de l'envoi Expert
+ * GET /api/shipping/expert/status/:expertServiceId
+ */
+router.get('/expert/status/:expertServiceId', async (req: Request, res: Response): Promise<any> => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const { expertServiceId } = req.params;
+
+  try {
+    const expertService = await (prisma as any).expertService.findUnique({
+      where: { id: expertServiceId },
+      include: {
+        product: {
+          include: {
+            seller: true,
+            parcelDimensions: true
+          }
+        },
+        transaction: {
+          include: {
+            buyer: true
+          }
+        }
+      }
+    });
+
+    if (!expertService) {
+      return res.status(404).json({ error: 'Service Expert non trouvé' });
+    }
+
+    // Vérifier que l'utilisateur est le vendeur ou l'acheteur
+    const isSeller = expertService.product.sellerId === req.user.userId;
+    const isBuyer = expertService.transaction?.buyerId === req.user.userId;
+
+    if (!isSeller && !isBuyer) {
+      return res.status(403).json({ error: 'Non autorisé' });
+    }
+
+    // Récupérer l'adresse Gearted
+    let geartedAddress = null;
+    try {
+      const settings = await (prisma as any).platformSettings.findFirst({
+        where: { key: 'expert_settings' }
+      });
+      if (settings?.value?.address) {
+        geartedAddress = settings.value.address;
+      }
+    } catch (e) {
+      // Ignore
+    }
+
+    return res.json({
+      success: true,
+      expertService: {
+        id: expertService.id,
+        status: expertService.status,
+        sellerToGeartedTracking: expertService.sellerToGeartedTracking,
+        geartedToBuyerTracking: expertService.geartedToBuyerTracking,
+        shippedToGeartedAt: expertService.shippedToGeartedAt,
+        receivedByGeartedAt: expertService.receivedByGeartedAt,
+        verifiedAt: expertService.verifiedAt,
+        shippedToBuyerAt: expertService.shippedToBuyerAt,
+        deliveredAt: expertService.deliveredAt,
+        expertNotes: expertService.expertNotes,
+        verificationResult: expertService.verificationResult
+      },
+      product: {
+        id: expertService.product.id,
+        title: expertService.product.title,
+        hasDimensions: !!expertService.product.parcelDimensions
+      },
+      geartedAddress,
+      role: isSeller ? 'SELLER' : 'BUYER'
+    });
+
+  } catch (error) {
+    console.error('[Shipping/Expert] Error getting status:', error);
+    return res.status(500).json({
+      error: 'Erreur lors de la récupération du statut'
+    });
+  }
+});
+
 export default router;
