@@ -1,12 +1,18 @@
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { Express } from 'express';
 
-const prisma = new PrismaClient();
+// Prisma will be imported dynamically to avoid ESM/CJS conflicts
+let prisma: any;
 
 export async function setupAdminJS(app: Express) {
   try {
     console.log('[AdminJS] Starting setup...');
+
+    // Import Prisma dynamically to avoid ESM/CJS conflicts
+    console.log('[AdminJS] Importing @prisma/client...');
+    const { PrismaClient } = await import('@prisma/client');
+    prisma = new PrismaClient();
+    console.log('[AdminJS] Prisma client created');
 
     // Use dynamic import() for ESM modules - THIS IS THE CORRECT WAY
     console.log('[AdminJS] Importing adminjs...');
