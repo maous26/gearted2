@@ -281,33 +281,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get product by id (DB d'abord, mocks en fallback)
-router.get('/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const dbProduct = await prisma.product.findUnique({
-      where: { id },
-      include: {
-        images: true,
-        category: true,
-        seller: true,
-      },
-    });
-
-    if (dbProduct) {
-      return res.json(mapDbProductToListingShape(dbProduct));
-    }
-
-    // Pas de données mock - retourner 404 si produit non trouvé
-    return res.status(404).json({ error: 'Product not found' });
-  } catch (error) {
-    console.error('[products] Failed to get product by id', error);
-    return res.status(500).json({ error: 'Failed to get product' });
-  }
-});
-
 // Get featured products (boosted if enabled, random otherwise)
+// NOTE: This route MUST be defined BEFORE /:id to avoid "featured" being treated as an ID
 router.get('/featured', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit as string) || 6;
@@ -386,6 +361,32 @@ router.get('/featured', async (req, res) => {
   } catch (error) {
     console.error('[products] Failed to get featured products', error);
     res.status(500).json({ error: 'Failed to get featured products' });
+  }
+});
+
+// Get product by id (DB d'abord, mocks en fallback)
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const dbProduct = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        images: true,
+        category: true,
+        seller: true,
+      },
+    });
+
+    if (dbProduct) {
+      return res.json(mapDbProductToListingShape(dbProduct));
+    }
+
+    // Pas de données mock - retourner 404 si produit non trouvé
+    return res.status(404).json({ error: 'Product not found' });
+  } catch (error) {
+    console.error('[products] Failed to get product by id', error);
+    return res.status(500).json({ error: 'Failed to get product' });
   }
 });
 
