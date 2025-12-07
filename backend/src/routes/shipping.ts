@@ -998,8 +998,8 @@ router.post('/expert/label-to-gearted/:expertServiceId', async (req: Request, re
     }
 
     // Vérifier qu'une étiquette n'existe pas déjà
-    if (expertService.sellerToGeartedTracking) {
-      console.log(`[Shipping/Expert] Label already exists: ${expertService.sellerToGeartedTracking}`);
+    if (expertService.sellerTrackingNumber) {
+      console.log(`[Shipping/Expert] Label already exists: ${expertService.sellerTrackingNumber}`);
       return res.status(400).json({
         error: 'Une étiquette a déjà été générée pour cet envoi'
       });
@@ -1039,8 +1039,8 @@ router.post('/expert/label-to-gearted/:expertServiceId', async (req: Request, re
       where: { id: expertServiceId },
       data: {
         status: 'IN_TRANSIT_TO_GEARTED',
-        sellerToGeartedTracking: trackingNumber,
-        shippedToGeartedAt: new Date()
+        sellerTrackingNumber: trackingNumber,
+        sellerShippedAt: new Date()
       },
       include: {
         product: {
@@ -1240,15 +1240,15 @@ router.get('/expert/status/:expertServiceId', async (req: Request, res: Response
       expertService: {
         id: expertService.id,
         status: expertService.status,
-        sellerToGeartedTracking: expertService.sellerToGeartedTracking,
-        geartedToBuyerTracking: expertService.geartedToBuyerTracking,
-        shippedToGeartedAt: expertService.shippedToGeartedAt,
+        sellerTrackingNumber: expertService.sellerTrackingNumber,
+        buyerTrackingNumber: expertService.buyerTrackingNumber,
+        sellerShippedAt: expertService.sellerShippedAt,
         receivedByGeartedAt: expertService.receivedByGeartedAt,
         verifiedAt: expertService.verifiedAt,
         shippedToBuyerAt: expertService.shippedToBuyerAt,
-        deliveredAt: expertService.deliveredAt,
-        expertNotes: expertService.expertNotes,
-        verificationResult: expertService.verificationResult
+        deliveredToBuyerAt: expertService.deliveredToBuyerAt,
+        verificationNotes: expertService.verificationNotes,
+        verificationPassed: expertService.verificationPassed
       },
       product: {
         id: expertService.product.id,
