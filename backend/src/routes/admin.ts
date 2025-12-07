@@ -708,8 +708,8 @@ router.post('/expert/create-test', async (req, res) => {
   try {
     const { productId, buyerId } = req.body;
 
-    if (!productId) {
-      return res.status(400).json({ error: 'productId is required' });
+    if (!productId || !buyerId) {
+      return res.status(400).json({ error: 'productId and buyerId are required' });
     }
 
     // Get product and seller info
@@ -722,38 +722,38 @@ router.post('/expert/create-test', async (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    // Create a test transaction if buyerId provided
-    let transaction = null;
-    if (buyerId) {
-      transaction = await (prisma as any).transaction.create({
-        data: {
-          productId,
-          buyerId,
-          amount: product.price,
-          currency: 'EUR',
-          status: 'COMPLETED',
-          paymentIntentId: `pi_test_${Date.now()}`,
-          hasExpert: true,
-          metadata: { testExpert: true }
-        }
-      });
-    }
-
-    // Create expert service
-    const expertService = await (prisma as any).expertService.create({
+    // Create a test transaction (required for ExpertService)
+    const transaction = await (prisma as any).transaction.create({
       data: {
         productId,
-        transactionId: transaction?.id || null,
+        buyerId,
+        amount: product.price,
+        currency: 'EUR',
+        status: 'COMPLETED',
+        paymentIntentId: `pi_test_expert_${Date.now()}`,
+        hasExpert: true,
+        metadata: { testExpert: true }
+      }
+    });
+
+    console.log(`[admin] Created test transaction: ${transaction.id}`);
+
+    // Create expert service linked to transaction
+    const expertService = await (prisma as any).expertService.create({
+      data: {
+        transactionId: transaction.id,
         status: 'PENDING', // Ready for seller to ship
         price: 19.90
       },
       include: {
-        product: {
-          include: { seller: true }
-        },
-        transaction: transaction ? {
-          include: { buyer: true }
-        } : false
+        transaction: {
+          include: { 
+            buyer: true,
+            product: {
+              include: { seller: true, parcelDimensions: true }
+            }
+          }
+        }
       }
     });
 
@@ -766,7 +766,7 @@ router.post('/expert/create-test', async (req, res) => {
     });
   } catch (error) {
     console.error('[admin] Failed to create test expert service:', error);
-    return res.status(500).json({ error: 'Failed to create test expert service' });
+    return res.status(500).json({ error: 'Failed to create test expert service', details: String(error) });
   }
 });
 
