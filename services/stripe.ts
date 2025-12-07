@@ -101,13 +101,15 @@ class StripeService {
 
   /**
    * Calculer le total avec frais de service
+   * Note: Pour un calcul précis, utiliser calculateTotalWithFeesFromApi()
+   * Cette méthode utilise les valeurs par défaut (5%) pour un affichage rapide
    */
-  calculateTotalWithFees(productPrice: number): {
+  calculateTotalWithFees(productPrice: number, buyerFeePercent: number = 5): {
     productPrice: number;
     buyerFee: number;
     total: number;
   } {
-    const buyerFee = productPrice * 0.05; // 5% frais acheteur
+    const buyerFee = productPrice * (buyerFeePercent / 100);
     const total = productPrice + buyerFee;
 
     return {
@@ -115,6 +117,38 @@ class StripeService {
       buyerFee: parseFloat(buyerFee.toFixed(2)),
       total: parseFloat(total.toFixed(2))
     };
+  }
+
+  /**
+   * Calculer le total en récupérant les vrais taux depuis l'API
+   */
+  async calculateTotalWithFeesFromApi(productPrice: number): Promise<{
+    productPrice: number;
+    buyerFee: number;
+    total: number;
+    buyerFeePercent: number;
+  }> {
+    try {
+      const response: any = await api.get('/api/settings/commissions');
+      const settings = response.data?.settings || { buyerEnabled: true, buyerFeePercent: 5 };
+      
+      const buyerFeePercent = settings.buyerEnabled ? (settings.buyerFeePercent || 5) : 0;
+      const buyerFee = productPrice * (buyerFeePercent / 100);
+      const total = productPrice + buyerFee;
+
+      return {
+        productPrice: parseFloat(productPrice.toFixed(2)),
+        buyerFee: parseFloat(buyerFee.toFixed(2)),
+        total: parseFloat(total.toFixed(2)),
+        buyerFeePercent
+      };
+    } catch (error) {
+      // Fallback to default
+      return {
+        ...this.calculateTotalWithFees(productPrice),
+        buyerFeePercent: 5
+      };
+    }
   }
 
   /**

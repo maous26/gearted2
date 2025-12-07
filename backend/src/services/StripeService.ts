@@ -8,10 +8,22 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-10-29.clover',
 });
 
-// Commission de la plateforme Gearted
+// Commission par défaut de la plateforme Gearted (si pas de settings)
 // 5% vendeur + 5% acheteur = 10% total pour Gearted
-const SELLER_FEE_PERCENT = 5; // 5% prélevé au vendeur
-const BUYER_FEE_PERCENT = 5;  // 5% ajouté à l'acheteur
+const DEFAULT_SELLER_FEE_PERCENT = 5; // 5% prélevé au vendeur
+const DEFAULT_BUYER_FEE_PERCENT = 5;  // 5% ajouté à l'acheteur
+const DEFAULT_SELLER_FEE_MIN = 0.50;  // Minimum 0.50€
+const DEFAULT_BUYER_FEE_MIN = 0.50;   // Minimum 0.50€
+
+// Interface pour les paramètres de commission
+interface CommissionSettings {
+  buyerEnabled: boolean;
+  buyerFeePercent: number;
+  buyerFeeMin: number;
+  sellerEnabled: boolean;
+  sellerFeePercent: number;
+  sellerFeeMin: number;
+}
 
 // Interface pour les options premium + livraison
 interface PremiumOptions {
@@ -24,6 +36,38 @@ interface PremiumOptions {
   shippingRateId?: string | null;
   shippingCost?: number;
   shippingProvider?: string | null;
+}
+
+// Fonction pour récupérer les paramètres de commission depuis la DB
+async function getCommissionSettings(): Promise<CommissionSettings> {
+  try {
+    const settings = await (prisma as any).platformSettings.findFirst({
+      where: { key: 'commissions' }
+    });
+    
+    if (settings?.value) {
+      return {
+        buyerEnabled: settings.value.buyerEnabled ?? true,
+        buyerFeePercent: settings.value.buyerFeePercent ?? DEFAULT_BUYER_FEE_PERCENT,
+        buyerFeeMin: settings.value.buyerFeeMin ?? DEFAULT_BUYER_FEE_MIN,
+        sellerEnabled: settings.value.sellerEnabled ?? true,
+        sellerFeePercent: settings.value.sellerFeePercent ?? DEFAULT_SELLER_FEE_PERCENT,
+        sellerFeeMin: settings.value.sellerFeeMin ?? DEFAULT_SELLER_FEE_MIN
+      };
+    }
+  } catch (error) {
+    console.error('Error loading commission settings:', error);
+  }
+  
+  // Valeurs par défaut si pas de settings
+  return {
+    buyerEnabled: true,
+    buyerFeePercent: DEFAULT_BUYER_FEE_PERCENT,
+    buyerFeeMin: DEFAULT_BUYER_FEE_MIN,
+    sellerEnabled: true,
+    sellerFeePercent: DEFAULT_SELLER_FEE_PERCENT,
+    sellerFeeMin: DEFAULT_SELLER_FEE_MIN
+  };
 }
 
 export class StripeService {
@@ -128,18 +172,28 @@ export class StripeService {
 
   /**
    * Créer un Payment Intent avec destination charge (split payment)
-   * Commission: 5% vendeur + 5% acheteur = 10% total pour Gearted
+   * Commission dynamique basée sur les paramètres admin
    * Options premium: Expertise (19.90€) et Assurance (4.99€) pour l'acheteur
    */
   static async createPaymentIntent(
     productId: string,
     buyerId: string,
     sellerId: string,
-    productPrice: number, // Prix du produit affiché (vendeur reçoit ce montant - 5%)
+    productPrice: number, // Prix du produit affiché (vendeur reçoit ce montant - commission)
     currency: string = 'eur',
     premiumOptions?: PremiumOptions
   ) {
     try {
+      // Récupérer les paramètres de commission depuis la DB
+      const commSettings = await getCommissionSettings();
+      
+      // Vérifier si l'acheteur ou le vendeur est exempté de commissions
+      const buyer = await prisma.user.findUnique({ where: { id: buyerId } });
+      const seller = await prisma.user.findUnique({ where: { id: sellerId } });
+      
+      const buyerExempt = (buyer as any)?.exemptFromCommissions === true;
+      const sellerExempt = (seller as any)?.exemptFromCommissions === true;
+      
       // Récupérer le compte Stripe du vendeur (optionnel pour les tests)
       const sellerStripeAccount = await prisma.stripeAccount.findUnique({
         where: { userId: sellerId }
@@ -152,15 +206,26 @@ export class StripeService {
         throw new Error('Le compte Stripe du vendeur n\'est pas encore activé');
       }
 
-      // Calculer les montants de base
-      // Prix produit: 100€
-      // Commission vendeur (5%): 5€ → Vendeur reçoit 95€
-      // Commission acheteur (5%): 5€ → Acheteur paie 105€
-      // Total commission Gearted: 10€
-
+      // Calculer les montants de base avec commissions dynamiques
       const productPriceInCents = Math.round(productPrice * 100);
-      const sellerFeeInCents = Math.round(productPriceInCents * (SELLER_FEE_PERCENT / 100));
-      const buyerFeeInCents = Math.round(productPriceInCents * (BUYER_FEE_PERCENT / 100));
+      
+      // Commission vendeur (si activée et non exempté)
+      let sellerFeeInCents = 0;
+      if (commSettings.sellerEnabled && !sellerExempt) {
+        sellerFeeInCents = Math.max(
+          Math.round(productPriceInCents * (commSettings.sellerFeePercent / 100)),
+          Math.round(commSettings.sellerFeeMin * 100)
+        );
+      }
+      
+      // Commission acheteur (si activée et non exempté)
+      let buyerFeeInCents = 0;
+      if (commSettings.buyerEnabled && !buyerExempt) {
+        buyerFeeInCents = Math.max(
+          Math.round(productPriceInCents * (commSettings.buyerFeePercent / 100)),
+          Math.round(commSettings.buyerFeeMin * 100)
+        );
+      }
 
       // Options premium (100% pour Gearted)
       const expertisePriceInCents = premiumOptions?.wantExpertise ? Math.round((premiumOptions.expertisePrice || 19.90) * 100) : 0;
@@ -173,6 +238,14 @@ export class StripeService {
       const sellerAmountInCents = productPriceInCents - sellerFeeInCents; // Ce que le vendeur reçoit
       const totalChargeInCents = productPriceInCents + buyerFeeInCents + premiumOptionsTotal + shippingCostInCents;   // Ce que l'acheteur paie (produit + frais + options + livraison)
       const platformFeeInCents = sellerFeeInCents + buyerFeeInCents + premiumOptionsTotal;      // Commission totale Gearted (sans livraison qui est reversée)
+
+      console.log(`[StripeService] Commission calculation:
+        Product: ${productPrice}€
+        Seller fee: ${commSettings.sellerEnabled ? commSettings.sellerFeePercent + '%' : 'disabled'} = ${sellerFeeInCents/100}€ ${sellerExempt ? '(EXEMPT)' : ''}
+        Buyer fee: ${commSettings.buyerEnabled ? commSettings.buyerFeePercent + '%' : 'disabled'} = ${buyerFeeInCents/100}€ ${buyerExempt ? '(EXEMPT)' : ''}
+        Seller receives: ${sellerAmountInCents/100}€
+        Buyer pays: ${totalChargeInCents/100}€
+        Platform fee: ${platformFeeInCents/100}€`);
 
       // Créer le Payment Intent
       const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
@@ -217,8 +290,8 @@ export class StripeService {
           buyerId,
           amount: productPriceInCents / 100,     // Prix du produit (sans frais)
           currency: currency.toUpperCase(),
-          buyerFeePercent: BUYER_FEE_PERCENT,    // 5%
-          sellerFeePercent: SELLER_FEE_PERCENT,  // 5%
+          buyerFeePercent: commSettings.buyerEnabled ? commSettings.buyerFeePercent : 0,
+          sellerFeePercent: commSettings.sellerEnabled ? commSettings.sellerFeePercent : 0,
           buyerFee: buyerFeeInCents / 100,       // Commission acheteur
           sellerFee: sellerFeeInCents / 100,     // Commission vendeur
           platformFee: platformFeeInCents / 100, // Commission totale Gearted (incluant options)
