@@ -1,639 +1,659 @@
-import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import LegalFooter from "../components/LegalFooter";
-import { useUser } from "../components/UserProvider";
-import authService from "../services/auth";
-import discordAuthService from "../services/discord-auth";
-import { THEMES, ThemeKey } from "../themes";
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  ImageBackground,
+  StatusBar,
+  ScrollView,
+} from 'react-native';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import authService from '../services/auth';
+import discordAuthService from '../services/discord-auth';
+
+const { width, height } = Dimensions.get('window');
 
 export default function RegisterScreen() {
-  const [theme] = useState<ThemeKey>("ranger");
-  const { updateProfile } = useUser();
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [discordLoading, setDiscordLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-
-  // États pour les erreurs
-  const [emailError, setEmailError] = useState("");
-  const [termsError, setTermsError] = useState("");
-  const [usernameError, setUsernameError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [confirmPasswordError, setConfirmPasswordError] = useState("");
-  const [generalError, setGeneralError] = useState("");
-
-  const t = THEMES[theme];
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  const handleDiscordRegister = async () => {
-    // Effacer les erreurs
-    setGeneralError("");
-    setEmailError("");
-    setUsernameError("");
-    setPasswordError("");
-    setConfirmPasswordError("");
-    setIsLoading(true);
+  const validatePassword = (password: string): { valid: boolean; message: string } => {
+    if (password.length < 8) {
+      return { valid: false, message: 'Le mot de passe doit contenir au moins 8 caractères' };
+    }
+    if (!/[A-Z]/.test(password)) {
+      return { valid: false, message: 'Le mot de passe doit contenir au moins une majuscule' };
+    }
+    if (!/[a-z]/.test(password)) {
+      return { valid: false, message: 'Le mot de passe doit contenir au moins une minuscule' };
+    }
+    if (!/[0-9]/.test(password)) {
+      return { valid: false, message: 'Le mot de passe doit contenir au moins un chiffre' };
+    }
+    return { valid: true, message: '' };
+  };
 
+  const handleRegister = async () => {
+    // Validation
+    if (!username.trim()) {
+      Alert.alert('Erreur', "Veuillez entrer un nom d'utilisateur");
+      return;
+    }
+
+    if (username.length < 3) {
+      Alert.alert('Erreur', "Le nom d'utilisateur doit contenir au moins 3 caractères");
+      return;
+    }
+
+    if (!email.trim()) {
+      Alert.alert('Erreur', 'Veuillez entrer votre email');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      Alert.alert('Erreur', 'Veuillez entrer un email valide');
+      return;
+    }
+
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      Alert.alert('Erreur', passwordValidation.message);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Erreur', 'Les mots de passe ne correspondent pas');
+      return;
+    }
+
+    if (!acceptedTerms) {
+      Alert.alert('Erreur', 'Veuillez accepter les conditions d\'utilisation');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await authService.register({
+        email: email.trim().toLowerCase(),
+        password,
+        username: username.trim()
+      });
+
+      if (response.tokens && response.user) {
+        await AsyncStorage.setItem('authToken', response.tokens.accessToken);
+        await AsyncStorage.setItem('userData', JSON.stringify(response.user));
+        
+        Alert.alert(
+          'Bienvenue !',
+          'Votre compte a été créé avec succès.',
+          [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
+        );
+      } else {
+        Alert.alert('Erreur', 'Réponse d\'inscription invalide');
+      }
+    } catch (error: any) {
+      console.error('Register error:', error);
+      let errorMessage = 'Impossible de créer le compte';
+
+      if (error?.message) {
+        if (error.message.includes('email') && error.message.includes('exist')) {
+          errorMessage = 'Cet email est déjà utilisé';
+        } else if (error.message.includes('username') && error.message.includes('exist')) {
+          errorMessage = "Ce nom d'utilisateur est déjà pris";
+        } else if (error.message.includes('Network') || error.message.includes('fetch')) {
+          errorMessage = 'Erreur de connexion au serveur';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
+      Alert.alert('Erreur d\'inscription', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDiscordRegister = async () => {
+    setDiscordLoading(true);
     try {
       const result = await discordAuthService.loginWithDiscord();
 
       if (result.success && result.user) {
-        // Mise à jour du profil
-        updateProfile(result.user);
-
-        // Sauvegarder dans AsyncStorage
-        await AsyncStorage.setItem('@gearted_user_profile', JSON.stringify(result.user));
-
-        // Redirection vers l'accueil
-        router.replace('/(tabs)' as any);
+        await AsyncStorage.setItem('userData', JSON.stringify(result.user));
+        router.replace('/(tabs)');
       } else {
-        setGeneralError(result.error || "Erreur lors de la connexion avec Discord");
-      }
-    } catch (error: any) {
-      setGeneralError("Impossible de se connecter avec Discord");
-      console.error('Discord register error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRegister = async () => {
-    // Réinitialiser les erreurs
-    setEmailError("");
-    setUsernameError("");
-    setPasswordError("");
-    setConfirmPasswordError("");
-    setGeneralError("");
-    setTermsError("");
-
-    // Validation
-    let hasError = false;
-
-    if (!firstName || !lastName) {
-      setGeneralError("Veuillez remplir votre nom et prénom");
-      hasError = true;
-    }
-
-    if (!email) {
-      setEmailError("L'email est requis");
-      hasError = true;
-    } else if (!validateEmail(email)) {
-      setEmailError("Format d'email invalide");
-      hasError = true;
-    }
-
-    if (!username) {
-      setUsernameError("Le nom d'utilisateur est requis");
-      hasError = true;
-    } else if (username.length < 3) {
-      setUsernameError("Minimum 3 caractères");
-      hasError = true;
-    }
-
-    if (!password) {
-      setPasswordError("Le mot de passe est requis");
-      hasError = true;
-    } else if (password.length < 8) {
-      setPasswordError("Minimum 8 caractères");
-      hasError = true;
-    }
-
-    if (!confirmPassword) {
-      setConfirmPasswordError("Veuillez confirmer le mot de passe");
-      hasError = true;
-    } else if (password !== confirmPassword) {
-      setConfirmPasswordError("Les mots de passe ne correspondent pas");
-      hasError = true;
-    }
-
-    if (!acceptedTerms) {
-      setTermsError("Vous devez accepter les CGU et CGV pour vous inscrire");
-      hasError = true;
-    }
-
-    if (hasError) {
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // Créer le compte avec toutes les informations
-      const response = await authService.register({
-        email: email.trim().toLowerCase(),
-        username: username.trim(),
-        password,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        location: undefined
-      });
-
-      console.log('[Register] Account created:', response.user.email);
-
-      // Sauvegarder le profil utilisateur complet dans le contexte
-      await updateProfile({
-        id: response.user.id,
-        email: response.user.email,
-        username: response.user.username,
-        avatar: response.user.avatar || null,
-        teamName: "Sans équipe",
-        firstName: response.user.firstName,
-        lastName: response.user.lastName,
-        location: response.user.location,
-        phone: response.user.phone,
-        bio: response.user.bio
-      });
-
-      setIsLoading(false);
-      Alert.alert(
-        "Inscription réussie!", 
-        `Bienvenue ${firstName} ! Votre compte a été créé avec succès.`,
-        [
-          {
-            text: "Continuer",
-            onPress: () => router.replace("/(tabs)" as any)
-          }
-        ]
-      );
-    } catch (error: any) {
-      setIsLoading(false);
-      console.error('[Register] Error:', error);
-      
-      // Analyser le message d'erreur
-      let errorMessage = error.message || "Impossible de créer le compte";
-      
-      // Traduire les messages courants en français
-      if (errorMessage.includes('Password must contain at least one uppercase letter')) {
-        errorMessage = "Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre et un caractère spécial";
-      } else if (errorMessage.includes('not allowed to be empty')) {
-        if (errorMessage.includes('password')) {
-          errorMessage = "Le mot de passe est requis";
-        } else if (errorMessage.includes('email')) {
-          errorMessage = "L'email est requis";
-        } else if (errorMessage.includes('username')) {
-          errorMessage = "Le nom d'utilisateur est requis";
+        if (result.error === 'Connexion annulée') {
+          // User cancelled - do nothing
+        } else {
+          Alert.alert('Erreur', result.error || 'Échec de l\'inscription Discord');
         }
       }
-      
-      // Déterminer le type d'erreur
-      if (errorMessage.toLowerCase().includes('email') || errorMessage.toLowerCase().includes('mail')) {
-        setEmailError(errorMessage);
-      } else if (errorMessage.toLowerCase().includes('username') || errorMessage.toLowerCase().includes('utilisateur')) {
-        setUsernameError(errorMessage);
-      } else if (errorMessage.toLowerCase().includes('mot de passe') || errorMessage.toLowerCase().includes('password') || errorMessage.toLowerCase().includes('majuscule') || errorMessage.toLowerCase().includes('caractère spécial')) {
-        setPasswordError(errorMessage);
-      } else {
-        setGeneralError(errorMessage);
-      }
+    } catch (error: any) {
+      console.error('Discord register error:', error);
+      Alert.alert('Erreur', 'Impossible de s\'inscrire avec Discord');
+    } finally {
+      setDiscordLoading(false);
     }
   };
 
+  const getPasswordStrength = (): { level: number; color: string; text: string } => {
+    if (!password) return { level: 0, color: '#666', text: '' };
+    
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+
+    if (strength <= 2) return { level: strength, color: '#FF6B6B', text: 'Faible' };
+    if (strength <= 3) return { level: strength, color: '#FFB347', text: 'Moyen' };
+    return { level: strength, color: '#00D4AA', text: 'Fort' };
+  };
+
+  const passwordStrength = getPasswordStrength();
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
-      <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
-      
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-        keyboardVerticalOffset={0}
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+
+      {/* Background Image */}
+      <ImageBackground
+        source={require('../assets/accueil.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
       >
-        <ScrollView 
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 40 }}
-          keyboardShouldPersistTaps="handled"
+        {/* Gradient Overlay */}
+        <LinearGradient
+          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0.95)']}
+          style={styles.gradientOverlay}
         >
-          {/* Header */}
-          <LinearGradient
-          colors={[t.heroGradStart + 'CC', t.heroGradEnd + '66']}
-          style={{ paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40 }}
-        >
-          <Text style={{
-            fontSize: 28,
-            fontWeight: '700',
-            color: t.heading,
-            textAlign: 'center',
-            marginBottom: 8,
-            letterSpacing: 0.5,
-            textTransform: 'uppercase'
-          }}>
-            REJOINS LA COMMUNAUTÉ
-          </Text>
-          <Text style={{
-            fontSize: 16,
-            color: t.muted,
-            textAlign: 'center'
-          }}>
-            Gratuit, rapide, et tu commences à vendre direct 🚀
-          </Text>
-        </LinearGradient>
-
-        {/* Register Form */}
-        <View style={{ paddingHorizontal: 24, paddingTop: 32 }}>
-          {/* Message d'erreur général */}
-          {generalError ? (
-            <View style={{
-              backgroundColor: '#FEE2E2',
-              borderLeftWidth: 4,
-              borderLeftColor: '#DC2626',
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              borderRadius: 8,
-              marginBottom: 20
-            }}>
-              <Text style={{ color: '#991B1B', fontSize: 14, fontWeight: '600' }}>
-                {generalError}
-              </Text>
-            </View>
-          ) : null}
-
-          <View style={{ flexDirection: 'row', marginBottom: 20 }}>
-            <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={{
-                fontSize: 16,
-                fontWeight: '600',
-                color: t.heading,
-                marginBottom: 8
-              }}>
-                Prénom
-              </Text>
-              <TextInput
-                style={{
-                  backgroundColor: t.cardBg,
-                  borderRadius: 12,
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  fontSize: 16,
-                  color: t.heading,
-                  borderWidth: 1,
-                  borderColor: t.border
-                }}
-                placeholder="John"
-                value={firstName}
-                onChangeText={(text) => {
-                  setFirstName(text);
-                  if (generalError) setGeneralError("");
-                }}
-                placeholderTextColor={t.muted}
-              />
-            </View>
-
-            <View style={{ flex: 1 }}>
-              <Text style={{
-                fontSize: 16,
-                fontWeight: '600',
-                color: t.heading,
-                marginBottom: 8
-              }}>
-                Nom
-              </Text>
-              <TextInput
-                style={{
-                  backgroundColor: t.cardBg,
-                  borderRadius: 12,
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  fontSize: 16,
-                  color: t.heading,
-                  borderWidth: 1,
-                  borderColor: t.border
-                }}
-                placeholder="Doe"
-                value={lastName}
-                onChangeText={(text) => {
-                  setLastName(text);
-                  if (generalError) setGeneralError("");
-                }}
-                placeholderTextColor={t.muted}
-              />
-            </View>
-          </View>
-
-          <View style={{ marginBottom: 20 }}>
-            <Text style={{
-              fontSize: 16,
-              fontWeight: '600',
-              color: t.heading,
-              marginBottom: 8
-            }}>
-              Nom d'utilisateur
-            </Text>
-            <TextInput
-              style={{
-                backgroundColor: t.cardBg,
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                fontSize: 16,
-                color: t.heading,
-                borderWidth: 1,
-                borderColor: usernameError ? '#DC2626' : t.border
-              }}
-              placeholder="ton_pseudo_airsoft"
-              value={username}
-              onChangeText={(text) => {
-                setUsername(text);
-                if (usernameError) setUsernameError("");
-                if (generalError) setGeneralError("");
-              }}
-              placeholderTextColor={t.muted}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {usernameError ? (
-              <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 4, marginLeft: 4 }}>
-                {usernameError}
-              </Text>
-            ) : null}
-          </View>
-
-          <View style={{ marginBottom: 20 }}>
-            <Text style={{
-              fontSize: 16,
-              fontWeight: '600',
-              color: t.heading,
-              marginBottom: 8
-            }}>
-              Email
-            </Text>
-            <TextInput
-              style={{
-                backgroundColor: t.cardBg,
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                fontSize: 16,
-                color: t.heading,
-                borderWidth: 1,
-                borderColor: emailError ? '#DC2626' : t.border
-              }}
-              placeholder="votre.email@exemple.com"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (emailError) setEmailError("");
-                if (generalError) setGeneralError("");
-              }}
-              placeholderTextColor={t.muted}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {emailError ? (
-              <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 4, marginLeft: 4 }}>
-                {emailError}
-              </Text>
-            ) : null}
-          </View>
-
-          {/* Localisation Section */}
-
-          <View style={{ marginBottom: 20 }}>
-            <Text style={{
-              fontSize: 16,
-              fontWeight: '600',
-              color: t.heading,
-              marginBottom: 8
-            }}>
-              Mot de passe
-            </Text>
-            <TextInput
-              style={{
-                backgroundColor: t.cardBg,
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                fontSize: 16,
-                color: t.heading,
-                borderWidth: 1,
-                borderColor: passwordError ? '#DC2626' : t.border
-              }}
-              placeholder="••••••••"
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                if (passwordError) setPasswordError("");
-                if (generalError) setGeneralError("");
-              }}
-              placeholderTextColor={t.muted}
-              secureTextEntry
-            />
-            {passwordError ? (
-              <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 4, marginLeft: 4 }}>
-                {passwordError}
-              </Text>
-            ) : null}
-          </View>
-
-          <View style={{ marginBottom: 20 }}>
-            <Text style={{
-              fontSize: 16,
-              fontWeight: '600',
-              color: t.heading,
-              marginBottom: 8
-            }}>
-              Confirmer le mot de passe
-            </Text>
-            <TextInput
-              style={{
-                backgroundColor: t.cardBg,
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                fontSize: 16,
-                color: t.heading,
-                borderWidth: 1,
-                borderColor: confirmPasswordError ? '#DC2626' : t.border
-              }}
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChangeText={(text) => {
-                setConfirmPassword(text);
-                if (confirmPasswordError) setConfirmPasswordError("");
-                if (generalError) setGeneralError("");
-              }}
-              placeholderTextColor={t.muted}
-              secureTextEntry
-            />
-            {confirmPasswordError ? (
-              <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 4, marginLeft: 4 }}>
-                {confirmPasswordError}
-              </Text>
-            ) : null}
-          </View>
-
-          {/* Case à cocher CGU/CGV */}
-          <View style={{ marginBottom: 24 }}>
-            <TouchableOpacity
-              style={{
-                flexDirection: 'row',
-                alignItems: 'flex-start',
-              }}
-              onPress={() => {
-                setAcceptedTerms(!acceptedTerms);
-                if (termsError) setTermsError("");
-              }}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.keyboardView}
+          >
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
             >
-              <View style={{
-                width: 24,
-                height: 24,
-                borderRadius: 6,
-                borderWidth: 2,
-                borderColor: termsError ? '#DC2626' : (acceptedTerms ? t.primaryBtn : t.border),
-                backgroundColor: acceptedTerms ? t.primaryBtn : 'transparent',
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginRight: 12,
-                marginTop: 2
-              }}>
-                {acceptedTerms && (
-                  <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-                )}
+              {/* Header */}
+              <View style={styles.header}>
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={() => router.back()}
+                >
+                  <Ionicons name="arrow-back" size={24} color="#FFF" />
+                </TouchableOpacity>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 14, color: t.heading, lineHeight: 20 }}>
-                  J'atteste avoir lu et j'accepte les{' '}
-                  <Text
-                    style={{ color: t.primaryBtn, textDecorationLine: 'underline' }}
-                    onPress={() => router.push('/legal/cgu' as any)}
-                  >
-                    Conditions Generales d'Utilisation
-                  </Text>
-                  {', les '}
-                  <Text
-                    style={{ color: t.primaryBtn, textDecorationLine: 'underline' }}
-                    onPress={() => router.push('/legal/cgv' as any)}
-                  >
-                    Conditions Generales de Vente
-                  </Text>
-                  {' et la '}
-                  <Text
-                    style={{ color: t.primaryBtn, textDecorationLine: 'underline' }}
-                    onPress={() => router.push('/legal/privacy' as any)}
-                  >
-                    Politique de Confidentialite
-                  </Text>
-                  .
-                </Text>
+
+              {/* Logo Section */}
+              <View style={styles.logoSection}>
+                <View style={styles.logoContainer}>
+                  <Ionicons name="shield-checkmark" size={40} color="#FFFFFF" />
+                </View>
+                <Text style={styles.brandName}>GEARTED</Text>
               </View>
-            </TouchableOpacity>
-            {termsError ? (
-              <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 8, marginLeft: 36 }}>
-                {termsError}
-              </Text>
-            ) : null}
-          </View>
 
-          <TouchableOpacity
-            style={{
-              backgroundColor: t.primaryBtn,
-              paddingVertical: 16,
-              borderRadius: 12,
-              alignItems: 'center',
-              marginBottom: 16,
-              opacity: isLoading ? 0.7 : 1
-            }}
-            onPress={handleRegister}
-            disabled={isLoading}
-          >
-            <Text style={{
-              color: t.white,
-              fontSize: 16,
-              fontWeight: '600'
-            }}>
-              {isLoading ? "Inscription..." : "S'inscrire"}
-            </Text>
-          </TouchableOpacity>
+              {/* Form Card */}
+              <BlurView intensity={20} tint="dark" style={styles.formCard}>
+                <View style={styles.formContent}>
+                  <Text style={styles.title}>Créer un compte</Text>
+                  <Text style={styles.subtitle}>Rejoignez la communauté airsoft</Text>
 
-          {/* Séparateur OU */}
-          <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            marginBottom: 16
-          }}>
-            <View style={{ flex: 1, height: 1, backgroundColor: t.border }} />
-            <Text style={{
-              marginHorizontal: 16,
-              color: t.muted,
-              fontSize: 14,
-              fontWeight: '500'
-            }}>
-              OU
-            </Text>
-            <View style={{ flex: 1, height: 1, backgroundColor: t.border }} />
-          </View>
+                  {/* Username Input */}
+                  <View style={styles.inputContainer}>
+                    <Ionicons name="person-outline" size={20} color="rgba(255,255,255,0.6)" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Nom d'utilisateur"
+                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      value={username}
+                      onChangeText={setUsername}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
 
-          {/* Bouton Discord */}
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#5865F2',
-              paddingVertical: 16,
-              borderRadius: 12,
-              alignItems: 'center',
-              marginBottom: 24,
-              flexDirection: 'row',
-              justifyContent: 'center',
-              opacity: isLoading ? 0.7 : 1
-            }}
-            onPress={handleDiscordRegister}
-            disabled={isLoading}
-          >
-            <Ionicons name="logo-discord" size={24} color="#FFFFFF" style={{ marginRight: 8 }} />
-            <Text style={{
-              color: '#FFFFFF',
-              fontSize: 16,
-              fontWeight: '600'
-            }}>
-              S'inscrire avec Discord
-            </Text>
-          </TouchableOpacity>
+                  {/* Email Input */}
+                  <View style={styles.inputContainer}>
+                    <Ionicons name="mail-outline" size={20} color="rgba(255,255,255,0.6)" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Email"
+                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      value={email}
+                      onChangeText={setEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
 
-          <TouchableOpacity
-            style={{
-              paddingVertical: 16,
-              alignItems: 'center',
-              marginBottom: 16
-            }}
-            onPress={() => router.push("/login" as any)}
-          >
-            <Text style={{
-              color: t.muted,
-              fontSize: 14
-            }}>
-              Déjà un compte ?{" "}
-              <Text style={{ color: t.primaryBtn, fontWeight: '600' }}>
-                Se connecter
-              </Text>
-            </Text>
-          </TouchableOpacity>
+                  {/* Password Input */}
+                  <View style={styles.inputContainer}>
+                    <Ionicons name="lock-closed-outline" size={20} color="rgba(255,255,255,0.6)" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Mot de passe"
+                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                      style={styles.eyeIcon}
+                    >
+                      <Ionicons
+                        name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                        size={20}
+                        color="rgba(255,255,255,0.6)"
+                      />
+                    </TouchableOpacity>
+                  </View>
 
-          {/* Footer juridique */}
-          <LegalFooter />
-        </View>
-      </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+                  {/* Password Strength Indicator */}
+                  {password.length > 0 && (
+                    <View style={styles.strengthContainer}>
+                      <View style={styles.strengthBars}>
+                        {[1, 2, 3, 4, 5].map((level) => (
+                          <View
+                            key={level}
+                            style={[
+                              styles.strengthBar,
+                              {
+                                backgroundColor:
+                                  level <= passwordStrength.level
+                                    ? passwordStrength.color
+                                    : 'rgba(255,255,255,0.1)',
+                              },
+                            ]}
+                          />
+                        ))}
+                      </View>
+                      <Text style={[styles.strengthText, { color: passwordStrength.color }]}>
+                        {passwordStrength.text}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Confirm Password Input */}
+                  <View style={styles.inputContainer}>
+                    <Ionicons name="lock-closed-outline" size={20} color="rgba(255,255,255,0.6)" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Confirmer le mot de passe"
+                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      secureTextEntry={!showConfirmPassword}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                      style={styles.eyeIcon}
+                    >
+                      <Ionicons
+                        name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
+                        size={20}
+                        color="rgba(255,255,255,0.6)"
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Password Match Indicator */}
+                  {confirmPassword.length > 0 && (
+                    <View style={styles.matchIndicator}>
+                      <Ionicons
+                        name={password === confirmPassword ? 'checkmark-circle' : 'close-circle'}
+                        size={16}
+                        color={password === confirmPassword ? '#00D4AA' : '#FF6B6B'}
+                      />
+                      <Text
+                        style={[
+                          styles.matchText,
+                          { color: password === confirmPassword ? '#00D4AA' : '#FF6B6B' },
+                        ]}
+                      >
+                        {password === confirmPassword
+                          ? 'Les mots de passe correspondent'
+                          : 'Les mots de passe ne correspondent pas'}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Terms Checkbox */}
+                  <TouchableOpacity
+                    style={styles.termsContainer}
+                    onPress={() => setAcceptedTerms(!acceptedTerms)}
+                  >
+                    <View
+                      style={[
+                        styles.checkbox,
+                        acceptedTerms && styles.checkboxChecked,
+                      ]}
+                    >
+                      {acceptedTerms && (
+                        <Ionicons name="checkmark" size={14} color="#FFF" />
+                      )}
+                    </View>
+                    <Text style={styles.termsText}>
+                      J'accepte les{' '}
+                      <Text
+                        style={styles.termsLink}
+                        onPress={() => router.push('/legal/cgu')}
+                      >
+                        conditions d'utilisation
+                      </Text>
+                      {' '}et la{' '}
+                      <Text
+                        style={styles.termsLink}
+                        onPress={() => router.push('/privacy-policy')}
+                      >
+                        politique de confidentialité
+                      </Text>
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Register Button */}
+                  <TouchableOpacity
+                    style={[styles.registerButton, !acceptedTerms && styles.buttonDisabled]}
+                    onPress={handleRegister}
+                    disabled={loading || !acceptedTerms}
+                  >
+                    <LinearGradient
+                      colors={acceptedTerms ? ['#00D4AA', '#00B894'] : ['#555', '#444']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.buttonGradient}
+                    >
+                      {loading ? (
+                        <ActivityIndicator color="#FFF" />
+                      ) : (
+                        <Text style={styles.registerButtonText}>Créer mon compte</Text>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+
+                  {/* Divider */}
+                  <View style={styles.divider}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>ou</Text>
+                    <View style={styles.dividerLine} />
+                  </View>
+
+                  {/* Discord Button */}
+                  <TouchableOpacity
+                    style={styles.discordButton}
+                    onPress={handleDiscordRegister}
+                    disabled={discordLoading}
+                  >
+                    <Ionicons name="logo-discord" size={24} color="#FFF" />
+                    {discordLoading ? (
+                      <ActivityIndicator color="#FFF" style={{ marginLeft: 10 }} />
+                    ) : (
+                      <Text style={styles.discordButtonText}>S'inscrire avec Discord</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </BlurView>
+
+              {/* Login Link */}
+              <View style={styles.loginSection}>
+                <Text style={styles.loginText}>Déjà un compte ?</Text>
+                <TouchableOpacity onPress={() => router.push('/login')}>
+                  <Text style={styles.loginLink}>Se connecter</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </LinearGradient>
+      </ImageBackground>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  gradientOverlay: {
+    flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingBottom: 10,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoSection: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  logoContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(0,212,170,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(0,212,170,0.5)',
+  },
+  brandName: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 3,
+  },
+  formCard: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  formContent: {
+    padding: 24,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 20,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  inputIcon: {
+    paddingLeft: 16,
+  },
+  input: {
+    flex: 1,
+    height: 50,
+    paddingHorizontal: 12,
+    color: '#FFFFFF',
+    fontSize: 16,
+  },
+  eyeIcon: {
+    padding: 14,
+  },
+  strengthContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  strengthBars: {
+    flexDirection: 'row',
+    flex: 1,
+    gap: 4,
+  },
+  strengthBar: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+  },
+  strengthText: {
+    fontSize: 12,
+    marginLeft: 10,
+    fontWeight: '600',
+  },
+  matchIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  matchText: {
+    fontSize: 12,
+    marginLeft: 6,
+  },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    marginTop: 2,
+  },
+  checkboxChecked: {
+    backgroundColor: '#00D4AA',
+    borderColor: '#00D4AA',
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+    lineHeight: 20,
+  },
+  termsLink: {
+    color: '#00D4AA',
+  },
+  registerButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  buttonGradient: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  registerButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  dividerText: {
+    color: 'rgba(255,255,255,0.5)',
+    paddingHorizontal: 16,
+    fontSize: 14,
+  },
+  discordButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#5865F2',
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  discordButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 10,
+  },
+  loginSection: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  loginText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 14,
+  },
+  loginLink: {
+    color: '#00D4AA',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+});
