@@ -19,7 +19,7 @@ import { useTheme } from "../../components/ThemeProvider";
 import { UserBadge } from "../../components/UserBadge";
 import { CATEGORIES } from "../../data";
 import { useDebounce } from "../../hooks/useDebounce";
-import { useFavorites, useInfiniteProducts, useToggleFavorite } from "../../hooks/useProducts";
+import { useFavoritesWithAuth, useInfiniteProducts, useToggleFavorite } from "../../hooks/useProducts";
 import { Product, useProductsStore } from "../../stores/productsStore";
 import { THEMES } from "../../themes";
 
@@ -33,7 +33,7 @@ export default function BrowseScreen() {
   
   const { filters, setFilters, isFavorite } = useProductsStore();
   const toggleFavorite = useToggleFavorite();
-  const { data: favoriteIds = [] } = useFavorites();
+  const { data: favoriteIds = [] } = useFavoritesWithAuth();
   
   const t = THEMES[theme];
 

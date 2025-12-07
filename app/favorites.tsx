@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { EmptyState } from '../components/EmptyState';
 import { useTheme } from "../components/ThemeProvider";
-import { useFavorites, useProducts, useToggleFavorite } from '../hooks/useProducts';
+import { useFavoritesWithAuth, useProducts, useToggleFavorite } from '../hooks/useProducts';
 import { Product } from '../stores/productsStore';
 import { THEMES } from "../themes";
 
@@ -25,7 +25,7 @@ export default function FavoritesScreen() {
   const t = THEMES[theme];
 
   // Use React Query hooks for API integration
-  const { data: favoriteIds = [], isLoading: isLoadingFavorites } = useFavorites();
+  const { data: favoriteIds = [], isLoading: isLoadingFavorites } = useFavoritesWithAuth();
   const { data: productsData, isLoading: isLoadingProducts } = useProducts({});
   const toggleFavoriteMutation = useToggleFavorite();
 

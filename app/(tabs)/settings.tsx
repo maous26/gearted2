@@ -170,9 +170,14 @@ export default function Settings() {
         {
           text: "Déconnexion",
           style: "destructive",
-          onPress: () => {
-            logout();
-            router.replace('/login');
+          onPress: async () => {
+            console.log('[Settings] Starting logout...');
+            await logout();
+            console.log('[Settings] Logout complete, navigating to landing...');
+            // Small delay to ensure state is fully cleared before navigation
+            setTimeout(() => {
+              router.replace('/');
+            }, 100);
           }
         }
       ]

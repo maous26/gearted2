@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,34 +10,42 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import TokenManager from '../services/storage';
+import { useUser } from '../components/UserProvider';
 
 const { height } = Dimensions.get('window');
 
 export default function GeartedLanding() {
   const router = useRouter();
+  const { user } = useUser();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const hasValidToken = await TokenManager.hasValidToken();
-        if (hasValidToken) {
-          console.log('[Landing] Valid token found, redirecting to home');
-          router.replace('/(tabs)');
-        } else {
-          console.log('[Landing] No valid token, showing landing page');
+  // Check auth every time the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const checkAuth = async () => {
+        try {
+          // Check both token AND user state
+          const hasValidToken = await TokenManager.hasValidToken();
+
+          if (hasValidToken && user) {
+            console.log('[Landing] Valid token and user found, redirecting to home');
+            router.replace('/(tabs)');
+          } else {
+            console.log('[Landing] No valid auth, showing landing page');
+            setIsCheckingAuth(false);
+          }
+        } catch (error) {
+          console.error('[Landing] Auth check error:', error);
           setIsCheckingAuth(false);
         }
-      } catch (error) {
-        console.error('[Landing] Auth check error:', error);
-        setIsCheckingAuth(false);
-      }
-    };
-    checkAuth();
-  }, []);
+      };
+
+      checkAuth();
+    }, [user])
+  );
 
   if (isCheckingAuth) {
     return (

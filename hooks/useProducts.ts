@@ -1,5 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import api from '../services/api';
+import TokenManager from '../services/storage';
 import { Product, ProductFilters, useProductsStore } from '../stores/productsStore';
 
 interface ProductsResponse {
@@ -117,10 +119,8 @@ export const useDeleteProduct = () => {
   });
 };
 
-// Hook pour les favoris
+// Hook pour les favoris - only fetch if user is authenticated
 export const useFavorites = () => {
-  const setFavoritesInStore = useProductsStore(state => state.toggleFavorite); // not used directly
-  const store = useProductsStore.getState();
   return useQuery({
     queryKey: ['favorites'],
     queryFn: async () => {
@@ -130,6 +130,29 @@ export const useFavorites = () => {
       return response.productIds;
     },
     staleTime: 30_000,
+    enabled: false, // Disabled by default, use useFavoritesWithAuth instead
+    retry: false,
+  });
+};
+
+// Hook pour les favoris avec vérification d'authentification
+export const useFavoritesWithAuth = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    TokenManager.hasValidToken().then(setIsAuthenticated);
+  }, []);
+
+  return useQuery({
+    queryKey: ['favorites'],
+    queryFn: async () => {
+      const response = await api.get<{ productIds: string[] }>('/api/favorites');
+      useProductsStore.setState({ favorites: response.productIds });
+      return response.productIds;
+    },
+    staleTime: 30_000,
+    enabled: isAuthenticated,
+    retry: false,
   });
 };
 

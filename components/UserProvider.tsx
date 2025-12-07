@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import TokenManager from '../services/storage';
+import { queryClient } from './QueryProvider';
 
 const USER_STORAGE_KEY = '@gearted_user_profile';
 
@@ -114,18 +115,30 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     // Déconnexion : supprimer les tokens et vider le profil
-    setIsOnboarded(false);
-    setUser(null);
+    console.log('[UserProvider] Starting logout process...');
 
     try {
-      // Supprimer les tokens JWT
+      // 1. Clear React Query cache first to prevent stale authenticated requests
+      queryClient.clear();
+      console.log('[UserProvider] Query cache cleared');
+
+      // 2. Supprimer les tokens JWT
       await TokenManager.clearTokens();
       console.log('[UserProvider] Tokens cleared');
 
-      // Optionnel : supprimer aussi le profil du stockage local
-      // await AsyncStorage.removeItem(USER_STORAGE_KEY);
+      // 3. Supprimer le profil du stockage local
+      await AsyncStorage.removeItem(USER_STORAGE_KEY);
+      console.log('[UserProvider] User profile removed from storage');
+
+      // 4. Clear state AFTER storage is cleared
+      setIsOnboarded(false);
+      setUser(null);
+      console.log('[UserProvider] State cleared - logout complete');
     } catch (error) {
       console.error('[UserProvider] Error during logout:', error);
+      // Still clear state even if storage operations fail
+      setIsOnboarded(false);
+      setUser(null);
     }
   };
 
