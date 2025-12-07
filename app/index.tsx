@@ -1,306 +1,610 @@
-import React, { useEffect, useState } from 'react';import React, { useEffect, useState } from 'react';import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useState } from 'react';import React, { useEffect, useState } from 'react';import React, { useEffect, useState } from 'react';import { LinearGradient } from "expo-linear-gradient";
 
 import {
 
-  View,import {import { useRouter } from "expo-router";
+  View,import {
 
   Text,
 
-  TouchableOpacity,  View,import React, { useEffect, useState } from "react";
+  TouchableOpacity,  View,import {import { useRouter } from "expo-router";
 
   StyleSheet,
 
-  Dimensions,  Text,import {
+  Dimensions,  Text,
 
   Image,
 
-  StatusBar,  TouchableOpacity,    Dimensions,
+  StatusBar,  TouchableOpacity,  View,import React, { useEffect, useState } from "react";
 
   ScrollView,
 
-  ActivityIndicator,  StyleSheet,    ScrollView,
+  ActivityIndicator,  StyleSheet,
 
 } from 'react-native';
 
-import { LinearGradient } from 'expo-linear-gradient';  Dimensions,    StatusBar,
+import { LinearGradient } from 'expo-linear-gradient';  Dimensions,  Text,import {
 
 import { useRouter } from 'expo-router';
 
-import { Ionicons } from '@expo/vector-icons';  ImageBackground,    Text,
+import { Ionicons } from '@expo/vector-icons';  Image,
 
 import TokenManager from '../services/storage';
 
-  StatusBar,    TextInput,
+  StatusBar,  TouchableOpacity,    Dimensions,
 
 const { width, height } = Dimensions.get('window');
 
-  ScrollView,    TouchableOpacity,
+  ScrollView,
 
 export default function GeartedLanding() {
 
-  const router = useRouter();  ActivityIndicator,    View
+  const router = useRouter();  ActivityIndicator,  StyleSheet,    ScrollView,
 
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-} from 'react-native';} from "react-native";
+} from 'react-native';
 
   useEffect(() => {
 
-    const checkAuth = async () => {import { BlurView } from 'expo-blur';import { SafeAreaView } from "react-native-safe-area-context";
+    const checkAuth = async () => {import { LinearGradient } from 'expo-linear-gradient';  Dimensions,    StatusBar,
 
       try {
 
-        const hasValidToken = await TokenManager.hasValidToken();import { LinearGradient } from 'expo-linear-gradient';import { CategoryPill } from "../components/CategoryPill";
+        const hasValidToken = await TokenManager.hasValidToken();import { useRouter } from 'expo-router';
 
         
 
-        if (hasValidToken) {import { useRouter } from 'expo-router';import { CATEGORIES, TRUST } from "../data";
+        if (hasValidToken) {import { Ionicons } from '@expo/vector-icons';  ImageBackground,    Text,
 
           console.log('[Landing] Valid token found, redirecting to home');
 
-          router.replace('/(tabs)');import { Ionicons } from '@expo/vector-icons';import TokenManager from "../services/storage";
+          router.replace('/(tabs)');import TokenManager from '../services/storage';
 
         } else {
 
-          console.log('[Landing] No valid token, showing landing page');import TokenManager from '../services/storage';import { THEMES, ThemeKey } from "../themes";
+          console.log('[Landing] No valid token, showing landing page');  StatusBar,    TextInput,
 
           setIsCheckingAuth(false);
 
-        }
+        }const { width, height } = Dimensions.get('window');
 
       } catch (error) {
 
-        console.error('[Landing] Auth check error:', error);const { width, height } = Dimensions.get('window');const { width } = Dimensions.get('window');
+        console.error('[Landing] Auth check error:', error);  ScrollView,    TouchableOpacity,
 
         setIsCheckingAuth(false);
 
-      }
+      }export default function GeartedLanding() {
 
     };
 
-export default function GeartedLanding() {export default function GeartedLanding() {
+  const router = useRouter();  ActivityIndicator,    View
 
     checkAuth();
 
-  }, []);  const router = useRouter();  const router = useRouter();
+  }, []);  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
 
 
-  if (isCheckingAuth) {  const [isCheckingAuth, setIsCheckingAuth] = useState(true);  const [theme, setTheme] = useState<ThemeKey>("ranger");
+  if (isCheckingAuth) {} from 'react-native';} from "react-native";
 
     return (
 
-      <View style={styles.loadingContainer}>  const [searchText, setSearchText] = useState("");
+      <View style={styles.loadingContainer}>  useEffect(() => {
 
         <ActivityIndicator size="large" color="#00D4AA" />
 
-      </View>  useEffect(() => {  const [location, setLocation] = useState("");
+      </View>    const checkAuth = async () => {import { BlurView } from 'expo-blur';import { SafeAreaView } from "react-native-safe-area-context";
 
     );
 
-  }    const checkAuth = async () => {  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  }      try {
 
 
 
-  return (      try {  
+  return (        const hasValidToken = await TokenManager.hasValidToken();import { LinearGradient } from 'expo-linear-gradient';import { CategoryPill } from "../components/CategoryPill";
 
     <View style={styles.container}>
 
-      <StatusBar barStyle="dark-content" />        const hasValidToken = await TokenManager.hasValidToken();  const t = THEMES[theme];
+      <StatusBar barStyle="dark-content" />        
 
       
 
-      {/* Header with image and fade effect */}        
+      {/* Header with image and fade effect */}        if (hasValidToken) {import { useRouter } from 'expo-router';import { CATEGORIES, TRUST } from "../data";
 
       <View style={styles.headerContainer}>
 
-        <Image        if (hasValidToken) {  // Vérifier si l'utilisateur est déjà connecté au démarrage
+        <Image          console.log('[Landing] Valid token found, redirecting to home');
 
           source={require('../assets/GEARTEDicon8.png')}
 
-          style={styles.headerImage}          console.log('[Landing] Valid token found, redirecting to home');  useEffect(() => {
+          style={styles.headerImage}          router.replace('/(tabs)');import { Ionicons } from '@expo/vector-icons';import TokenManager from "../services/storage";
 
           resizeMode="cover"
 
-        />          router.replace('/(tabs)');    const checkAuth = async () => {
+        />        } else {
 
         {/* Gradient fade from image to white */}
 
-        <LinearGradient        } else {      try {
+        <LinearGradient          console.log('[Landing] No valid token, showing landing page');import TokenManager from '../services/storage';import { THEMES, ThemeKey } from "../themes";
 
           colors={['transparent', 'rgba(255,255,255,0.3)', 'rgba(255,255,255,0.8)', '#FFFFFF']}
 
-          style={styles.fadeGradient}          console.log('[Landing] No valid token, showing landing page');        const hasValidToken = await TokenManager.hasValidToken();
+          style={styles.fadeGradient}          setIsCheckingAuth(false);
 
         />
 
-        {/* Side gradients for glow effect */}          setIsCheckingAuth(false);        
+        {/* Side gradients for glow effect */}        }
 
         <LinearGradient
 
-          colors={['rgba(99,102,241,0.4)', 'transparent']}        }        if (hasValidToken) {
+          colors={['rgba(99,102,241,0.4)', 'transparent']}      } catch (error) {
 
           start={{ x: 0, y: 0.5 }}
 
-          end={{ x: 1, y: 0.5 }}      } catch (error) {          // Token valide trouvé, rediriger vers l'app
+          end={{ x: 1, y: 0.5 }}        console.error('[Landing] Auth check error:', error);const { width, height } = Dimensions.get('window');const { width } = Dimensions.get('window');
 
           style={styles.leftGlow}
 
-        />        console.error('[Landing] Auth check error:', error);          // Le UserProvider chargera automatiquement le profil depuis AsyncStorage
+        />        setIsCheckingAuth(false);
 
         <LinearGradient
 
-          colors={['transparent', 'rgba(168,85,247,0.4)']}        setIsCheckingAuth(false);          console.log('[Landing] Valid token found, redirecting to home');
+          colors={['transparent', 'rgba(168,85,247,0.4)']}      }
 
           start={{ x: 0, y: 0.5 }}
 
-          end={{ x: 1, y: 0.5 }}      }          router.replace("/(tabs)" as any);
+          end={{ x: 1, y: 0.5 }}    };
 
           style={styles.rightGlow}
 
-        />    };        } else {
+        />export default function GeartedLanding() {export default function GeartedLanding() {
 
       </View>
 
-          console.log('[Landing] No valid token, showing landing page');
+    checkAuth();
 
       {/* Content */}
 
-      <ScrollView     checkAuth();          setIsCheckingAuth(false);
+      <ScrollView   }, []);  const router = useRouter();  const router = useRouter();
 
         style={styles.content}
 
-        contentContainerStyle={styles.contentContainer}  }, []);        }
+        contentContainerStyle={styles.contentContainer}
 
         showsVerticalScrollIndicator={false}
 
-      >      } catch (error) {
+      >  if (isCheckingAuth) {  const [isCheckingAuth, setIsCheckingAuth] = useState(true);  const [theme, setTheme] = useState<ThemeKey>("ranger");
 
         {/* Title Section */}
 
-        <View style={styles.titleSection}>  if (isCheckingAuth) {        console.error('[Landing] Auth check error:', error);
+        <View style={styles.titleSection}>    return (
 
           <Text style={styles.title}>
 
-            Ton équipement,{'\n'}ta communauté.    return (        setIsCheckingAuth(false);
+            Ton équipement,{'\n'}ta communauté.      <View style={styles.loadingContainer}>  const [searchText, setSearchText] = useState("");
 
           </Text>
 
-          <Text style={styles.subtitle}>      <View style={styles.loadingContainer}>      }
+          <Text style={styles.subtitle}>        <ActivityIndicator size="large" color="#00D4AA" />
 
             La marketplace airsoft de confiance pour acheter et vendre ton matériel.
 
-          </Text>        <ActivityIndicator size="large" color="#00D4AA" />    };
+          </Text>      </View>  useEffect(() => {  const [location, setLocation] = useState("");
 
         </View>
 
-      </View>
+    );
 
         {/* Pagination dots */}
 
-        <View style={styles.dotsContainer}>    );    checkAuth();
+        <View style={styles.dotsContainer}>  }    const checkAuth = async () => {  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
           <View style={[styles.dot, styles.dotInactive]} />
 
-          <View style={[styles.dot, styles.dotActive]} />  }  }, []);
+          <View style={[styles.dot, styles.dotActive]} />
 
           <View style={[styles.dot, styles.dotInactive]} />
 
-        </View>
+        </View>  return (      try {  
 
 
 
-        {/* Features */}  return (  // Afficher un écran vide pendant la vérification
+        {/* Features */}    <View style={styles.container}>
 
         <View style={styles.featuresContainer}>
 
-          <FeatureItem     <View style={styles.container}>  if (isCheckingAuth) {
+          <FeatureItem       <StatusBar barStyle="dark-content" />        const hasValidToken = await TokenManager.hasValidToken();  const t = THEMES[theme];
 
             icon="flash-outline"
 
-            title="Annonce en 2 minutes"      <StatusBar barStyle="light-content" />    return (
+            title="Annonce en 2 minutes"      
 
             description="Publie ton équipement rapidement."
 
-          />            <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
+          />      {/* Header with image and fade effect */}        
 
           <FeatureItem 
 
-            icon="shield-checkmark-outline"      {/* Background Image */}        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            icon="shield-checkmark-outline"      <View style={styles.headerContainer}>
 
             title="Paiement sécurisé"
 
-            description="Protégé jusqu'à réception."      <ImageBackground          <Text style={{ color: t.muted }}>Chargement...</Text>
+            description="Protégé jusqu'à réception."        <Image        if (hasValidToken) {  // Vérifier si l'utilisateur est déjà connecté au démarrage
 
           />
 
-          <FeatureItem         source={require('../assets/GEARTEDicon8.png')}        </View>
+          <FeatureItem           source={require('../assets/GEARTEDicon8.png')}
 
             icon="people-outline"
 
-            title="Communauté vérifiée"        style={styles.backgroundImage}      </SafeAreaView>
+            title="Communauté vérifiée"          style={styles.headerImage}          console.log('[Landing] Valid token found, redirecting to home');  useEffect(() => {
 
             description="Des joueurs passionnés comme toi."
 
-          />        resizeMode="cover"    );
+          />          resizeMode="cover"
 
         </View>
 
-      >  }
+        />          router.replace('/(tabs)');    const checkAuth = async () => {
 
         {/* CTA Buttons */}
 
-        <TouchableOpacity        {/* Gradient Overlay */}
+        <TouchableOpacity        {/* Gradient fade from image to white */}
 
           style={styles.primaryButton}
 
-          onPress={() => router.push('/register')}        <LinearGradient  return (
+          onPress={() => router.push('/register')}        <LinearGradient        } else {      try {
 
         >
 
-          <Text style={styles.primaryButtonText}>Commencer l'aventure</Text>          colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.95)']}    <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
+          <Text style={styles.primaryButtonText}>Commencer l'aventure</Text>          colors={['transparent', 'rgba(255,255,255,0.3)', 'rgba(255,255,255,0.8)', '#FFFFFF']}
 
         </TouchableOpacity>
 
-          style={styles.gradientOverlay}      <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
+          style={styles.fadeGradient}          console.log('[Landing] No valid token, showing landing page');        const hasValidToken = await TokenManager.hasValidToken();
 
         <TouchableOpacity
 
-          style={styles.secondaryButton}        >
+          style={styles.secondaryButton}        />
 
           onPress={() => router.push('/login')}
 
-        >          <ScrollView       <ScrollView style={{ flex: 1 }}>
+        >        {/* Side gradients for glow effect */}          setIsCheckingAuth(false);        
 
           <Text style={styles.secondaryButtonText}>J'ai déjà un compte</Text>
 
-        </TouchableOpacity>            contentContainerStyle={styles.scrollContent}        {/* Hero Section */}
+        </TouchableOpacity>        <LinearGradient
 
       </ScrollView>
 
-    </View>            showsVerticalScrollIndicator={false}        <LinearGradient
+    </View>          colors={['rgba(99,102,241,0.4)', 'transparent']}        }        if (hasValidToken) {
 
   );
 
-}          >          colors={[t.heroGradStart + 'CC', t.heroGradEnd + '66']}
+}          start={{ x: 0, y: 0.5 }}
 
 
 
-interface FeatureItemProps {            {/* Logo Section */}          style={{ paddingHorizontal: 16, paddingTop: 32, paddingBottom: 24 }}
+interface FeatureItemProps {          end={{ x: 1, y: 0.5 }}      } catch (error) {          // Token valide trouvé, rediriger vers l'app
 
   icon: keyof typeof Ionicons.glyphMap;
 
-  title: string;            <View style={styles.logoSection}>        >
+  title: string;          style={styles.leftGlow}
 
   description: string;
 
-}              <View style={styles.logoContainer}>          <View>
+}        />        console.error('[Landing] Auth check error:', error);          // Le UserProvider chargera automatiquement le profil depuis AsyncStorage
 
 
 
-function FeatureItem({ icon, title, description }: FeatureItemProps) {                <Ionicons name="shield-checkmark" size={60} color="#FFFFFF" />            <Text style={{
+function FeatureItem({ icon, title, description }: FeatureItemProps) {        <LinearGradient
 
   return (
+
+    <View style={styles.featureItem}>          colors={['transparent', 'rgba(168,85,247,0.4)']}        setIsCheckingAuth(false);          console.log('[Landing] Valid token found, redirecting to home');
+
+      <View style={styles.featureIconContainer}>
+
+        <Ionicons name={icon} size={22} color="#00D4AA" />          start={{ x: 0, y: 0.5 }}
+
+      </View>
+
+      <View style={styles.featureTextContainer}>          end={{ x: 1, y: 0.5 }}      }          router.replace("/(tabs)" as any);
+
+        <Text style={styles.featureTitle}>{title}</Text>
+
+        <Text style={styles.featureDescription}>{description}</Text>          style={styles.rightGlow}
+
+      </View>
+
+    </View>        />    };        } else {
+
+  );
+
+}      </View>
+
+
+
+const styles = StyleSheet.create({          console.log('[Landing] No valid token, showing landing page');
+
+  container: {
+
+    flex: 1,      {/* Content */}
+
+    backgroundColor: '#FFFFFF',
+
+  },      <ScrollView     checkAuth();          setIsCheckingAuth(false);
+
+  loadingContainer: {
+
+    flex: 1,        style={styles.content}
+
+    backgroundColor: '#FFFFFF',
+
+    justifyContent: 'center',        contentContainerStyle={styles.contentContainer}  }, []);        }
+
+    alignItems: 'center',
+
+  },        showsVerticalScrollIndicator={false}
+
+  headerContainer: {
+
+    height: height * 0.38,      >      } catch (error) {
+
+    position: 'relative',
+
+  },        {/* Title Section */}
+
+  headerImage: {
+
+    width: '100%',        <View style={styles.titleSection}>  if (isCheckingAuth) {        console.error('[Landing] Auth check error:', error);
+
+    height: '100%',
+
+  },          <Text style={styles.title}>
+
+  fadeGradient: {
+
+    position: 'absolute',            Ton équipement,{'\n'}ta communauté.    return (        setIsCheckingAuth(false);
+
+    bottom: 0,
+
+    left: 0,          </Text>
+
+    right: 0,
+
+    height: 120,          <Text style={styles.subtitle}>      <View style={styles.loadingContainer}>      }
+
+  },
+
+  leftGlow: {            La marketplace airsoft de confiance pour acheter et vendre ton matériel.
+
+    position: 'absolute',
+
+    top: 0,          </Text>        <ActivityIndicator size="large" color="#00D4AA" />    };
+
+    left: 0,
+
+    width: 80,        </View>
+
+    height: '100%',
+
+  },      </View>
+
+  rightGlow: {
+
+    position: 'absolute',        {/* Pagination dots */}
+
+    top: 0,
+
+    right: 0,        <View style={styles.dotsContainer}>    );    checkAuth();
+
+    width: 80,
+
+    height: '100%',          <View style={[styles.dot, styles.dotInactive]} />
+
+  },
+
+  content: {          <View style={[styles.dot, styles.dotActive]} />  }  }, []);
+
+    flex: 1,
+
+  },          <View style={[styles.dot, styles.dotInactive]} />
+
+  contentContainer: {
+
+    paddingHorizontal: 24,        </View>
+
+    paddingBottom: 40,
+
+  },
+
+  titleSection: {
+
+    marginBottom: 20,        {/* Features */}  return (  // Afficher un écran vide pendant la vérification
+
+  },
+
+  title: {        <View style={styles.featuresContainer}>
+
+    fontSize: 28,
+
+    fontWeight: '700',          <FeatureItem     <View style={styles.container}>  if (isCheckingAuth) {
+
+    color: '#1A1A2E',
+
+    textAlign: 'center',            icon="flash-outline"
+
+    marginBottom: 12,
+
+    lineHeight: 36,            title="Annonce en 2 minutes"      <StatusBar barStyle="light-content" />    return (
+
+  },
+
+  subtitle: {            description="Publie ton équipement rapidement."
+
+    fontSize: 15,
+
+    color: '#6B7280',          />            <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
+
+    textAlign: 'center',
+
+    lineHeight: 22,          <FeatureItem 
+
+    paddingHorizontal: 10,
+
+  },            icon="shield-checkmark-outline"      {/* Background Image */}        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+
+  dotsContainer: {
+
+    flexDirection: 'row',            title="Paiement sécurisé"
+
+    justifyContent: 'center',
+
+    alignItems: 'center',            description="Protégé jusqu'à réception."      <ImageBackground          <Text style={{ color: t.muted }}>Chargement...</Text>
+
+    marginBottom: 28,
+
+    gap: 8,          />
+
+  },
+
+  dot: {          <FeatureItem         source={require('../assets/GEARTEDicon8.png')}        </View>
+
+    width: 8,
+
+    height: 8,            icon="people-outline"
+
+    borderRadius: 4,
+
+  },            title="Communauté vérifiée"        style={styles.backgroundImage}      </SafeAreaView>
+
+  dotActive: {
+
+    backgroundColor: '#00D4AA',            description="Des joueurs passionnés comme toi."
+
+    width: 24,
+
+  },          />        resizeMode="cover"    );
+
+  dotInactive: {
+
+    backgroundColor: '#E5E7EB',        </View>
+
+  },
+
+  featuresContainer: {      >  }
+
+    marginBottom: 28,
+
+  },        {/* CTA Buttons */}
+
+  featureItem: {
+
+    flexDirection: 'row',        <TouchableOpacity        {/* Gradient Overlay */}
+
+    alignItems: 'center',
+
+    backgroundColor: '#F9FAFB',          style={styles.primaryButton}
+
+    padding: 16,
+
+    borderRadius: 16,          onPress={() => router.push('/register')}        <LinearGradient  return (
+
+    marginBottom: 12,
+
+    borderWidth: 1,        >
+
+    borderColor: '#F3F4F6',
+
+  },          <Text style={styles.primaryButtonText}>Commencer l'aventure</Text>          colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.95)']}    <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
+
+  featureIconContainer: {
+
+    width: 44,        </TouchableOpacity>
+
+    height: 44,
+
+    borderRadius: 12,          style={styles.gradientOverlay}      <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
+
+    backgroundColor: 'rgba(0,212,170,0.1)',
+
+    justifyContent: 'center',        <TouchableOpacity
+
+    alignItems: 'center',
+
+    marginRight: 14,          style={styles.secondaryButton}        >
+
+  },
+
+  featureTextContainer: {          onPress={() => router.push('/login')}
+
+    flex: 1,
+
+  },        >          <ScrollView       <ScrollView style={{ flex: 1 }}>
+
+  featureTitle: {
+
+    fontSize: 16,          <Text style={styles.secondaryButtonText}>J'ai déjà un compte</Text>
+
+    fontWeight: '600',
+
+    color: '#1A1A2E',        </TouchableOpacity>            contentContainerStyle={styles.scrollContent}        {/* Hero Section */}
+
+    marginBottom: 2,
+
+  },      </ScrollView>
+
+  featureDescription: {
+
+    fontSize: 13,    </View>            showsVerticalScrollIndicator={false}        <LinearGradient
+
+    color: '#6B7280',
+
+  },  );
+
+  primaryButton: {
+
+    backgroundColor: '#00D4AA',}          >          colors={[t.heroGradStart + 'CC', t.heroGradEnd + '66']}
+
+    paddingVertical: 16,
+
+    borderRadius: 14,
+
+    alignItems: 'center',
+
+    marginBottom: 12,interface FeatureItemProps {            {/* Logo Section */}          style={{ paddingHorizontal: 16, paddingTop: 32, paddingBottom: 24 }}
+
+  },
+
+  primaryButtonText: {  icon: keyof typeof Ionicons.glyphMap;
+
+    color: '#FFFFFF',
+
+    fontSize: 16,  title: string;            <View style={styles.logoSection}>        >
+
+    fontWeight: '700',
+
+  },  description: string;
+
+  secondaryButton: {
+
+    paddingVertical: 14,}              <View style={styles.logoContainer}>          <View>
+
+    alignItems: 'center',
+
+  },
+
+  secondaryButtonText: {
+
+    color: '#6B7280',function FeatureItem({ icon, title, description }: FeatureItemProps) {                <Ionicons name="shield-checkmark" size={60} color="#FFFFFF" />            <Text style={{
+
+    fontSize: 15,
+
+  },  return (
+
+});
 
     <View style={styles.featureItem}>              </View>              fontSize: 26,
 
