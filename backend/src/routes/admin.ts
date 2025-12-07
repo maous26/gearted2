@@ -850,6 +850,54 @@ router.get('/expert/all', async (req, res) => {
 // EXPERT SERVICE ACTIONS
 // ==========================================
 
+// GET /api/admin/expert/:id/details - Get expert service details for label generation
+router.get('/expert/:id/details', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const expertService = await (prisma as any).expertService.findUnique({
+      where: { id },
+      include: {
+        transaction: {
+          include: {
+            buyer: {
+              select: { 
+                id: true, 
+                username: true, 
+                email: true, 
+                firstName: true, 
+                lastName: true,
+                phone: true
+              }
+            },
+            product: {
+              select: { 
+                id: true, 
+                title: true, 
+                images: true,
+                parcelDimensions: true
+              }
+            },
+            shippingAddress: true
+          }
+        }
+      }
+    });
+
+    if (!expertService) {
+      return res.status(404).json({ error: 'Service Expert introuvable' });
+    }
+
+    return res.json({
+      success: true,
+      service: expertService
+    });
+  } catch (error) {
+    console.error('[admin] Failed to get expert service details:', error);
+    return res.status(500).json({ error: 'Failed to get service details' });
+  }
+});
+
 // POST /api/admin/expert/mark-received/:id - Mark item as received at Gearted
 router.post('/expert/mark-received/:id', async (req, res) => {
   try {

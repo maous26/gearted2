@@ -238,15 +238,142 @@
     /* Hidden */
     .hidden { display: none !important; }
     
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal {
+      background: #1a1a2e;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal h3 { color: #FFB800; margin-bottom: 20px; }
+    .modal-close {
+      float: right;
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 24px;
+      cursor: pointer;
+    }
+    .modal-close:hover { color: #fff; }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .info-item { background: #252540; padding: 12px; border-radius: 8px; }
+    .info-item label { color: #888; font-size: 12px; display: block; margin-bottom: 4px; }
+    .info-item span { color: #fff; font-weight: 500; }
+    
     /* Responsive */
     @media (max-width: 768px) {
       .address-form { grid-template-columns: 1fr; }
       .address-form .full-width { grid-column: span 1; }
       .stats-grid { grid-template-columns: 1fr 1fr; }
+      .info-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
+  <!-- Modal pour générer étiquette -->
+  <div id="labelModal" class="modal-overlay hidden">
+    <div class="modal">
+      <button class="modal-close" onclick="closeLabelModal()">&times;</button>
+      <h3>🚚 Générer l'étiquette vers l'acheteur</h3>
+      
+      <div id="labelModalContent">
+        <h4 style="color:#fff;margin-bottom:12px;">📦 Informations du colis</h4>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Produit</label>
+            <span id="modalProduct">-</span>
+          </div>
+          <div class="info-item">
+            <label>Service Expert ID</label>
+            <span id="modalServiceId">-</span>
+          </div>
+        </div>
+        
+        <h4 style="color:#fff;margin:20px 0 12px;">👤 Adresse de l'acheteur</h4>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Nom</label>
+            <span id="modalBuyerName">-</span>
+          </div>
+          <div class="info-item">
+            <label>Email</label>
+            <span id="modalBuyerEmail">-</span>
+          </div>
+          <div class="info-item" style="grid-column: span 2;">
+            <label>Adresse</label>
+            <span id="modalBuyerAddress">-</span>
+          </div>
+          <div class="info-item">
+            <label>Code postal</label>
+            <span id="modalBuyerPostalCode">-</span>
+          </div>
+          <div class="info-item">
+            <label>Ville</label>
+            <span id="modalBuyerCity">-</span>
+          </div>
+        </div>
+        
+        <h4 style="color:#fff;margin:20px 0 12px;">📐 Dimensions du colis</h4>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Longueur (cm)</label>
+            <input type="number" id="modalLength" class="form-group input" style="width:100%;padding:8px;background:#0f0f0f;border:1px solid #333;border-radius:4px;color:#fff;" value="30">
+          </div>
+          <div class="info-item">
+            <label>Largeur (cm)</label>
+            <input type="number" id="modalWidth" class="form-group input" style="width:100%;padding:8px;background:#0f0f0f;border:1px solid #333;border-radius:4px;color:#fff;" value="20">
+          </div>
+          <div class="info-item">
+            <label>Hauteur (cm)</label>
+            <input type="number" id="modalHeight" class="form-group input" style="width:100%;padding:8px;background:#0f0f0f;border:1px solid #333;border-radius:4px;color:#fff;" value="15">
+          </div>
+          <div class="info-item">
+            <label>Poids (kg)</label>
+            <input type="number" id="modalWeight" step="0.1" class="form-group input" style="width:100%;padding:8px;background:#0f0f0f;border:1px solid #333;border-radius:4px;color:#fff;" value="1">
+          </div>
+        </div>
+        
+        <h4 style="color:#fff;margin:20px 0 12px;">🚛 Transporteur</h4>
+        <div class="form-group">
+          <select id="modalCarrier" style="width:100%;padding:12px;background:#252540;color:#fff;border:1px solid #333;border-radius:8px;">
+            <option value="colissimo">Colissimo</option>
+            <option value="mondial_relay">Mondial Relay</option>
+            <option value="chronopost">Chronopost</option>
+            <option value="ups">UPS</option>
+            <option value="dhl">DHL</option>
+          </select>
+        </div>
+        
+        <div style="margin-top:24px;display:flex;gap:12px;">
+          <button class="btn btn-secondary" onclick="closeLabelModal()">Annuler</button>
+          <button class="btn btn-primary" onclick="confirmGenerateLabel()" style="flex:1;">
+            🏷️ Générer l'étiquette
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Login Screen -->
   <div id="loginScreen" class="login-container">
     <h2>🔐 Gearted Admin</h2>
@@ -336,7 +463,51 @@
       <h2>⚙️ Paramètres de la plateforme</h2>
       <div id="settingsAlert" class="alert hidden"></div>
 
-      <h3>🚀 Système de Boost</h3>
+      <h3>� Commissions</h3>
+      <div class="setting-row">
+        <div class="setting-info">
+          <h4>Activer les commissions</h4>
+          <p>Prélever une commission sur chaque vente</p>
+        </div>
+        <div class="toggle" id="commissionsToggle" onclick="toggleCommissions()"></div>
+      </div>
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="address-form">
+          <div class="form-group">
+            <label>Taux de commission (%)</label>
+            <input type="number" id="commissionRate" step="0.1" min="0" max="100" value="8" style="width:100%;padding:10px;background:#0f0f0f;border:1px solid #333;border-radius:8px;color:#fff;">
+          </div>
+          <div class="form-group">
+            <label>Commission minimum (€)</label>
+            <input type="number" id="commissionMin" step="0.01" min="0" value="0.50" style="width:100%;padding:10px;background:#0f0f0f;border:1px solid #333;border-radius:8px;color:#fff;">
+          </div>
+          <div class="full-width">
+            <button class="btn btn-primary btn-sm" onclick="saveCommissionSettings()">💾 Sauvegarder</button>
+          </div>
+        </div>
+      </div>
+
+      <h3>⭐ Fonctions Premium</h3>
+      <div class="setting-row">
+        <div class="setting-info">
+          <h4>Gearted Expert</h4>
+          <p>Service de vérification premium pour les acheteurs</p>
+        </div>
+        <div class="toggle" id="expertToggle" onclick="toggleExpertFeature()"></div>
+      </div>
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="address-form">
+          <div class="form-group">
+            <label>Prix du service Expert (€)</label>
+            <input type="number" id="expertPrice" step="0.01" min="0" value="19.90" style="width:100%;padding:10px;background:#0f0f0f;border:1px solid #333;border-radius:8px;color:#fff;">
+          </div>
+          <div class="full-width">
+            <button class="btn btn-primary btn-sm" onclick="saveExpertPrice()">💾 Sauvegarder le prix</button>
+          </div>
+        </div>
+      </div>
+
+      <h3>�🚀 Système de Boost</h3>
       <div class="setting-row">
         <div class="setting-info">
           <h4>Activer le Boost</h4>
@@ -394,6 +565,7 @@
     <!-- Users Panel -->
     <div id="usersPanel" class="panel">
       <h2>👥 Utilisateurs</h2>
+      <div id="usersAlert" class="alert hidden"></div>
       <div id="usersList" class="table-container">
         <div class="loading"><div class="spinner"></div></div>
       </div>
@@ -620,14 +792,88 @@
       }
     }
 
+    // Variable pour stocker l'ID du service en cours
+    let currentLabelServiceId = null;
+    let currentServiceData = null;
+
     async function generateBuyerLabel(id) {
-      if (!confirm('Générer l\'étiquette vers l\'acheteur ?')) return;
       try {
-        const result = await api(`/api/admin/expert/${id}/generate-buyer-label`, { method: 'POST' });
-        showAlert('expertAlert', `Étiquette générée ! Tracking: ${result.label?.trackingNumber || 'N/A'}`, 'success');
-        loadExpertServices();
+        // Récupérer les détails du service expert
+        const result = await api(`/api/admin/expert/${id}/details`);
+        const service = result.service || result;
+        
+        currentLabelServiceId = id;
+        currentServiceData = service;
+        
+        // Remplir le modal
+        document.getElementById('modalServiceId').textContent = id.substring(0, 12) + '...';
+        document.getElementById('modalProduct').textContent = service.transaction?.product?.title || 'N/A';
+        
+        // Infos acheteur
+        const buyer = service.transaction?.buyer;
+        const shippingAddr = service.transaction?.shippingAddress || buyer?.shippingAddress || {};
+        
+        document.getElementById('modalBuyerName').textContent = buyer?.username || buyer?.firstName + ' ' + buyer?.lastName || 'N/A';
+        document.getElementById('modalBuyerEmail').textContent = buyer?.email || 'N/A';
+        document.getElementById('modalBuyerAddress').textContent = shippingAddr.street || shippingAddr.address || 'Non renseignée';
+        document.getElementById('modalBuyerPostalCode').textContent = shippingAddr.postalCode || shippingAddr.zipCode || '-';
+        document.getElementById('modalBuyerCity').textContent = shippingAddr.city || '-';
+        
+        // Dimensions du colis (si disponibles)
+        const dims = service.transaction?.product?.parcelDimensions;
+        if (dims) {
+          document.getElementById('modalLength').value = dims.length || 30;
+          document.getElementById('modalWidth').value = dims.width || 20;
+          document.getElementById('modalHeight').value = dims.height || 15;
+          document.getElementById('modalWeight').value = dims.weight || 1;
+        }
+        
+        // Afficher le modal
+        document.getElementById('labelModal').classList.remove('hidden');
+        
       } catch (err) {
-        showAlert('expertAlert', err.message, 'error');
+        showAlert('expertAlert', 'Erreur chargement détails: ' + err.message, 'error');
+      }
+    }
+
+    function closeLabelModal() {
+      document.getElementById('labelModal').classList.add('hidden');
+      currentLabelServiceId = null;
+      currentServiceData = null;
+    }
+
+    async function confirmGenerateLabel() {
+      if (!currentLabelServiceId) return;
+      
+      const carrier = document.getElementById('modalCarrier').value;
+      const dimensions = {
+        length: parseFloat(document.getElementById('modalLength').value),
+        width: parseFloat(document.getElementById('modalWidth').value),
+        height: parseFloat(document.getElementById('modalHeight').value),
+        weight: parseFloat(document.getElementById('modalWeight').value)
+      };
+      
+      try {
+        const result = await api(`/api/admin/expert/${currentLabelServiceId}/generate-buyer-label`, {
+          method: 'POST',
+          body: JSON.stringify({ 
+            carrierId: carrier,
+            dimensions: dimensions
+          })
+        });
+        
+        closeLabelModal();
+        
+        if (result.label?.labelUrl) {
+          // Ouvrir le PDF de l'étiquette
+          window.open(result.label.labelUrl, '_blank');
+        }
+        
+        showAlert('expertAlert', `✅ Étiquette générée ! Tracking: ${result.label?.trackingNumber || result.trackingNumber || 'Voir détails'}`, 'success');
+        loadExpertServices();
+        
+      } catch (err) {
+        showAlert('expertAlert', 'Erreur génération étiquette: ' + err.message, 'error');
       }
     }
 
@@ -643,6 +889,9 @@
     }
 
     // Settings
+    let commissionSettings = { enabled: true, rate: 8, minAmount: 0.50 };
+    let expertFeatureSettings = { enabled: true, price: 19.90 };
+
     async function loadSettings() {
       try {
         // Load admin settings (boost & latest section)
@@ -657,17 +906,37 @@
         document.getElementById('boostToggle').classList.toggle('active', boostSettings.enabled);
         document.getElementById('latestSectionToggle').classList.toggle('active', boostSettings.showLatestSection);
         
-        // Load expert settings (address)
+        // Load commission settings
+        try {
+          const commResult = await api('/api/admin/commissions/settings');
+          if (commResult.success && commResult.settings) {
+            commissionSettings = commResult.settings;
+            document.getElementById('commissionsToggle').classList.toggle('active', commissionSettings.enabled !== false);
+            document.getElementById('commissionRate').value = commissionSettings.rate || 8;
+            document.getElementById('commissionMin').value = commissionSettings.minAmount || 0.50;
+          }
+        } catch (e) { console.log('No commission settings yet'); }
+        
+        // Load expert settings (address + price)
         const expertResult = await api('/api/admin/expert/settings');
-        if (expertResult.success && expertResult.settings?.address) {
-          const addr = expertResult.settings.address;
-          document.getElementById('addrName').value = addr.name || '';
-          document.getElementById('addrStreet').value = addr.street || '';
-          document.getElementById('addrPostalCode').value = addr.postalCode || '';
-          document.getElementById('addrCity').value = addr.city || '';
-          document.getElementById('addrCountry').value = addr.country || 'France';
-          document.getElementById('addrPhone').value = addr.phone || '';
-          document.getElementById('addrEmail').value = addr.email || '';
+        if (expertResult.success && expertResult.settings) {
+          expertFeatureSettings = {
+            enabled: expertResult.settings.enabled !== false,
+            price: expertResult.settings.price || 19.90
+          };
+          document.getElementById('expertToggle').classList.toggle('active', expertFeatureSettings.enabled);
+          document.getElementById('expertPrice').value = expertFeatureSettings.price;
+          
+          if (expertResult.settings.address) {
+            const addr = expertResult.settings.address;
+            document.getElementById('addrName').value = addr.name || '';
+            document.getElementById('addrStreet').value = addr.street || '';
+            document.getElementById('addrPostalCode').value = addr.postalCode || '';
+            document.getElementById('addrCity').value = addr.city || '';
+            document.getElementById('addrCountry').value = addr.country || 'France';
+            document.getElementById('addrPhone').value = addr.phone || '';
+            document.getElementById('addrEmail').value = addr.email || '';
+          }
         }
       } catch (err) {
         console.error('Settings error:', err);
@@ -704,6 +973,82 @@
       }
     }
 
+    // Commissions
+    async function toggleCommissions() {
+      const newValue = !(commissionSettings.enabled !== false);
+      try {
+        await api('/api/admin/commissions/settings', {
+          method: 'PUT',
+          body: JSON.stringify({ 
+            enabled: newValue,
+            rate: commissionSettings.rate,
+            minAmount: commissionSettings.minAmount
+          })
+        });
+        commissionSettings.enabled = newValue;
+        document.getElementById('commissionsToggle').classList.toggle('active', newValue);
+        showAlert('settingsAlert', `Commissions ${newValue ? 'activées' : 'désactivées'} !`, 'success');
+      } catch (err) {
+        showAlert('settingsAlert', err.message, 'error');
+      }
+    }
+
+    async function saveCommissionSettings() {
+      const rate = parseFloat(document.getElementById('commissionRate').value);
+      const minAmount = parseFloat(document.getElementById('commissionMin').value);
+      try {
+        await api('/api/admin/commissions/settings', {
+          method: 'PUT',
+          body: JSON.stringify({ 
+            enabled: commissionSettings.enabled !== false,
+            rate: rate,
+            minAmount: minAmount
+          })
+        });
+        commissionSettings.rate = rate;
+        commissionSettings.minAmount = minAmount;
+        showAlert('settingsAlert', 'Paramètres de commission sauvegardés !', 'success');
+      } catch (err) {
+        showAlert('settingsAlert', err.message, 'error');
+      }
+    }
+
+    // Expert Feature Toggle
+    async function toggleExpertFeature() {
+      const newValue = !expertFeatureSettings.enabled;
+      try {
+        await api('/api/admin/expert/settings', {
+          method: 'PUT',
+          body: JSON.stringify({ 
+            enabled: newValue,
+            price: expertFeatureSettings.price
+          })
+        });
+        expertFeatureSettings.enabled = newValue;
+        document.getElementById('expertToggle').classList.toggle('active', newValue);
+        showAlert('settingsAlert', `Gearted Expert ${newValue ? 'activé' : 'désactivé'} !`, 'success');
+      } catch (err) {
+        showAlert('settingsAlert', err.message, 'error');
+      }
+    }
+
+    async function saveExpertPrice() {
+      const price = parseFloat(document.getElementById('expertPrice').value);
+      try {
+        await api('/api/admin/expert/settings', {
+          method: 'PUT',
+          body: JSON.stringify({ 
+            enabled: expertFeatureSettings.enabled,
+            price: price
+          })
+        });
+        expertFeatureSettings.price = price;
+        showAlert('settingsAlert', 'Prix du service Expert sauvegardé !', 'success');
+      } catch (err) {
+        showAlert('settingsAlert', err.message, 'error');
+      }
+    }
+
     async function saveGeartedAddress() {
       const address = {
         name: document.getElementById('addrName').value,
@@ -718,7 +1063,7 @@
       try {
         await api('/api/admin/expert/settings', {
           method: 'PUT',
-          body: JSON.stringify({ address, enabled: true, price: 19.90 })
+          body: JSON.stringify({ address, enabled: expertFeatureSettings.enabled, price: expertFeatureSettings.price })
         });
         showAlert('settingsAlert', 'Adresse Gearted sauvegardée !', 'success');
       } catch (err) {
@@ -734,17 +1079,38 @@
         
         let html = `<table>
           <thead>
-            <tr><th>ID</th><th>Username</th><th>Email</th><th>Rôle</th><th>Créé le</th></tr>
+            <tr>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Rôle</th>
+              <th>Premium</th>
+              <th>Exempt comm.</th>
+              <th>Actions</th>
+            </tr>
           </thead>
           <tbody>`;
         
         users.forEach(u => {
+          const isPremium = u.isPremium;
+          const isExempt = u.exemptFromCommissions;
           html += `<tr>
-            <td>${u.id.substring(0,8)}...</td>
             <td>${u.username}</td>
             <td>${u.email}</td>
             <td><span class="badge ${u.role === 'ADMIN' ? 'badge-danger' : 'badge-info'}">${u.role}</span></td>
-            <td>${new Date(u.createdAt).toLocaleDateString('fr-FR')}</td>
+            <td>
+              <span class="badge ${isPremium ? 'badge-success' : 'badge-secondary'}">${isPremium ? '⭐ OUI' : 'Non'}</span>
+            </td>
+            <td>
+              <span class="badge ${isExempt ? 'badge-warning' : 'badge-secondary'}">${isExempt ? '✓ OUI' : 'Non'}</span>
+            </td>
+            <td>
+              <button class="btn ${isPremium ? 'btn-danger' : 'btn-success'} btn-sm" onclick="toggleUserPremium('${u.id}', ${!isPremium})">
+                ${isPremium ? '❌ Retirer Premium' : '⭐ Premium'}
+              </button>
+              <button class="btn ${isExempt ? 'btn-warning' : 'btn-secondary'} btn-sm" onclick="toggleUserCommission('${u.id}', ${!isExempt})">
+                ${isExempt ? '💰 Activer comm.' : '🚫 Exempter'}
+              </button>
+            </td>
           </tr>`;
         });
         
@@ -752,6 +1118,38 @@
         document.getElementById('usersList').innerHTML = html;
       } catch (err) {
         document.getElementById('usersList').innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      }
+    }
+
+    async function toggleUserPremium(userId, isPremium) {
+      const duration = isPremium ? prompt('Durée en jours (vide = permanent):') : null;
+      let premiumUntil = null;
+      if (duration && !isNaN(parseInt(duration))) {
+        premiumUntil = new Date(Date.now() + parseInt(duration) * 24 * 60 * 60 * 1000).toISOString();
+      }
+      
+      try {
+        await api(`/api/admin/users/${userId}/premium`, {
+          method: 'PUT',
+          body: JSON.stringify({ isPremium, premiumUntil })
+        });
+        showAlert('usersAlert', `Premium ${isPremium ? 'activé' : 'désactivé'} !`, 'success');
+        loadUsers();
+      } catch (err) {
+        showAlert('usersAlert', err.message, 'error');
+      }
+    }
+
+    async function toggleUserCommission(userId, exempt) {
+      try {
+        await api(`/api/admin/users/${userId}/commissions`, {
+          method: 'PUT',
+          body: JSON.stringify({ exemptFromCommissions: exempt })
+        });
+        showAlert('usersAlert', `Exemption de commission ${exempt ? 'activée' : 'désactivée'} !`, 'success');
+        loadUsers();
+      } catch (err) {
+        showAlert('usersAlert', err.message, 'error');
       }
     }
 
