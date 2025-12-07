@@ -20,6 +20,7 @@ import { z } from "zod";
 import { useTheme } from "../../components/ThemeProvider";
 import { useUser } from "../../components/UserProvider";
 import { CATEGORIES } from "../../data/index";
+import { usePublicSettings } from "../../hooks/useProducts";
 import api from "../../services/api";
 import { useProductsStore } from "../../stores/productsStore";
 import { THEMES } from "../../themes";
@@ -216,6 +217,10 @@ export default function SellScreen() {
   const [submitting, setSubmitting] = useState(false);
   const queryClient = useQueryClient();
   const addProduct = useProductsStore((state) => state.addProduct);
+  
+  // Récupérer les paramètres publics (boost activé ou non)
+  const { data: publicSettings } = usePublicSettings();
+  const isBoostEnabled = publicSettings?.boost?.enabled ?? false;
 
   const t = THEMES[theme];
 
@@ -866,68 +871,72 @@ export default function SellScreen() {
             )}
           </View>
 
-          {/* Section 4: Options Premium */}
-          <View style={{ marginBottom: 24 }}>
-            <Text style={{ fontSize: 18, fontWeight: '800', color: t.heading, marginBottom: 8 }}>
-              ⭐ Booster mon annonce
-            </Text>
-            <View style={{ backgroundColor: '#FFB800' + '15', padding: 12, borderRadius: 8, marginBottom: 16 }}>
-              <Text style={{ color: '#B8860B', fontSize: 13 }}>
-                🚀 Une annonce boostée apparaît en priorité dans "À la une" et en tête des résultats de recherche !
+          {/* Section 4: Options Premium - Seulement si boost activé dans les paramètres */}
+          {isBoostEnabled && (
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ fontSize: 18, fontWeight: '800', color: t.heading, marginBottom: 8 }}>
+                ⭐ Booster mon annonce
+              </Text>
+              <View style={{ backgroundColor: '#FFB800' + '15', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+                <Text style={{ color: '#B8860B', fontSize: 13 }}>
+                  🚀 Une annonce boostée apparaît en priorité dans "À la une" et en tête des résultats de recherche !
+                </Text>
+              </View>
+
+              <Controller
+                control={control}
+                name="boost"
+                render={({ field: { value, onChange } }) => (
+                  <View style={{ marginBottom: 16 }}>
+                    <TouchableOpacity
+                      onPress={() => onChange(!value)}
+                      style={{
+                        backgroundColor: value ? '#FFB800' : t.cardBg,
+                        borderRadius: 12,
+                        padding: 16,
+                        borderWidth: 2,
+                        borderColor: value ? '#FFB800' : t.border,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={{
+                          color: value ? '#1a1a1a' : t.heading,
+                          fontWeight: '700',
+                          fontSize: 16,
+                          marginBottom: 4
+                        }}>
+                          {value ? '⭐ Annonce boostée' : '🚀 Booster cette annonce'}
+                        </Text>
+                        <Text style={{ color: value ? '#333' : t.muted, fontSize: 13 }}>
+                          Visibilité maximale pendant 7 jours
+                        </Text>
+                      </View>
+                      <View style={{
+                        backgroundColor: value ? '#1a1a1a' : t.primaryBtn,
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderRadius: 8
+                      }}>
+                        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
+                          2,99 €
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              />
+
+              <Text style={{ color: t.muted, fontSize: 11, marginBottom: 16, textAlign: 'center' }}>
+                Le paiement du boost (4,99 €) sera demande avant la publication
               </Text>
             </View>
+          )}
 
-            <Controller
-              control={control}
-              name="boost"
-              render={({ field: { value, onChange } }) => (
-                <View style={{ marginBottom: 16 }}>
-                  <TouchableOpacity
-                    onPress={() => onChange(!value)}
-                    style={{
-                      backgroundColor: value ? '#FFB800' : t.cardBg,
-                      borderRadius: 12,
-                      padding: 16,
-                      borderWidth: 2,
-                      borderColor: value ? '#FFB800' : t.border,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={{
-                        color: value ? '#1a1a1a' : t.heading,
-                        fontWeight: '700',
-                        fontSize: 16,
-                        marginBottom: 4
-                      }}>
-                        {value ? '⭐ Annonce boostée' : '🚀 Booster cette annonce'}
-                      </Text>
-                      <Text style={{ color: value ? '#333' : t.muted, fontSize: 13 }}>
-                        Visibilité maximale pendant 7 jours
-                      </Text>
-                    </View>
-                    <View style={{
-                      backgroundColor: value ? '#1a1a1a' : t.primaryBtn,
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 8
-                    }}>
-                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
-                        2,99 €
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              )}
-            />
-
-            <Text style={{ color: t.muted, fontSize: 11, marginBottom: 16, textAlign: 'center' }}>
-              Le paiement du boost (4,99 €) sera demande avant la publication
-            </Text>
-
-            {/* Submit Button */}
+          {/* Submit Button */}
+          <View style={{ marginBottom: 24 }}>
             <TouchableOpacity
               style={{
                 backgroundColor: t.primaryBtn,
