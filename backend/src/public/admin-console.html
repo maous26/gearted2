@@ -1216,20 +1216,25 @@
         
         transactions.forEach(t => {
           const statusClass = {
+            'SUCCEEDED': 'badge-success',
             'COMPLETED': 'badge-success',
             'PENDING': 'badge-warning',
             'PROCESSING': 'badge-info',
             'CANCELLED': 'badge-danger',
+            'FAILED': 'badge-danger',
             'REFUNDED': 'badge-danger'
           }[t.status] || 'badge-secondary';
           
+          // Handle amount as string, number, or Decimal
+          const amount = parseFloat(t.amount) || 0;
+          
           html += `<tr>
-            <td>${t.id.substring(0,8)}...</td>
+            <td>${(t.id || '').substring(0,8)}...</td>
             <td>${t.product?.title || 'N/A'}</td>
             <td>${t.buyer?.username || 'N/A'}</td>
-            <td>${t.amount?.toFixed(2) || 0} €</td>
+            <td>${amount.toFixed(2)} €</td>
             <td><span class="badge ${statusClass}">${t.status}</span></td>
-            <td>${new Date(t.createdAt).toLocaleDateString('fr-FR')}</td>
+            <td>${t.createdAt ? new Date(t.createdAt).toLocaleDateString('fr-FR') : 'N/A'}</td>
           </tr>`;
         });
         
