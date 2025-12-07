@@ -737,7 +737,7 @@ router.post('/expert/create-test', async (req, res) => {
         buyerFeePercent: 0,
         sellerFeePercent: 0,
         currency: 'EUR',
-        status: 'COMPLETED',
+        status: 'SUCCEEDED',
         paymentIntentId: `pi_test_expert_${Date.now()}`,
         hasExpert: true,
         metadata: { testExpert: true }
