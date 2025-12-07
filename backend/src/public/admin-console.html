@@ -455,11 +455,15 @@
           body: JSON.stringify({ email, password })
         }).then(r => r.json());
         
-        if (result.error) throw new Error(result.error);
-        if (result.user?.role !== 'ADMIN') throw new Error('Accès admin requis');
+        if (result.error || !result.success) throw new Error(result.error?.message || 'Erreur de connexion');
         
-        token = result.token;
-        currentUser = result.user;
+        const user = result.data?.user || result.user;
+        const accessToken = result.data?.tokens?.accessToken || result.token;
+        
+        if (user?.role !== 'ADMIN') throw new Error('Accès admin requis');
+        
+        token = accessToken;
+        currentUser = user;
         localStorage.setItem('adminToken', token);
         showAdminConsole();
       } catch (err) {
@@ -851,8 +855,9 @@
     if (token) {
       // Verify token and load console
       api('/api/auth/me').then(result => {
-        if (result.user?.role === 'ADMIN') {
-          currentUser = result.user;
+        const user = result.data?.user || result.user;
+        if (user?.role === 'ADMIN') {
+          currentUser = user;
           showAdminConsole();
         } else {
           logout();
