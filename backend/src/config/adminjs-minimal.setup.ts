@@ -31,7 +31,7 @@ export async function setupAdminJS(app: ExpressApp) {
 
     AdminJS.registerAdapter({ Database, Resource });
 
-    // MINIMAL config - just basic resources, NO custom actions
+    // MINIMAL config - NO bundling to avoid Railway timeout issues
     const adminJs = new AdminJS({
       resources: [
         { resource: { model: getModelByName('User'), client: prisma }, options: { navigation: { name: 'Users', icon: 'User' } } },
@@ -44,6 +44,12 @@ export async function setupAdminJS(app: ExpressApp) {
         companyName: 'Gearted Admin',
         withMadeWithLove: false,
       },
+      settings: {
+        bundler: {
+          // Disable component bundling - use pre-built components only
+        },
+      },
+      componentLoader: undefined, // Don't load custom components
     });
 
     console.log('[AdminJS] Configuration created');
