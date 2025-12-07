@@ -22,7 +22,10 @@ export async function setupAdminJS(app: ExpressApp) {
     const { Database, Resource, getModelByName } = AdminJSPrismaModule;
 
     const AdminJSExpressModule = await import('@adminjs/express');
-    const AdminJSExpress = AdminJSExpressModule.default;
+    console.log('[AdminJS] @adminjs/express keys:', Object.keys(AdminJSExpressModule));
+    const AdminJSExpress = AdminJSExpressModule.default || AdminJSExpressModule;
+    console.log('[AdminJS] AdminJSExpress type:', typeof AdminJSExpress);
+    console.log('[AdminJS] AdminJSExpress keys:', Object.keys(AdminJSExpress));
 
     console.log('[AdminJS] All modules loaded');
 
@@ -45,7 +48,14 @@ export async function setupAdminJS(app: ExpressApp) {
 
     console.log('[AdminJS] Configuration created');
 
-    const adminRouter = AdminJSExpress.buildAuthenticatedRouter(
+    // Try to find buildAuthenticatedRouter
+    const buildAuth = AdminJSExpress.buildAuthenticatedRouter || AdminJSExpressModule.buildAuthenticatedRouter;
+    if (!buildAuth) {
+      console.error('[AdminJS] buildAuthenticatedRouter not found! Available:', Object.keys(AdminJSExpress), Object.keys(AdminJSExpressModule));
+      throw new Error('buildAuthenticatedRouter not found');
+    }
+
+    const adminRouter = buildAuth(
       adminJs,
       {
         authenticate: async (email: string, password: string) => {
