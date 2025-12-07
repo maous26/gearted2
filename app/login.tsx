@@ -134,13 +134,13 @@ export default function LoginScreen() {
         />
         {/* Side gradients for glow effect */}
         <LinearGradient
-          colors={['rgba(99,102,241,0.3)', 'transparent']}
+          colors={['rgba(255,255,255,0.5)', 'transparent']}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={styles.leftGlow}
         />
         <LinearGradient
-          colors={['transparent', 'rgba(168,85,247,0.3)']}
+          colors={['transparent', 'rgba(255,255,255,0.5)']}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={styles.rightGlow}
@@ -165,9 +165,6 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Title */}
-          <Text style={styles.title}>Content de te revoir !</Text>
-          <Text style={styles.subtitle}>Connecte-toi pour accéder à ton compte.</Text>
 
           {/* Email Input */}
           <View style={styles.inputContainer}>

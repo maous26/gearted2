@@ -1,23 +1,23 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Image,
-  StatusBar,
-  ScrollView,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
+import React, { useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import authService from '../services/auth';
 import discordAuthService from '../services/discord-auth';
 
@@ -192,13 +192,13 @@ export default function RegisterScreen() {
         />
         {/* Side gradients for glow effect */}
         <LinearGradient
-          colors={['rgba(99,102,241,0.3)', 'transparent']}
+          colors={['rgba(255,255,255,0.5)', 'transparent']}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={styles.leftGlow}
         />
         <LinearGradient
-          colors={['transparent', 'rgba(168,85,247,0.3)']}
+          colors={['transparent', 'rgba(255,255,255,0.5)']}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={styles.rightGlow}
@@ -224,7 +224,6 @@ export default function RegisterScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Title */}
-          <Text style={styles.title}>Créer un compte</Text>
           <Text style={styles.subtitle}>Rejoins la communauté airsoft</Text>
 
           {/* Username Input */}
