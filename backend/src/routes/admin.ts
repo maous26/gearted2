@@ -728,6 +728,7 @@ router.post('/expert/create-test', async (req, res) => {
         productId,
         buyerId,
         amount: product.price,
+        platformFee: 0, // Test transaction - no fees
         currency: 'EUR',
         status: 'COMPLETED',
         paymentIntentId: `pi_test_expert_${Date.now()}`,
