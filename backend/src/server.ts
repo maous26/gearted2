@@ -466,14 +466,14 @@ async function initializeServer() {
   try {
     console.log('[Server] Loading ts-node with custom config...');
     require('ts-node').register({
-      project: './tsconfig.adminjs.json',
+      project: path.join(__dirname, '..', 'tsconfig.adminjs.json'),
       transpileOnly: true
     });
     console.log('[Server] ts-node registered successfully');
 
     console.log('[Server] Requiring adminjs.setup.ts...');
-    // Use minimal setup to avoid bundling issues on Railway
-    const configPath = './config/adminjs-minimal.setup.ts';
+    // Use absolute path to src/config since we're running from dist/
+    const configPath = path.join(__dirname, '..', 'src', 'config', 'adminjs-minimal.setup.ts');
     console.log('[Server] Loading from:', configPath);
     const { setupAdminJS } = require(configPath);
     console.log('[Server] adminjs.setup.ts loaded, setupAdminJS type:', typeof setupAdminJS);
