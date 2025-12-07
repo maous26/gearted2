@@ -703,6 +703,73 @@ router.put('/expert/settings', async (req, res) => {
   }
 });
 
+// POST /api/admin/expert/create-test - Create a test expert service (for testing)
+router.post('/expert/create-test', async (req, res) => {
+  try {
+    const { productId, buyerId } = req.body;
+
+    if (!productId) {
+      return res.status(400).json({ error: 'productId is required' });
+    }
+
+    // Get product and seller info
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { seller: true }
+    });
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    // Create a test transaction if buyerId provided
+    let transaction = null;
+    if (buyerId) {
+      transaction = await (prisma as any).transaction.create({
+        data: {
+          productId,
+          buyerId,
+          amount: product.price,
+          currency: 'EUR',
+          status: 'COMPLETED',
+          paymentIntentId: `pi_test_${Date.now()}`,
+          hasExpert: true,
+          metadata: { testExpert: true }
+        }
+      });
+    }
+
+    // Create expert service
+    const expertService = await (prisma as any).expertService.create({
+      data: {
+        productId,
+        transactionId: transaction?.id || null,
+        status: 'PENDING', // Ready for seller to ship
+        price: 19.90
+      },
+      include: {
+        product: {
+          include: { seller: true }
+        },
+        transaction: transaction ? {
+          include: { buyer: true }
+        } : false
+      }
+    });
+
+    console.log(`[admin] Created test expert service: ${expertService.id}`);
+
+    return res.json({
+      success: true,
+      expertService,
+      message: 'Test expert service created. Seller can now generate shipping label to Gearted.'
+    });
+  } catch (error) {
+    console.error('[admin] Failed to create test expert service:', error);
+    return res.status(500).json({ error: 'Failed to create test expert service' });
+  }
+});
+
 // POST /api/admin/expert/:expertServiceId/generate-buyer-label - Generate shipping label from Gearted to buyer
 router.post('/expert/:expertServiceId/generate-buyer-label', async (req, res) => {
   try {
