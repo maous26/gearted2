@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gearted Admin Console</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f0f;
+      color: #fff;
+      min-height: 100vh;
+    }
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 { color: #FFB800; font-size: 24px; }
+    .header .user-info { color: #888; font-size: 14px; }
+    
+    /* Login Form */
+    .login-container {
+      max-width: 400px;
+      margin: 100px auto;
+      background: #1a1a2e;
+      padding: 40px;
+      border-radius: 16px;
+    }
+    .login-container h2 { color: #FFB800; margin-bottom: 20px; text-align: center; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; color: #888; margin-bottom: 6px; font-size: 14px; }
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background: #0f0f0f;
+      color: #fff;
+      font-size: 16px;
+    }
+    .form-group input:focus { outline: none; border-color: #FFB800; }
+    
+    /* Buttons */
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: #FFB800; color: #000; }
+    .btn-primary:hover { background: #e5a600; }
+    .btn-danger { background: #dc3545; color: #fff; }
+    .btn-danger:hover { background: #c82333; }
+    .btn-success { background: #28a745; color: #fff; }
+    .btn-success:hover { background: #218838; }
+    .btn-secondary { background: #333; color: #fff; }
+    .btn-secondary:hover { background: #444; }
+    .btn-block { width: 100%; }
+    .btn-sm { padding: 8px 16px; font-size: 12px; }
+    
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .tab {
+      padding: 12px 24px;
+      background: #1a1a2e;
+      border: none;
+      border-radius: 8px;
+      color: #888;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .tab:hover { background: #252540; }
+    .tab.active { background: #FFB800; color: #000; }
+    
+    /* Panels */
+    .panel {
+      display: none;
+      background: #1a1a2e;
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .panel.active { display: block; }
+    .panel h2 { color: #FFB800; margin-bottom: 20px; font-size: 20px; }
+    .panel h3 { color: #fff; margin: 20px 0 12px; font-size: 16px; }
+    
+    /* Cards */
+    .card {
+      background: #252540;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .card-title { font-weight: 600; color: #fff; }
+    .card-subtitle { color: #888; font-size: 12px; }
+    
+    /* Tables */
+    .table-container { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #333;
+    }
+    th { color: #888; font-weight: 600; font-size: 12px; text-transform: uppercase; }
+    td { color: #fff; font-size: 14px; }
+    tr:hover { background: #252540; }
+    
+    /* Status badges */
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-success { background: #28a74520; color: #28a745; }
+    .badge-warning { background: #ffc10720; color: #ffc107; }
+    .badge-danger { background: #dc354520; color: #dc3545; }
+    .badge-info { background: #17a2b820; color: #17a2b8; }
+    .badge-primary { background: #FFB80020; color: #FFB800; }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: #252540;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+    .stat-value { font-size: 32px; font-weight: 700; color: #FFB800; }
+    .stat-label { color: #888; font-size: 14px; margin-top: 4px; }
+    
+    /* Settings */
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      background: #252540;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .setting-info h4 { color: #fff; margin-bottom: 4px; }
+    .setting-info p { color: #888; font-size: 13px; }
+    
+    /* Toggle Switch */
+    .toggle {
+      position: relative;
+      width: 50px;
+      height: 26px;
+      background: #333;
+      border-radius: 13px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .toggle.active { background: #28a745; }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      background: #fff;
+      border-radius: 50%;
+      transition: left 0.3s;
+    }
+    .toggle.active::after { left: 27px; }
+    
+    /* Address Form */
+    .address-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .address-form .full-width { grid-column: span 2; }
+    
+    /* Alert */
+    .alert {
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .alert-success { background: #28a74520; color: #28a745; border: 1px solid #28a745; }
+    .alert-error { background: #dc354520; color: #dc3545; border: 1px solid #dc3545; }
+    .alert-info { background: #17a2b820; color: #17a2b8; border: 1px solid #17a2b8; }
+    
+    /* Loading */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+      color: #888;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #333;
+      border-top-color: #FFB800;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    /* Hidden */
+    .hidden { display: none !important; }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .address-form { grid-template-columns: 1fr; }
+      .address-form .full-width { grid-column: span 1; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="loginScreen" class="login-container">
+    <h2>🔐 Gearted Admin</h2>
+    <div id="loginError" class="alert alert-error hidden"></div>
+    <form id="loginForm">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="loginEmail" required placeholder="admin@gearted.com">
+      </div>
+      <div class="form-group">
+        <label>Mot de passe</label>
+        <input type="password" id="loginPassword" required placeholder="••••••••">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Se connecter</button>
+    </form>
+  </div>
+
+  <!-- Admin Console -->
+  <div id="adminConsole" class="container hidden">
+    <div class="header">
+      <h1>🎯 Gearted Admin Console</h1>
+      <div>
+        <span class="user-info" id="userInfo"></span>
+        <button class="btn btn-secondary btn-sm" onclick="logout()">Déconnexion</button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('dashboard')">📊 Dashboard</button>
+      <button class="tab" onclick="showTab('expert')">🛡️ Gearted Expert</button>
+      <button class="tab" onclick="showTab('settings')">⚙️ Paramètres</button>
+      <button class="tab" onclick="showTab('users')">👥 Utilisateurs</button>
+      <button class="tab" onclick="showTab('products')">📦 Produits</button>
+      <button class="tab" onclick="showTab('transactions')">💰 Transactions</button>
+    </div>
+
+    <!-- Dashboard Panel -->
+    <div id="dashboardPanel" class="panel active">
+      <h2>📊 Tableau de bord</h2>
+      <div id="dashboardStats" class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="statUsers">-</div>
+          <div class="stat-label">Utilisateurs</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statProducts">-</div>
+          <div class="stat-label">Produits actifs</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statTransactions">-</div>
+          <div class="stat-label">Transactions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statExpert">-</div>
+          <div class="stat-label">Services Expert</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="loadDashboard()">🔄 Rafraîchir</button>
+    </div>
+
+    <!-- Expert Services Panel -->
+    <div id="expertPanel" class="panel">
+      <h2>🛡️ Services Gearted Expert</h2>
+      <div id="expertAlert" class="alert hidden"></div>
+      
+      <div style="margin-bottom: 20px;">
+        <select id="expertStatusFilter" onchange="loadExpertServices()" style="padding: 10px; background: #252540; color: #fff; border: 1px solid #333; border-radius: 8px;">
+          <option value="">Tous les statuts</option>
+          <option value="PENDING">En attente</option>
+          <option value="AWAITING_SHIPMENT">Attente expédition</option>
+          <option value="IN_TRANSIT_TO_GEARTED">En transit → Gearted</option>
+          <option value="RECEIVED_BY_GEARTED">Reçu par Gearted</option>
+          <option value="VERIFIED">Vérifié ✓</option>
+          <option value="IN_TRANSIT_TO_BUYER">En transit → Acheteur</option>
+          <option value="DELIVERED">Livré</option>
+        </select>
+      </div>
+
+      <div id="expertList" class="table-container">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div id="settingsPanel" class="panel">
+      <h2>⚙️ Paramètres de la plateforme</h2>
+      <div id="settingsAlert" class="alert hidden"></div>
+
+      <h3>🚀 Système de Boost</h3>
+      <div class="setting-row">
+        <div class="setting-info">
+          <h4>Activer le Boost</h4>
+          <p>Permet aux utilisateurs de payer pour mettre en avant leurs annonces</p>
+        </div>
+        <div class="toggle" id="boostToggle" onclick="toggleBoost()"></div>
+      </div>
+      
+      <div class="setting-row">
+        <div class="setting-info">
+          <h4>Section "Dernières annonces"</h4>
+          <p>Afficher la section des dernières annonces sur la page d'accueil</p>
+        </div>
+        <div class="toggle" id="latestSectionToggle" onclick="toggleLatestSection()"></div>
+      </div>
+
+      <h3>📍 Adresse Gearted Expert</h3>
+      <div class="card">
+        <div class="address-form">
+          <div class="form-group full-width">
+            <label>Nom</label>
+            <input type="text" id="addrName" placeholder="Gearted Expert">
+          </div>
+          <div class="form-group full-width">
+            <label>Adresse</label>
+            <input type="text" id="addrStreet" placeholder="123 Rue de l'Expertise">
+          </div>
+          <div class="form-group">
+            <label>Code postal</label>
+            <input type="text" id="addrPostalCode" placeholder="75001">
+          </div>
+          <div class="form-group">
+            <label>Ville</label>
+            <input type="text" id="addrCity" placeholder="Paris">
+          </div>
+          <div class="form-group">
+            <label>Pays</label>
+            <input type="text" id="addrCountry" value="France">
+          </div>
+          <div class="form-group">
+            <label>Téléphone</label>
+            <input type="text" id="addrPhone" placeholder="+33 1 23 45 67 89">
+          </div>
+          <div class="form-group full-width">
+            <label>Email</label>
+            <input type="email" id="addrEmail" placeholder="expert@gearted.com">
+          </div>
+          <div class="full-width">
+            <button class="btn btn-primary" onclick="saveGeartedAddress()">💾 Sauvegarder l'adresse</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users Panel -->
+    <div id="usersPanel" class="panel">
+      <h2>👥 Utilisateurs</h2>
+      <div id="usersList" class="table-container">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Products Panel -->
+    <div id="productsPanel" class="panel">
+      <h2>📦 Produits</h2>
+      <div style="margin-bottom: 16px;">
+        <button class="btn btn-danger btn-sm" onclick="cleanupSeededProducts()">🗑️ Supprimer données test</button>
+      </div>
+      <div id="productsList" class="table-container">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Transactions Panel -->
+    <div id="transactionsPanel" class="panel">
+      <h2>💰 Transactions</h2>
+      <div id="transactionsList" class="table-container">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let token = localStorage.getItem('adminToken');
+    let currentUser = null;
+    let boostSettings = { enabled: false, showLatestSection: false };
+    let expertSettings = { address: {} };
+
+    // API Helper
+    async function api(endpoint, options = {}) {
+      const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+      };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      
+      const response = await fetch(endpoint, { ...options, headers });
+      if (response.status === 401) {
+        logout();
+        throw new Error('Session expirée');
+      }
+      return response.json();
+    }
+
+    // Login
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      
+      try {
+        const result = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        }).then(r => r.json());
+        
+        if (result.error) throw new Error(result.error);
+        if (result.user?.role !== 'ADMIN') throw new Error('Accès admin requis');
+        
+        token = result.token;
+        currentUser = result.user;
+        localStorage.setItem('adminToken', token);
+        showAdminConsole();
+      } catch (err) {
+        document.getElementById('loginError').textContent = err.message;
+        document.getElementById('loginError').classList.remove('hidden');
+      }
+    });
+
+    // Logout
+    function logout() {
+      token = null;
+      currentUser = null;
+      localStorage.removeItem('adminToken');
+      document.getElementById('adminConsole').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
+    }
+
+    // Show admin console
+    async function showAdminConsole() {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('adminConsole').classList.remove('hidden');
+      document.getElementById('userInfo').textContent = currentUser?.email || '';
+      
+      await loadDashboard();
+      await loadSettings();
+    }
+
+    // Tab navigation
+    function showTab(tabName) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      document.getElementById(tabName + 'Panel').classList.add('active');
+      
+      // Load data for tab
+      switch(tabName) {
+        case 'dashboard': loadDashboard(); break;
+        case 'expert': loadExpertServices(); break;
+        case 'settings': loadSettings(); break;
+        case 'users': loadUsers(); break;
+        case 'products': loadProducts(); break;
+        case 'transactions': loadTransactions(); break;
+      }
+    }
+
+    // Dashboard
+    async function loadDashboard() {
+      try {
+        const [users, products, transactions, expert] = await Promise.all([
+          api('/api/admin/users'),
+          api('/api/admin/products/analyze'),
+          api('/api/admin/transactions'),
+          api('/api/admin/expert/all')
+        ]);
+        
+        document.getElementById('statUsers').textContent = users.users?.length || 0;
+        document.getElementById('statProducts').textContent = products.total || 0;
+        document.getElementById('statTransactions').textContent = transactions.transactions?.length || 0;
+        document.getElementById('statExpert').textContent = expert.services?.length || 0;
+      } catch (err) {
+        console.error('Dashboard error:', err);
+      }
+    }
+
+    // Expert Services
+    async function loadExpertServices() {
+      const status = document.getElementById('expertStatusFilter').value;
+      const url = status ? `/api/admin/expert/all?status=${status}` : '/api/admin/expert/all';
+      
+      try {
+        const result = await api(url);
+        const services = result.services || [];
+        
+        if (services.length === 0) {
+          document.getElementById('expertList').innerHTML = '<p style="color:#888;padding:20px;">Aucun service expert trouvé</p>';
+          return;
+        }
+        
+        const statusBadge = (status) => {
+          const badges = {
+            'PENDING': 'badge-warning',
+            'AWAITING_SHIPMENT': 'badge-info',
+            'IN_TRANSIT_TO_GEARTED': 'badge-info',
+            'RECEIVED_BY_GEARTED': 'badge-primary',
+            'VERIFIED': 'badge-success',
+            'IN_TRANSIT_TO_BUYER': 'badge-info',
+            'DELIVERED': 'badge-success'
+          };
+          return `<span class="badge ${badges[status] || 'badge-secondary'}">${status}</span>`;
+        };
+        
+        let html = `<table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Produit</th>
+              <th>Acheteur</th>
+              <th>Statut</th>
+              <th>Tracking vendeur</th>
+              <th>Tracking acheteur</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>`;
+        
+        services.forEach(s => {
+          html += `<tr>
+            <td>${s.id.substring(0,8)}...</td>
+            <td>${s.transaction?.product?.title || 'N/A'}</td>
+            <td>${s.transaction?.buyer?.username || 'N/A'}</td>
+            <td>${statusBadge(s.status)}</td>
+            <td>${s.sellerTrackingNumber || '-'}</td>
+            <td>${s.buyerTrackingNumber || '-'}</td>
+            <td>
+              ${s.status === 'IN_TRANSIT_TO_GEARTED' ? `<button class="btn btn-success btn-sm" onclick="markReceived('${s.id}')">📦 Reçu</button>` : ''}
+              ${s.status === 'RECEIVED_BY_GEARTED' ? `<button class="btn btn-primary btn-sm" onclick="markVerified('${s.id}')">✓ Vérifié</button>` : ''}
+              ${s.status === 'VERIFIED' ? `<button class="btn btn-info btn-sm" onclick="generateBuyerLabel('${s.id}')">🚚 Étiquette</button>` : ''}
+              ${s.status === 'IN_TRANSIT_TO_BUYER' ? `<button class="btn btn-success btn-sm" onclick="markDelivered('${s.id}')">✅ Livré</button>` : ''}
+            </td>
+          </tr>`;
+        });
+        
+        html += '</tbody></table>';
+        document.getElementById('expertList').innerHTML = html;
+      } catch (err) {
+        document.getElementById('expertList').innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      }
+    }
+
+    // Expert Actions
+    async function markReceived(id) {
+      if (!confirm('Confirmer la réception du colis ?')) return;
+      try {
+        await api(`/api/admin/expert/mark-received/${id}`, { method: 'POST' });
+        showAlert('expertAlert', 'Colis marqué comme reçu !', 'success');
+        loadExpertServices();
+      } catch (err) {
+        showAlert('expertAlert', err.message, 'error');
+      }
+    }
+
+    async function markVerified(id) {
+      const notes = prompt('Notes de vérification (optionnel):');
+      try {
+        await api(`/api/admin/expert/verify/${id}`, {
+          method: 'POST',
+          body: JSON.stringify({ verificationPassed: true, verificationNotes: notes || '' })
+        });
+        showAlert('expertAlert', 'Produit vérifié avec succès !', 'success');
+        loadExpertServices();
+      } catch (err) {
+        showAlert('expertAlert', err.message, 'error');
+      }
+    }
+
+    async function generateBuyerLabel(id) {
+      if (!confirm('Générer l\'étiquette vers l\'acheteur ?')) return;
+      try {
+        const result = await api(`/api/admin/expert/${id}/generate-buyer-label`, { method: 'POST' });
+        showAlert('expertAlert', `Étiquette générée ! Tracking: ${result.label?.trackingNumber || 'N/A'}`, 'success');
+        loadExpertServices();
+      } catch (err) {
+        showAlert('expertAlert', err.message, 'error');
+      }
+    }
+
+    async function markDelivered(id) {
+      if (!confirm('Confirmer la livraison ?')) return;
+      try {
+        await api(`/api/admin/expert/mark-delivered/${id}`, { method: 'POST' });
+        showAlert('expertAlert', 'Colis marqué comme livré !', 'success');
+        loadExpertServices();
+      } catch (err) {
+        showAlert('expertAlert', err.message, 'error');
+      }
+    }
+
+    // Settings
+    async function loadSettings() {
+      try {
+        // Load admin settings (boost & latest section)
+        const result = await api('/api/admin/settings');
+        if (result.success) {
+          boostSettings = {
+            enabled: result.settings?.boost?.enabled ?? false,
+            showLatestSection: result.settings?.latestSection?.visible ?? false
+          };
+        }
+        
+        document.getElementById('boostToggle').classList.toggle('active', boostSettings.enabled);
+        document.getElementById('latestSectionToggle').classList.toggle('active', boostSettings.showLatestSection);
+        
+        // Load expert settings (address)
+        const expertResult = await api('/api/admin/expert/settings');
+        if (expertResult.success && expertResult.settings?.address) {
+          const addr = expertResult.settings.address;
+          document.getElementById('addrName').value = addr.name || '';
+          document.getElementById('addrStreet').value = addr.street || '';
+          document.getElementById('addrPostalCode').value = addr.postalCode || '';
+          document.getElementById('addrCity').value = addr.city || '';
+          document.getElementById('addrCountry').value = addr.country || 'France';
+          document.getElementById('addrPhone').value = addr.phone || '';
+          document.getElementById('addrEmail').value = addr.email || '';
+        }
+      } catch (err) {
+        console.error('Settings error:', err);
+      }
+    }
+
+    async function toggleBoost() {
+      const newValue = !boostSettings.enabled;
+      try {
+        await api('/api/admin/settings/boost', {
+          method: 'POST',
+          body: JSON.stringify({ enabled: newValue })
+        });
+        boostSettings.enabled = newValue;
+        document.getElementById('boostToggle').classList.toggle('active', newValue);
+        showAlert('settingsAlert', `Boost ${newValue ? 'activé' : 'désactivé'} !`, 'success');
+      } catch (err) {
+        showAlert('settingsAlert', err.message, 'error');
+      }
+    }
+
+    async function toggleLatestSection() {
+      const newValue = !boostSettings.showLatestSection;
+      try {
+        await api('/api/admin/settings/latest-section', {
+          method: 'POST',
+          body: JSON.stringify({ visible: newValue })
+        });
+        boostSettings.showLatestSection = newValue;
+        document.getElementById('latestSectionToggle').classList.toggle('active', newValue);
+        showAlert('settingsAlert', `Section "Dernières annonces" ${newValue ? 'affichée' : 'masquée'} !`, 'success');
+      } catch (err) {
+        showAlert('settingsAlert', err.message, 'error');
+      }
+    }
+
+    async function saveGeartedAddress() {
+      const address = {
+        name: document.getElementById('addrName').value,
+        street: document.getElementById('addrStreet').value,
+        postalCode: document.getElementById('addrPostalCode').value,
+        city: document.getElementById('addrCity').value,
+        country: document.getElementById('addrCountry').value,
+        phone: document.getElementById('addrPhone').value,
+        email: document.getElementById('addrEmail').value
+      };
+      
+      try {
+        await api('/api/admin/expert/settings', {
+          method: 'PUT',
+          body: JSON.stringify({ address, enabled: true, price: 19.90 })
+        });
+        showAlert('settingsAlert', 'Adresse Gearted sauvegardée !', 'success');
+      } catch (err) {
+        showAlert('settingsAlert', err.message, 'error');
+      }
+    }
+
+    // Users
+    async function loadUsers() {
+      try {
+        const result = await api('/api/admin/users');
+        const users = result.users || [];
+        
+        let html = `<table>
+          <thead>
+            <tr><th>ID</th><th>Username</th><th>Email</th><th>Rôle</th><th>Créé le</th></tr>
+          </thead>
+          <tbody>`;
+        
+        users.forEach(u => {
+          html += `<tr>
+            <td>${u.id.substring(0,8)}...</td>
+            <td>${u.username}</td>
+            <td>${u.email}</td>
+            <td><span class="badge ${u.role === 'ADMIN' ? 'badge-danger' : 'badge-info'}">${u.role}</span></td>
+            <td>${new Date(u.createdAt).toLocaleDateString('fr-FR')}</td>
+          </tr>`;
+        });
+        
+        html += '</tbody></table>';
+        document.getElementById('usersList').innerHTML = html;
+      } catch (err) {
+        document.getElementById('usersList').innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      }
+    }
+
+    // Products
+    async function loadProducts() {
+      try {
+        const result = await api('/api/admin/products/analyze');
+        
+        let html = `<div class="stats-grid" style="margin-bottom:20px;">
+          <div class="stat-card"><div class="stat-value">${result.total}</div><div class="stat-label">Total</div></div>
+          <div class="stat-card"><div class="stat-value">${result.real?.count || 0}</div><div class="stat-label">Réels</div></div>
+          <div class="stat-card"><div class="stat-value">${result.seeded?.count || 0}</div><div class="stat-label">Données test</div></div>
+        </div>`;
+        
+        html += `<table>
+          <thead>
+            <tr><th>ID</th><th>Titre</th><th>Vendeur</th><th>Créé le</th></tr>
+          </thead>
+          <tbody>`;
+        
+        (result.real?.products || []).forEach(p => {
+          html += `<tr>
+            <td>${p.id.substring(0,8)}...</td>
+            <td>${p.title}</td>
+            <td>${p.seller}</td>
+            <td>${new Date(p.createdAt).toLocaleDateString('fr-FR')}</td>
+          </tr>`;
+        });
+        
+        html += '</tbody></table>';
+        document.getElementById('productsList').innerHTML = html;
+      } catch (err) {
+        document.getElementById('productsList').innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      }
+    }
+
+    async function cleanupSeededProducts() {
+      if (!confirm('Supprimer toutes les données de test ? Cette action est irréversible.')) return;
+      try {
+        await api('/api/admin/products/cleanup', { method: 'DELETE' });
+        showAlert('productsList', 'Données de test supprimées !', 'success');
+        loadProducts();
+      } catch (err) {
+        alert('Erreur: ' + err.message);
+      }
+    }
+
+    // Transactions
+    async function loadTransactions() {
+      try {
+        const result = await api('/api/admin/transactions');
+        const transactions = result.transactions || [];
+        
+        if (transactions.length === 0) {
+          document.getElementById('transactionsList').innerHTML = '<p style="color:#888;padding:20px;">Aucune transaction</p>';
+          return;
+        }
+        
+        let html = `<table>
+          <thead>
+            <tr><th>ID</th><th>Produit</th><th>Acheteur</th><th>Montant</th><th>Statut</th><th>Date</th></tr>
+          </thead>
+          <tbody>`;
+        
+        transactions.forEach(t => {
+          const statusClass = {
+            'COMPLETED': 'badge-success',
+            'PENDING': 'badge-warning',
+            'PROCESSING': 'badge-info',
+            'CANCELLED': 'badge-danger',
+            'REFUNDED': 'badge-danger'
+          }[t.status] || 'badge-secondary';
+          
+          html += `<tr>
+            <td>${t.id.substring(0,8)}...</td>
+            <td>${t.product?.title || 'N/A'}</td>
+            <td>${t.buyer?.username || 'N/A'}</td>
+            <td>${t.amount?.toFixed(2) || 0} €</td>
+            <td><span class="badge ${statusClass}">${t.status}</span></td>
+            <td>${new Date(t.createdAt).toLocaleDateString('fr-FR')}</td>
+          </tr>`;
+        });
+        
+        html += '</tbody></table>';
+        document.getElementById('transactionsList').innerHTML = html;
+      } catch (err) {
+        document.getElementById('transactionsList').innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      }
+    }
+
+    // Helpers
+    function showAlert(containerId, message, type) {
+      const container = document.getElementById(containerId);
+      container.className = `alert alert-${type}`;
+      container.textContent = message;
+      container.classList.remove('hidden');
+      setTimeout(() => container.classList.add('hidden'), 5000);
+    }
+
+    // Init
+    if (token) {
+      // Verify token and load console
+      api('/api/auth/me').then(result => {
+        if (result.user?.role === 'ADMIN') {
+          currentUser = result.user;
+          showAdminConsole();
+        } else {
+          logout();
+        }
+      }).catch(() => logout());
+    }
+  </script>
+</body>
+</html>

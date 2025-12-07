@@ -342,6 +342,36 @@ router.post('/messages/user', async (req, res) => {
 // LOGS ACHATS/VENTES
 // ==========================================
 
+// GET /api/admin/transactions - Alias for logs/transactions (for admin console)
+router.get('/transactions', async (req, res) => {
+  try {
+    const { page = 1, limit = 50 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [transactions, total] = await Promise.all([
+      prisma.transaction.findMany({
+        include: {
+          buyer: { select: { id: true, username: true, email: true } },
+          product: { select: { id: true, title: true, price: true } }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: Number(limit)
+      }),
+      prisma.transaction.count()
+    ]);
+
+    return res.json({
+      success: true,
+      transactions,
+      total
+    });
+  } catch (error) {
+    console.error('[admin] Failed to get transactions:', error);
+    return res.status(500).json({ error: 'Failed to get transactions' });
+  }
+});
+
 // GET /api/admin/logs/transactions - Get all transactions
 router.get('/logs/transactions', async (req, res) => {
   try {
@@ -813,6 +843,262 @@ router.get('/expert/all', async (req, res) => {
   } catch (error) {
     console.error('[admin] Failed to get expert services:', error);
     return res.status(500).json({ error: 'Failed to get services' });
+  }
+});
+
+// ==========================================
+// EXPERT SERVICE ACTIONS
+// ==========================================
+
+// POST /api/admin/expert/mark-received/:id - Mark item as received at Gearted
+router.post('/expert/mark-received/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const expertService = await (prisma as any).expertService.findUnique({
+      where: { id },
+      include: { transaction: true }
+    });
+
+    if (!expertService) {
+      return res.status(404).json({ error: 'Service Expert introuvable' });
+    }
+
+    if (expertService.status !== 'SHIPPED_TO_GEARTED') {
+      return res.status(400).json({ 
+        error: `Action impossible: status actuel est ${expertService.status}, attendu SHIPPED_TO_GEARTED` 
+      });
+    }
+
+    const updated = await (prisma as any).expertService.update({
+      where: { id },
+      data: {
+        status: 'RECEIVED_BY_GEARTED',
+        receivedAt: new Date()
+      }
+    });
+
+    return res.json({ 
+      success: true, 
+      message: 'Article marque comme recu',
+      expertService: updated 
+    });
+  } catch (error) {
+    console.error('[admin] Failed to mark received:', error);
+    return res.status(500).json({ error: 'Failed to mark received' });
+  }
+});
+
+// POST /api/admin/expert/verify/:id - Mark item as verified
+router.post('/expert/verify/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { verificationNotes, verificationPassed } = req.body;
+    
+    const expertService = await (prisma as any).expertService.findUnique({
+      where: { id }
+    });
+
+    if (!expertService) {
+      return res.status(404).json({ error: 'Service Expert introuvable' });
+    }
+
+    if (expertService.status !== 'RECEIVED_BY_GEARTED') {
+      return res.status(400).json({ 
+        error: `Action impossible: status actuel est ${expertService.status}, attendu RECEIVED_BY_GEARTED` 
+      });
+    }
+
+    const updated = await (prisma as any).expertService.update({
+      where: { id },
+      data: {
+        status: 'VERIFIED',
+        verifiedAt: new Date(),
+        verificationNotes: verificationNotes || 'Verification effectuee',
+        verificationPassed: verificationPassed !== false
+      }
+    });
+
+    return res.json({ 
+      success: true, 
+      message: 'Article verifie',
+      expertService: updated 
+    });
+  } catch (error) {
+    console.error('[admin] Failed to verify:', error);
+    return res.status(500).json({ error: 'Failed to verify' });
+  }
+});
+
+// POST /api/admin/expert/mark-delivered/:id - Mark item as delivered to buyer
+router.post('/expert/mark-delivered/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const expertService = await (prisma as any).expertService.findUnique({
+      where: { id },
+      include: { transaction: true }
+    });
+
+    if (!expertService) {
+      return res.status(404).json({ error: 'Service Expert introuvable' });
+    }
+
+    if (expertService.status !== 'SHIPPED_TO_BUYER') {
+      return res.status(400).json({ 
+        error: `Action impossible: status actuel est ${expertService.status}, attendu SHIPPED_TO_BUYER` 
+      });
+    }
+
+    // Update expert service
+    const updated = await (prisma as any).expertService.update({
+      where: { id },
+      data: {
+        status: 'DELIVERED',
+        deliveredAt: new Date()
+      }
+    });
+
+    // Complete the transaction
+    await prisma.transaction.update({
+      where: { id: expertService.transactionId },
+      data: {
+        status: 'SUCCEEDED'
+      }
+    });
+
+    return res.json({ 
+      success: true, 
+      message: 'Article livre, transaction completee',
+      expertService: updated 
+    });
+  } catch (error) {
+    console.error('[admin] Failed to mark delivered:', error);
+    return res.status(500).json({ error: 'Failed to mark delivered' });
+  }
+});
+
+// ==========================================
+// DASHBOARD STATS
+// ==========================================
+
+// GET /api/admin/stats - Get dashboard statistics
+router.get('/stats', async (req, res) => {
+  try {
+    const [
+      totalUsers,
+      totalProducts,
+      totalTransactions,
+      pendingExpertServices,
+      totalRevenue
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.product.count(),
+      prisma.transaction.count(),
+      (prisma as any).expertService?.count({ where: { status: { not: 'DELIVERED' } } }).catch(() => 0) || 0,
+      prisma.transaction.aggregate({
+        _sum: { platformFee: true },
+        where: { status: 'SUCCEEDED' }
+      })
+    ]);
+
+    return res.json({
+      success: true,
+      stats: {
+        totalUsers,
+        totalProducts,
+        totalTransactions,
+        pendingExpertServices,
+        totalRevenue: totalRevenue._sum?.platformFee || 0
+      }
+    });
+  } catch (error) {
+    console.error('[admin] Failed to get stats:', error);
+    return res.status(500).json({ error: 'Failed to get stats' });
+  }
+});
+
+// ==========================================
+// PLATFORM SETTINGS (Boost, Latest Section, etc.)
+// ==========================================
+
+// GET /api/admin/settings - Get all platform settings
+router.get('/settings', async (req, res) => {
+  try {
+    const boostSettings = await (prisma as any).platformSettings.findFirst({
+      where: { key: 'boost_settings' }
+    });
+
+    const latestSectionSettings = await (prisma as any).platformSettings.findFirst({
+      where: { key: 'latest_section_settings' }
+    });
+
+    const defaultBoost = { enabled: true, price: 2.99 };
+    const defaultLatest = { visible: true };
+
+    return res.json({
+      success: true,
+      settings: {
+        boost: boostSettings?.value || defaultBoost,
+        latestSection: latestSectionSettings?.value || defaultLatest
+      }
+    });
+  } catch (error) {
+    console.error('[admin] Failed to get settings:', error);
+    return res.status(500).json({ error: 'Failed to get settings' });
+  }
+});
+
+// POST /api/admin/settings/boost - Toggle boost feature
+router.post('/settings/boost', async (req, res) => {
+  try {
+    const { enabled, price } = req.body;
+
+    const currentSettings = await (prisma as any).platformSettings.findFirst({
+      where: { key: 'boost_settings' }
+    });
+
+    const newSettings = {
+      enabled: enabled !== undefined ? enabled : (currentSettings?.value?.enabled ?? true),
+      price: price !== undefined ? price : (currentSettings?.value?.price ?? 2.99)
+    };
+
+    const settings = await (prisma as any).platformSettings.upsert({
+      where: { key: 'boost_settings' },
+      update: { value: newSettings },
+      create: { key: 'boost_settings', value: newSettings }
+    });
+
+    return res.json({
+      success: true,
+      message: `Boost ${newSettings.enabled ? 'active' : 'desactive'}`,
+      settings: settings.value
+    });
+  } catch (error) {
+    console.error('[admin] Failed to update boost settings:', error);
+    return res.status(500).json({ error: 'Failed to update boost settings' });
+  }
+});
+
+// POST /api/admin/settings/latest-section - Toggle latest section visibility
+router.post('/settings/latest-section', async (req, res) => {
+  try {
+    const { visible } = req.body;
+
+    const settings = await (prisma as any).platformSettings.upsert({
+      where: { key: 'latest_section_settings' },
+      update: { value: { visible: visible !== false } },
+      create: { key: 'latest_section_settings', value: { visible: visible !== false } }
+    });
+
+    return res.json({
+      success: true,
+      message: `Section "Derniers articles" ${settings.value.visible ? 'visible' : 'masquee'}`,
+      settings: settings.value
+    });
+  } catch (error) {
+    console.error('[admin] Failed to update latest section settings:', error);
+    return res.status(500).json({ error: 'Failed to update settings' });
   }
 });
 

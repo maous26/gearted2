@@ -13,13 +13,19 @@ router.get('/public', async (_req, res) => {
       where: { key: 'boost_settings' }
     });
 
-    const boost = boostSettings?.value || { enabled: false, showLatestSection: false };
+    // Get latest section settings
+    const latestSectionSettings = await (prisma as any).platformSettings?.findUnique({
+      where: { key: 'latest_section_settings' }
+    });
+
+    const boost = boostSettings?.value || { enabled: false };
+    const latestSection = latestSectionSettings?.value || { visible: false };
 
     // Return only public settings
     res.json({
       boost: {
         enabled: boost.enabled ?? false,
-        showLatestSection: boost.showLatestSection ?? false,
+        showLatestSection: latestSection.visible ?? false,
       },
     });
   } catch (error) {

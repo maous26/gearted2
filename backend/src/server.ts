@@ -77,6 +77,11 @@ app.get('/admin-legacy', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
+// New HTML admin console - accessible at /admin-console
+app.get('/admin-console', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin-console.html'));
+});
+
 // Simple test endpoint for cancel route
 app.post('/test-cancel-route', (req, res) => {
   res.json({ message: 'Test cancel route works!', version: '2024-12-04-v3' });
@@ -462,33 +467,10 @@ async function initializeServer() {
     console.error('[Server] Error initializing platform settings:', error);
   }
 
-  // Setup AdminJS BEFORE 404 handler
-  try {
-    console.log('[Server] Loading ts-node with custom config...');
-    require('ts-node').register({
-      project: path.join(__dirname, '..', 'tsconfig.adminjs.json'),
-      transpileOnly: true
-    });
-    console.log('[Server] ts-node registered successfully');
+  // AdminJS disabled - using HTML admin console at /admin-console instead
+  console.log('[Server] AdminJS disabled. Use /admin-console for admin interface.');
 
-    console.log('[Server] Requiring adminjs.setup.ts...');
-    // Use absolute path to src/config since we're running from dist/
-    const configPath = path.join(__dirname, '..', 'src', 'config', 'adminjs-minimal.setup.ts');
-    console.log('[Server] Loading from:', configPath);
-    const { setupAdminJS } = require(configPath);
-    console.log('[Server] adminjs.setup.ts loaded, setupAdminJS type:', typeof setupAdminJS);
-
-    console.log('[Server] Calling setupAdminJS...');
-    await setupAdminJS(app);
-    console.log('[Server] AdminJS setup completed successfully');
-  } catch (error) {
-    console.error('[Server] Failed to setup AdminJS:', error);
-    if (error instanceof Error) {
-      console.error('[Server] Error stack:', error.stack);
-    }
-  }
-
-  // NOW add 404 and error handlers AFTER AdminJS is mounted
+  // NOW add 404 and error handlers
   app.use(notFound);
   app.use(errorHandler);
   console.log('[Server] 404 and error handlers mounted');
@@ -499,6 +481,7 @@ async function initializeServer() {
     console.log(`📊 Environment: ${process.env.NODE_ENV}`);
     console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN}`);
     console.log(`💾 Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
+    console.log(`🔧 Admin console: /admin-console`);
   });
 }
 
