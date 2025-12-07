@@ -10,11 +10,10 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
-  ImageBackground,
+  Image,
   StatusBar,
   ScrollView,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -57,7 +56,6 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-    // Validation
     if (!username.trim()) {
       Alert.alert('Erreur', "Veuillez entrer un nom d'utilisateur");
       return;
@@ -160,7 +158,7 @@ export default function RegisterScreen() {
   };
 
   const getPasswordStrength = (): { level: number; color: string; text: string } => {
-    if (!password) return { level: 0, color: '#666', text: '' };
+    if (!password) return { level: 0, color: '#E5E7EB', text: '' };
     
     let strength = 0;
     if (password.length >= 8) strength++;
@@ -169,8 +167,8 @@ export default function RegisterScreen() {
     if (/[0-9]/.test(password)) strength++;
     if (/[^A-Za-z0-9]/.test(password)) strength++;
 
-    if (strength <= 2) return { level: strength, color: '#FF6B6B', text: 'Faible' };
-    if (strength <= 3) return { level: strength, color: '#FFB347', text: 'Moyen' };
+    if (strength <= 2) return { level: strength, color: '#EF4444', text: 'Faible' };
+    if (strength <= 3) return { level: strength, color: '#F59E0B', text: 'Moyen' };
     return { level: strength, color: '#00D4AA', text: 'Fort' };
   };
 
@@ -178,260 +176,254 @@ export default function RegisterScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
-      {/* Background Image */}
-      <ImageBackground
-        source={require('../assets/accueil.png')}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      >
-        {/* Gradient Overlay */}
+      {/* Header with image and fade effect */}
+      <View style={styles.headerContainer}>
+        <Image
+          source={require('../assets/accueil.png')}
+          style={styles.headerImage}
+          resizeMode="cover"
+        />
+        {/* Gradient fade from image to white */}
         <LinearGradient
-          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0.95)']}
-          style={styles.gradientOverlay}
+          colors={['transparent', 'rgba(255,255,255,0.3)', 'rgba(255,255,255,0.8)', '#FFFFFF']}
+          style={styles.fadeGradient}
+        />
+        {/* Side gradients for glow effect */}
+        <LinearGradient
+          colors={['rgba(99,102,241,0.3)', 'transparent']}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.leftGlow}
+        />
+        <LinearGradient
+          colors={['transparent', 'rgba(168,85,247,0.3)']}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.rightGlow}
+        />
+        
+        {/* Close button */}
+        <TouchableOpacity 
+          style={styles.closeButton}
+          onPress={() => router.back()}
         >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.keyboardView}
-          >
-            <ScrollView
-              contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
+          <Ionicons name="close" size={24} color="#6B7280" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Content */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.content}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Title */}
+          <Text style={styles.title}>Créer un compte</Text>
+          <Text style={styles.subtitle}>Rejoins la communauté airsoft</Text>
+
+          {/* Username Input */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="person-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Nom d'utilisateur"
+              placeholderTextColor="#9CA3AF"
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+
+          {/* Email Input */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="#9CA3AF"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+
+          {/* Password Input */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Mot de passe"
+              placeholderTextColor="#9CA3AF"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+            />
+            <TouchableOpacity
+              onPress={() => setShowPassword(!showPassword)}
+              style={styles.eyeIcon}
             >
-              {/* Header */}
-              <View style={styles.header}>
-                <TouchableOpacity
-                  style={styles.backButton}
-                  onPress={() => router.back()}
-                >
-                  <Ionicons name="arrow-back" size={24} color="#FFF" />
-                </TouchableOpacity>
+              <Ionicons
+                name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                size={20}
+                color="#9CA3AF"
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Password Strength Indicator */}
+          {password.length > 0 && (
+            <View style={styles.strengthContainer}>
+              <View style={styles.strengthBars}>
+                {[1, 2, 3, 4, 5].map((level) => (
+                  <View
+                    key={level}
+                    style={[
+                      styles.strengthBar,
+                      {
+                        backgroundColor:
+                          level <= passwordStrength.level
+                            ? passwordStrength.color
+                            : '#E5E7EB',
+                      },
+                    ]}
+                  />
+                ))}
               </View>
+              <Text style={[styles.strengthText, { color: passwordStrength.color }]}>
+                {passwordStrength.text}
+              </Text>
+            </View>
+          )}
 
-              {/* Logo Section */}
-              <View style={styles.logoSection}>
-                <View style={styles.logoContainer}>
-                  <Ionicons name="shield-checkmark" size={40} color="#FFFFFF" />
-                </View>
-                <Text style={styles.brandName}>GEARTED</Text>
-              </View>
+          {/* Confirm Password Input */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Confirmer le mot de passe"
+              placeholderTextColor="#9CA3AF"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry={!showConfirmPassword}
+            />
+            <TouchableOpacity
+              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              style={styles.eyeIcon}
+            >
+              <Ionicons
+                name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
+                size={20}
+                color="#9CA3AF"
+              />
+            </TouchableOpacity>
+          </View>
 
-              {/* Form Card */}
-              <BlurView intensity={20} tint="dark" style={styles.formCard}>
-                <View style={styles.formContent}>
-                  <Text style={styles.title}>Créer un compte</Text>
-                  <Text style={styles.subtitle}>Rejoignez la communauté airsoft</Text>
+          {/* Password Match Indicator */}
+          {confirmPassword.length > 0 && (
+            <View style={styles.matchIndicator}>
+              <Ionicons
+                name={password === confirmPassword ? 'checkmark-circle' : 'close-circle'}
+                size={16}
+                color={password === confirmPassword ? '#00D4AA' : '#EF4444'}
+              />
+              <Text
+                style={[
+                  styles.matchText,
+                  { color: password === confirmPassword ? '#00D4AA' : '#EF4444' },
+                ]}
+              >
+                {password === confirmPassword
+                  ? 'Les mots de passe correspondent'
+                  : 'Les mots de passe ne correspondent pas'}
+              </Text>
+            </View>
+          )}
 
-                  {/* Username Input */}
-                  <View style={styles.inputContainer}>
-                    <Ionicons name="person-outline" size={20} color="rgba(255,255,255,0.6)" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Nom d'utilisateur"
-                      placeholderTextColor="rgba(255,255,255,0.4)"
-                      value={username}
-                      onChangeText={setUsername}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                    />
-                  </View>
+          {/* Terms Checkbox */}
+          <TouchableOpacity
+            style={styles.termsContainer}
+            onPress={() => setAcceptedTerms(!acceptedTerms)}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                acceptedTerms && styles.checkboxChecked,
+              ]}
+            >
+              {acceptedTerms && (
+                <Ionicons name="checkmark" size={14} color="#FFF" />
+              )}
+            </View>
+            <Text style={styles.termsText}>
+              J'accepte les{' '}
+              <Text
+                style={styles.termsLink}
+                onPress={() => router.push('/legal/cgu')}
+              >
+                conditions d'utilisation
+              </Text>
+              {' '}et la{' '}
+              <Text
+                style={styles.termsLink}
+                onPress={() => router.push('/privacy-policy')}
+              >
+                politique de confidentialité
+              </Text>
+            </Text>
+          </TouchableOpacity>
 
-                  {/* Email Input */}
-                  <View style={styles.inputContainer}>
-                    <Ionicons name="mail-outline" size={20} color="rgba(255,255,255,0.6)" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Email"
-                      placeholderTextColor="rgba(255,255,255,0.4)"
-                      value={email}
-                      onChangeText={setEmail}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                    />
-                  </View>
+          {/* Register Button */}
+          <TouchableOpacity
+            style={[styles.primaryButton, !acceptedTerms && styles.buttonDisabled]}
+            onPress={handleRegister}
+            disabled={loading || !acceptedTerms}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.primaryButtonText}>Créer mon compte</Text>
+            )}
+          </TouchableOpacity>
 
-                  {/* Password Input */}
-                  <View style={styles.inputContainer}>
-                    <Ionicons name="lock-closed-outline" size={20} color="rgba(255,255,255,0.6)" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Mot de passe"
-                      placeholderTextColor="rgba(255,255,255,0.4)"
-                      value={password}
-                      onChangeText={setPassword}
-                      secureTextEntry={!showPassword}
-                    />
-                    <TouchableOpacity
-                      onPress={() => setShowPassword(!showPassword)}
-                      style={styles.eyeIcon}
-                    >
-                      <Ionicons
-                        name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                        size={20}
-                        color="rgba(255,255,255,0.6)"
-                      />
-                    </TouchableOpacity>
-                  </View>
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>ou</Text>
+            <View style={styles.dividerLine} />
+          </View>
 
-                  {/* Password Strength Indicator */}
-                  {password.length > 0 && (
-                    <View style={styles.strengthContainer}>
-                      <View style={styles.strengthBars}>
-                        {[1, 2, 3, 4, 5].map((level) => (
-                          <View
-                            key={level}
-                            style={[
-                              styles.strengthBar,
-                              {
-                                backgroundColor:
-                                  level <= passwordStrength.level
-                                    ? passwordStrength.color
-                                    : 'rgba(255,255,255,0.1)',
-                              },
-                            ]}
-                          />
-                        ))}
-                      </View>
-                      <Text style={[styles.strengthText, { color: passwordStrength.color }]}>
-                        {passwordStrength.text}
-                      </Text>
-                    </View>
-                  )}
+          {/* Discord Button */}
+          <TouchableOpacity
+            style={styles.discordButton}
+            onPress={handleDiscordRegister}
+            disabled={discordLoading}
+          >
+            <Ionicons name="logo-discord" size={22} color="#FFF" />
+            {discordLoading ? (
+              <ActivityIndicator color="#FFF" style={{ marginLeft: 10 }} />
+            ) : (
+              <Text style={styles.discordButtonText}>S'inscrire avec Discord</Text>
+            )}
+          </TouchableOpacity>
 
-                  {/* Confirm Password Input */}
-                  <View style={styles.inputContainer}>
-                    <Ionicons name="lock-closed-outline" size={20} color="rgba(255,255,255,0.6)" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Confirmer le mot de passe"
-                      placeholderTextColor="rgba(255,255,255,0.4)"
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                      secureTextEntry={!showConfirmPassword}
-                    />
-                    <TouchableOpacity
-                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                      style={styles.eyeIcon}
-                    >
-                      <Ionicons
-                        name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
-                        size={20}
-                        color="rgba(255,255,255,0.6)"
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Password Match Indicator */}
-                  {confirmPassword.length > 0 && (
-                    <View style={styles.matchIndicator}>
-                      <Ionicons
-                        name={password === confirmPassword ? 'checkmark-circle' : 'close-circle'}
-                        size={16}
-                        color={password === confirmPassword ? '#00D4AA' : '#FF6B6B'}
-                      />
-                      <Text
-                        style={[
-                          styles.matchText,
-                          { color: password === confirmPassword ? '#00D4AA' : '#FF6B6B' },
-                        ]}
-                      >
-                        {password === confirmPassword
-                          ? 'Les mots de passe correspondent'
-                          : 'Les mots de passe ne correspondent pas'}
-                      </Text>
-                    </View>
-                  )}
-
-                  {/* Terms Checkbox */}
-                  <TouchableOpacity
-                    style={styles.termsContainer}
-                    onPress={() => setAcceptedTerms(!acceptedTerms)}
-                  >
-                    <View
-                      style={[
-                        styles.checkbox,
-                        acceptedTerms && styles.checkboxChecked,
-                      ]}
-                    >
-                      {acceptedTerms && (
-                        <Ionicons name="checkmark" size={14} color="#FFF" />
-                      )}
-                    </View>
-                    <Text style={styles.termsText}>
-                      J'accepte les{' '}
-                      <Text
-                        style={styles.termsLink}
-                        onPress={() => router.push('/legal/cgu')}
-                      >
-                        conditions d'utilisation
-                      </Text>
-                      {' '}et la{' '}
-                      <Text
-                        style={styles.termsLink}
-                        onPress={() => router.push('/privacy-policy')}
-                      >
-                        politique de confidentialité
-                      </Text>
-                    </Text>
-                  </TouchableOpacity>
-
-                  {/* Register Button */}
-                  <TouchableOpacity
-                    style={[styles.registerButton, !acceptedTerms && styles.buttonDisabled]}
-                    onPress={handleRegister}
-                    disabled={loading || !acceptedTerms}
-                  >
-                    <LinearGradient
-                      colors={acceptedTerms ? ['#00D4AA', '#00B894'] : ['#555', '#444']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.buttonGradient}
-                    >
-                      {loading ? (
-                        <ActivityIndicator color="#FFF" />
-                      ) : (
-                        <Text style={styles.registerButtonText}>Créer mon compte</Text>
-                      )}
-                    </LinearGradient>
-                  </TouchableOpacity>
-
-                  {/* Divider */}
-                  <View style={styles.divider}>
-                    <View style={styles.dividerLine} />
-                    <Text style={styles.dividerText}>ou</Text>
-                    <View style={styles.dividerLine} />
-                  </View>
-
-                  {/* Discord Button */}
-                  <TouchableOpacity
-                    style={styles.discordButton}
-                    onPress={handleDiscordRegister}
-                    disabled={discordLoading}
-                  >
-                    <Ionicons name="logo-discord" size={24} color="#FFF" />
-                    {discordLoading ? (
-                      <ActivityIndicator color="#FFF" style={{ marginLeft: 10 }} />
-                    ) : (
-                      <Text style={styles.discordButtonText}>S'inscrire avec Discord</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </BlurView>
-
-              {/* Login Link */}
-              <View style={styles.loginSection}>
-                <Text style={styles.loginText}>Déjà un compte ?</Text>
-                <TouchableOpacity onPress={() => router.push('/login')}>
-                  <Text style={styles.loginLink}>Se connecter</Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </LinearGradient>
-      </ImageBackground>
+          {/* Login Link */}
+          <View style={styles.loginSection}>
+            <Text style={styles.loginText}>Déjà un compte ?</Text>
+            <TouchableOpacity onPress={() => router.push('/login')}>
+              <Text style={styles.loginLink}>Se connecter</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -439,86 +431,76 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#FFFFFF',
   },
-  backgroundImage: {
-    flex: 1,
+  headerContainer: {
+    height: height * 0.25,
+    position: 'relative',
+  },
+  headerImage: {
     width: '100%',
     height: '100%',
   },
-  gradientOverlay: {
-    flex: 1,
+  fadeGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 100,
   },
-  keyboardView: {
+  leftGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 60,
+    height: '100%',
+  },
+  rightGlow: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 60,
+    height: '100%',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  content: {
     flex: 1,
   },
   scrollContent: {
-    flexGrow: 1,
     paddingHorizontal: 24,
     paddingBottom: 40,
   },
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
-    paddingBottom: 10,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoSection: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  logoContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(0,212,170,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(0,212,170,0.5)',
-  },
-  brandName: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 3,
-  },
-  formCard: {
-    borderRadius: 24,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  formContent: {
-    padding: 24,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
   title: {
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 4,
+    color: '#1A1A2E',
+    textAlign: 'center',
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
-    marginBottom: 20,
+    fontSize: 15,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 24,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: '#F3F4F6',
   },
   inputIcon: {
     paddingLeft: 16,
@@ -527,7 +509,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 50,
     paddingHorizontal: 12,
-    color: '#FFFFFF',
+    color: '#1A1A2E',
     fontSize: 16,
   },
   eyeIcon: {
@@ -574,7 +556,7 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: '#D1D5DB',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -587,26 +569,24 @@ const styles = StyleSheet.create({
   termsText: {
     flex: 1,
     fontSize: 13,
-    color: 'rgba(255,255,255,0.6)',
+    color: '#6B7280',
     lineHeight: 20,
   },
   termsLink: {
     color: '#00D4AA',
+    fontWeight: '500',
   },
-  registerButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
+  primaryButton: {
+    backgroundColor: '#00D4AA',
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
     marginBottom: 16,
   },
   buttonDisabled: {
-    opacity: 0.7,
+    backgroundColor: '#D1D5DB',
   },
-  buttonGradient: {
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  registerButtonText: {
+  primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
@@ -619,10 +599,10 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#E5E7EB',
   },
   dividerText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: '#9CA3AF',
     paddingHorizontal: 16,
     fontSize: 14,
   },
@@ -632,28 +612,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#5865F2',
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 14,
+    marginBottom: 20,
+    gap: 10,
   },
   discordButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 10,
   },
   loginSection: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
   },
   loginText: {
-    color: 'rgba(255,255,255,0.6)',
+    color: '#6B7280',
     fontSize: 14,
   },
   loginLink: {
     color: '#00D4AA',
     fontSize: 14,
     fontWeight: '600',
-    marginLeft: 8,
+    marginLeft: 6,
   },
 });

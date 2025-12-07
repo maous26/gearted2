@@ -1,306 +1,610 @@
-import React, { useEffect, useState } from 'react';import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useState } from 'react';import React, { useEffect, useState } from 'react';import { LinearGradient } from "expo-linear-gradient";
 
-import {import { useRouter } from "expo-router";
+import {
 
-  View,import React, { useEffect, useState } from "react";
+  View,import {import { useRouter } from "expo-router";
 
-  Text,import {
+  Text,
 
-  TouchableOpacity,    Dimensions,
+  TouchableOpacity,  View,import React, { useEffect, useState } from "react";
 
-  StyleSheet,    ScrollView,
+  StyleSheet,
 
-  Dimensions,    StatusBar,
+  Dimensions,  Text,import {
 
-  ImageBackground,    Text,
+  Image,
+
+  StatusBar,  TouchableOpacity,    Dimensions,
+
+  ScrollView,
+
+  ActivityIndicator,  StyleSheet,    ScrollView,
+
+} from 'react-native';
+
+import { LinearGradient } from 'expo-linear-gradient';  Dimensions,    StatusBar,
+
+import { useRouter } from 'expo-router';
+
+import { Ionicons } from '@expo/vector-icons';  ImageBackground,    Text,
+
+import TokenManager from '../services/storage';
 
   StatusBar,    TextInput,
 
+const { width, height } = Dimensions.get('window');
+
   ScrollView,    TouchableOpacity,
 
-  ActivityIndicator,    View
+export default function GeartedLanding() {
+
+  const router = useRouter();  ActivityIndicator,    View
+
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
 } from 'react-native';} from "react-native";
 
-import { BlurView } from 'expo-blur';import { SafeAreaView } from "react-native-safe-area-context";
+  useEffect(() => {
 
-import { LinearGradient } from 'expo-linear-gradient';import { CategoryPill } from "../components/CategoryPill";
+    const checkAuth = async () => {import { BlurView } from 'expo-blur';import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useRouter } from 'expo-router';import { CATEGORIES, TRUST } from "../data";
+      try {
 
-import { Ionicons } from '@expo/vector-icons';import TokenManager from "../services/storage";
-
-import TokenManager from '../services/storage';import { THEMES, ThemeKey } from "../themes";
-
-
-
-const { width, height } = Dimensions.get('window');const { width } = Dimensions.get('window');
-
-
-
-export default function GeartedLanding() {export default function GeartedLanding() {
-
-  const router = useRouter();  const router = useRouter();
-
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);  const [theme, setTheme] = useState<ThemeKey>("ranger");
-
-  const [searchText, setSearchText] = useState("");
-
-  useEffect(() => {  const [location, setLocation] = useState("");
-
-    const checkAuth = async () => {  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-
-      try {  
-
-        const hasValidToken = await TokenManager.hasValidToken();  const t = THEMES[theme];
+        const hasValidToken = await TokenManager.hasValidToken();import { LinearGradient } from 'expo-linear-gradient';import { CategoryPill } from "../components/CategoryPill";
 
         
 
-        if (hasValidToken) {  // Vérifier si l'utilisateur est déjà connecté au démarrage
+        if (hasValidToken) {import { useRouter } from 'expo-router';import { CATEGORIES, TRUST } from "../data";
 
-          console.log('[Landing] Valid token found, redirecting to home');  useEffect(() => {
+          console.log('[Landing] Valid token found, redirecting to home');
 
-          router.replace('/(tabs)');    const checkAuth = async () => {
+          router.replace('/(tabs)');import { Ionicons } from '@expo/vector-icons';import TokenManager from "../services/storage";
 
-        } else {      try {
+        } else {
 
-          console.log('[Landing] No valid token, showing landing page');        const hasValidToken = await TokenManager.hasValidToken();
+          console.log('[Landing] No valid token, showing landing page');import TokenManager from '../services/storage';import { THEMES, ThemeKey } from "../themes";
 
-          setIsCheckingAuth(false);        
+          setIsCheckingAuth(false);
 
-        }        if (hasValidToken) {
-
-      } catch (error) {          // Token valide trouvé, rediriger vers l'app
-
-        console.error('[Landing] Auth check error:', error);          // Le UserProvider chargera automatiquement le profil depuis AsyncStorage
-
-        setIsCheckingAuth(false);          console.log('[Landing] Valid token found, redirecting to home');
-
-      }          router.replace("/(tabs)" as any);
-
-    };        } else {
-
-          console.log('[Landing] No valid token, showing landing page');
-
-    checkAuth();          setIsCheckingAuth(false);
-
-  }, []);        }
+        }
 
       } catch (error) {
 
-  if (isCheckingAuth) {        console.error('[Landing] Auth check error:', error);
+        console.error('[Landing] Auth check error:', error);const { width, height } = Dimensions.get('window');const { width } = Dimensions.get('window');
 
-    return (        setIsCheckingAuth(false);
+        setIsCheckingAuth(false);
 
-      <View style={styles.loadingContainer}>      }
+      }
 
-        <ActivityIndicator size="large" color="#00D4AA" />    };
+    };
+
+export default function GeartedLanding() {export default function GeartedLanding() {
+
+    checkAuth();
+
+  }, []);  const router = useRouter();  const router = useRouter();
+
+
+
+  if (isCheckingAuth) {  const [isCheckingAuth, setIsCheckingAuth] = useState(true);  const [theme, setTheme] = useState<ThemeKey>("ranger");
+
+    return (
+
+      <View style={styles.loadingContainer}>  const [searchText, setSearchText] = useState("");
+
+        <ActivityIndicator size="large" color="#00D4AA" />
+
+      </View>  useEffect(() => {  const [location, setLocation] = useState("");
+
+    );
+
+  }    const checkAuth = async () => {  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+
+
+  return (      try {  
+
+    <View style={styles.container}>
+
+      <StatusBar barStyle="dark-content" />        const hasValidToken = await TokenManager.hasValidToken();  const t = THEMES[theme];
+
+      
+
+      {/* Header with image and fade effect */}        
+
+      <View style={styles.headerContainer}>
+
+        <Image        if (hasValidToken) {  // Vérifier si l'utilisateur est déjà connecté au démarrage
+
+          source={require('../assets/GEARTEDicon8.png')}
+
+          style={styles.headerImage}          console.log('[Landing] Valid token found, redirecting to home');  useEffect(() => {
+
+          resizeMode="cover"
+
+        />          router.replace('/(tabs)');    const checkAuth = async () => {
+
+        {/* Gradient fade from image to white */}
+
+        <LinearGradient        } else {      try {
+
+          colors={['transparent', 'rgba(255,255,255,0.3)', 'rgba(255,255,255,0.8)', '#FFFFFF']}
+
+          style={styles.fadeGradient}          console.log('[Landing] No valid token, showing landing page');        const hasValidToken = await TokenManager.hasValidToken();
+
+        />
+
+        {/* Side gradients for glow effect */}          setIsCheckingAuth(false);        
+
+        <LinearGradient
+
+          colors={['rgba(99,102,241,0.4)', 'transparent']}        }        if (hasValidToken) {
+
+          start={{ x: 0, y: 0.5 }}
+
+          end={{ x: 1, y: 0.5 }}      } catch (error) {          // Token valide trouvé, rediriger vers l'app
+
+          style={styles.leftGlow}
+
+        />        console.error('[Landing] Auth check error:', error);          // Le UserProvider chargera automatiquement le profil depuis AsyncStorage
+
+        <LinearGradient
+
+          colors={['transparent', 'rgba(168,85,247,0.4)']}        setIsCheckingAuth(false);          console.log('[Landing] Valid token found, redirecting to home');
+
+          start={{ x: 0, y: 0.5 }}
+
+          end={{ x: 1, y: 0.5 }}      }          router.replace("/(tabs)" as any);
+
+          style={styles.rightGlow}
+
+        />    };        } else {
 
       </View>
 
-    );    checkAuth();
+          console.log('[Landing] No valid token, showing landing page');
 
-  }  }, []);
+      {/* Content */}
+
+      <ScrollView     checkAuth();          setIsCheckingAuth(false);
+
+        style={styles.content}
+
+        contentContainerStyle={styles.contentContainer}  }, []);        }
+
+        showsVerticalScrollIndicator={false}
+
+      >      } catch (error) {
+
+        {/* Title Section */}
+
+        <View style={styles.titleSection}>  if (isCheckingAuth) {        console.error('[Landing] Auth check error:', error);
+
+          <Text style={styles.title}>
+
+            Ton équipement,{'\n'}ta communauté.    return (        setIsCheckingAuth(false);
+
+          </Text>
+
+          <Text style={styles.subtitle}>      <View style={styles.loadingContainer}>      }
+
+            La marketplace airsoft de confiance pour acheter et vendre ton matériel.
+
+          </Text>        <ActivityIndicator size="large" color="#00D4AA" />    };
+
+        </View>
+
+      </View>
+
+        {/* Pagination dots */}
+
+        <View style={styles.dotsContainer}>    );    checkAuth();
+
+          <View style={[styles.dot, styles.dotInactive]} />
+
+          <View style={[styles.dot, styles.dotActive]} />  }  }, []);
+
+          <View style={[styles.dot, styles.dotInactive]} />
+
+        </View>
 
 
 
-  return (  // Afficher un écran vide pendant la vérification
+        {/* Features */}  return (  // Afficher un écran vide pendant la vérification
 
-    <View style={styles.container}>  if (isCheckingAuth) {
+        <View style={styles.featuresContainer}>
 
-      <StatusBar barStyle="light-content" />    return (
+          <FeatureItem     <View style={styles.container}>  if (isCheckingAuth) {
 
-            <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
+            icon="flash-outline"
 
-      {/* Background Image */}        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            title="Annonce en 2 minutes"      <StatusBar barStyle="light-content" />    return (
 
-      <ImageBackground          <Text style={{ color: t.muted }}>Chargement...</Text>
+            description="Publie ton équipement rapidement."
 
-        source={require('../assets/GEARTEDicon8.png')}        </View>
+          />            <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
 
-        style={styles.backgroundImage}      </SafeAreaView>
+          <FeatureItem 
 
-        resizeMode="cover"    );
+            icon="shield-checkmark-outline"      {/* Background Image */}        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+
+            title="Paiement sécurisé"
+
+            description="Protégé jusqu'à réception."      <ImageBackground          <Text style={{ color: t.muted }}>Chargement...</Text>
+
+          />
+
+          <FeatureItem         source={require('../assets/GEARTEDicon8.png')}        </View>
+
+            icon="people-outline"
+
+            title="Communauté vérifiée"        style={styles.backgroundImage}      </SafeAreaView>
+
+            description="Des joueurs passionnés comme toi."
+
+          />        resizeMode="cover"    );
+
+        </View>
 
       >  }
 
-        {/* Gradient Overlay */}
+        {/* CTA Buttons */}
 
-        <LinearGradient  return (
+        <TouchableOpacity        {/* Gradient Overlay */}
 
-          colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.95)']}    <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
+          style={styles.primaryButton}
 
-          style={styles.gradientOverlay}      <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
+          onPress={() => router.push('/register')}        <LinearGradient  return (
 
         >
 
-          <ScrollView       <ScrollView style={{ flex: 1 }}>
+          <Text style={styles.primaryButtonText}>Commencer l'aventure</Text>          colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.95)']}    <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }}>
 
-            contentContainerStyle={styles.scrollContent}        {/* Hero Section */}
+        </TouchableOpacity>
 
-            showsVerticalScrollIndicator={false}        <LinearGradient
+          style={styles.gradientOverlay}      <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
 
-          >          colors={[t.heroGradStart + 'CC', t.heroGradEnd + '66']}
+        <TouchableOpacity
 
-            {/* Logo Section */}          style={{ paddingHorizontal: 16, paddingTop: 32, paddingBottom: 24 }}
+          style={styles.secondaryButton}        >
 
-            <View style={styles.logoSection}>        >
+          onPress={() => router.push('/login')}
 
-              <View style={styles.logoContainer}>          <View>
+        >          <ScrollView       <ScrollView style={{ flex: 1 }}>
 
-                <Ionicons name="shield-checkmark" size={60} color="#FFFFFF" />            <Text style={{
+          <Text style={styles.secondaryButtonText}>J'ai déjà un compte</Text>
 
-              </View>              fontSize: 26,
+        </TouchableOpacity>            contentContainerStyle={styles.scrollContent}        {/* Hero Section */}
 
-              <Text style={styles.brandName}>GEARTED</Text>              fontWeight: '700',
+      </ScrollView>
 
-              <Text style={styles.tagline}>La marketplace airsoft de confiance</Text>              color: t.heading,
+    </View>            showsVerticalScrollIndicator={false}        <LinearGradient
 
-            </View>              textAlign: 'center',
+  );
 
-              marginBottom: 10,
+}          >          colors={[t.heroGradStart + 'CC', t.heroGradEnd + '66']}
 
-            {/* Features Section */}              letterSpacing: 0.5,
 
-            <View style={styles.featuresSection}>              textTransform: 'uppercase'
 
-              <FeatureItem             }}>
+interface FeatureItemProps {            {/* Logo Section */}          style={{ paddingHorizontal: 16, paddingTop: 32, paddingBottom: 24 }}
 
-                icon="flash"               TON ÉQUIPEMENT{'\n'}MÉRITE UNE{'\n'}
+  icon: keyof typeof Ionicons.glyphMap;
 
-                title="Annonce live en 2 min"               <Text style={{ color: t.primaryBtn }}>SECONDE VIE</Text>
+  title: string;            <View style={styles.logoSection}>        >
 
-                description="Publie ton équipement rapidement"            </Text>
+  description: string;
 
-              />
+}              <View style={styles.logoContainer}>          <View>
 
-              <FeatureItem             <Text style={{
 
-                icon="shield-checkmark"               fontSize: 15,
 
-                title="Paiement sécurisé"               color: t.muted,
+function FeatureItem({ icon, title, description }: FeatureItemProps) {                <Ionicons name="shield-checkmark" size={60} color="#FFFFFF" />            <Text style={{
 
-                description="Protégé jusqu'à réception"              textAlign: 'center',
+  return (
 
-              />              marginBottom: 20
+    <View style={styles.featureItem}>              </View>              fontSize: 26,
 
-              <FeatureItem             }}>
+      <View style={styles.featureIconContainer}>
 
-                icon="people"               La marketplace des airsofteurs
+        <Ionicons name={icon} size={22} color="#00D4AA" />              <Text style={styles.brandName}>GEARTED</Text>              fontWeight: '700',
 
-                title="Communauté vérifiée"             </Text>
+      </View>
 
-                description="Joueurs authentiques"
+      <View style={styles.featureTextContainer}>              <Text style={styles.tagline}>La marketplace airsoft de confiance</Text>              color: t.heading,
 
-              />            {/* Key Points - Plus dynamiques */}
+        <Text style={styles.featureTitle}>{title}</Text>
 
-              <FeatureItem             <View style={{ marginBottom: 24 }}>
+        <Text style={styles.featureDescription}>{description}</Text>            </View>              textAlign: 'center',
 
-                icon="location"               {[
+      </View>
 
-                title="Près de chez toi"                 { icon: "⚡", label: "Ton annonce live en 2 minutes" },
+    </View>              marginBottom: 10,
 
-                description="Trouve facilement autour de toi"                { icon: "🔒", label: "Paiement protégé jusqu'à réception" },
+  );
 
-              />                { icon: "✅", label: "Joueurs vérifiés, avis authentiques" },
+}            {/* Features Section */}              letterSpacing: 0.5,
 
-            </View>                { icon: "🎯", label: "Trouve exactement ce qu'il te faut" },
 
-              ].map((item, i) => (
 
-            {/* CTA Section */}                <View
+const styles = StyleSheet.create({            <View style={styles.featuresSection}>              textTransform: 'uppercase'
 
-            <BlurView intensity={20} tint="dark" style={styles.ctaCard}>                  key={i}
+  container: {
 
-              <View style={styles.ctaContent}>                  style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}
+    flex: 1,              <FeatureItem             }}>
 
-                <Text style={styles.ctaTitle}>Rejoins la communauté</Text>                >
+    backgroundColor: '#FFFFFF',
 
-                <Text style={styles.ctaSubtitle}>                  <Text style={{ fontSize: 16, marginRight: 10 }}>{item.icon}</Text>
+  },                icon="flash"               TON ÉQUIPEMENT{'\n'}MÉRITE UNE{'\n'}
 
-                  Des milliers d'airsofteurs t'attendent                  <Text style={{ color: t.subtle, fontSize: 14 }}>{item.label}</Text>
+  loadingContainer: {
 
-                </Text>                </View>
+    flex: 1,                title="Annonce live en 2 min"               <Text style={{ color: t.primaryBtn }}>SECONDE VIE</Text>
 
-              ))}
+    backgroundColor: '#FFFFFF',
 
-                {/* Primary Button */}            </View>
+    justifyContent: 'center',                description="Publie ton équipement rapidement"            </Text>
 
-                <TouchableOpacity
+    alignItems: 'center',
 
-                  style={styles.primaryButton}            {/* Primary CTA Row */}
+  },              />
 
-                  onPress={() => router.push('/register')}            <View
+  headerContainer: {
 
-                >              style={{
+    height: height * 0.38,              <FeatureItem             <Text style={{
 
-                  <LinearGradient                flexDirection: "row",
+    position: 'relative',
 
-                    colors={['#00D4AA', '#00B894']}                flexWrap: "wrap",
+  },                icon="shield-checkmark"               fontSize: 15,
 
-                    start={{ x: 0, y: 0 }}                gap: 12,
+  headerImage: {
 
-                    end={{ x: 1, y: 0 }}                marginBottom: 28,
+    width: '100%',                title="Paiement sécurisé"               color: t.muted,
 
-                    style={styles.buttonGradient}                justifyContent: "center",
+    height: '100%',
 
-                  >              }}
+  },                description="Protégé jusqu'à réception"              textAlign: 'center',
 
-                    <Ionicons name="person-add" size={20} color="#FFF" />            >
+  fadeGradient: {
 
-                    <Text style={styles.primaryButtonText}>Créer un compte</Text>              <TouchableOpacity
+    position: 'absolute',              />              marginBottom: 20
 
-                  </LinearGradient>                style={{
+    bottom: 0,
 
-                </TouchableOpacity>                  backgroundColor: t.primaryBtn,
+    left: 0,              <FeatureItem             }}>
 
-                  paddingHorizontal: 24,
+    right: 0,
 
-                {/* Secondary Button */}                  paddingVertical: 14,
+    height: 120,                icon="people"               La marketplace des airsofteurs
 
-                <TouchableOpacity                  borderRadius: 14,
+  },
 
-                  style={styles.secondaryButton}                  flexDirection: "row",
+  leftGlow: {                title="Communauté vérifiée"             </Text>
 
-                  onPress={() => router.push('/login')}                  alignItems: "center",
+    position: 'absolute',
 
-                >                }}
+    top: 0,                description="Joueurs authentiques"
 
-                  <Ionicons name="log-in" size={20} color="#FFF" />                onPress={() => router.push("/register" as any)}
+    left: 0,
 
-                  <Text style={styles.secondaryButtonText}>Se connecter</Text>              >
+    width: 80,              />            {/* Key Points - Plus dynamiques */}
 
-                </TouchableOpacity>                <Text style={{ color: t.white, fontWeight: "600", marginRight: 8 }}>🎯</Text>
+    height: '100%',
 
-                <Text style={{ color: t.white, fontWeight: "600" }}>Rejoindre la communauté</Text>
+  },              <FeatureItem             <View style={{ marginBottom: 24 }}>
 
-                {/* Browse without account */}              </TouchableOpacity>
+  rightGlow: {
 
-                <TouchableOpacity              <TouchableOpacity
+    position: 'absolute',                icon="location"               {[
 
-                  style={styles.browseButton}                style={{
+    top: 0,
 
-                  onPress={() => router.push('/(tabs)')}                  borderWidth: 1,
+    right: 0,                title="Près de chez toi"                 { icon: "⚡", label: "Ton annonce live en 2 minutes" },
 
-                >                  borderColor: t.border,
+    width: 80,
 
-                  <Text style={styles.browseButtonText}>                  backgroundColor: t.white,
+    height: '100%',                description="Trouve facilement autour de toi"                { icon: "🔒", label: "Paiement protégé jusqu'à réception" },
 
-                    Explorer sans compte →                  paddingHorizontal: 24,
+  },
 
-                  </Text>                  paddingVertical: 14,
+  content: {              />                { icon: "✅", label: "Joueurs vérifiés, avis authentiques" },
 
-                </TouchableOpacity>                  borderRadius: 14,
+    flex: 1,
 
-              </View>                }}
+  },            </View>                { icon: "🎯", label: "Trouve exactement ce qu'il te faut" },
 
-            </BlurView>                onPress={() => router.push("/login" as any)}
+  contentContainer: {
 
-              >
+    paddingHorizontal: 24,              ].map((item, i) => (
 
-            {/* Trust Badges */}                <Text style={{ color: t.heading, fontWeight: "600" }}>Connexion</Text>
+    paddingBottom: 40,
 
-            <View style={styles.trustSection}>              </TouchableOpacity>
+  },            {/* CTA Section */}                <View
+
+  titleSection: {
+
+    marginBottom: 20,            <BlurView intensity={20} tint="dark" style={styles.ctaCard}>                  key={i}
+
+  },
+
+  title: {              <View style={styles.ctaContent}>                  style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}
+
+    fontSize: 28,
+
+    fontWeight: '700',                <Text style={styles.ctaTitle}>Rejoins la communauté</Text>                >
+
+    color: '#1A1A2E',
+
+    textAlign: 'center',                <Text style={styles.ctaSubtitle}>                  <Text style={{ fontSize: 16, marginRight: 10 }}>{item.icon}</Text>
+
+    marginBottom: 12,
+
+    lineHeight: 36,                  Des milliers d'airsofteurs t'attendent                  <Text style={{ color: t.subtle, fontSize: 14 }}>{item.label}</Text>
+
+  },
+
+  subtitle: {                </Text>                </View>
+
+    fontSize: 15,
+
+    color: '#6B7280',              ))}
+
+    textAlign: 'center',
+
+    lineHeight: 22,                {/* Primary Button */}            </View>
+
+    paddingHorizontal: 10,
+
+  },                <TouchableOpacity
+
+  dotsContainer: {
+
+    flexDirection: 'row',                  style={styles.primaryButton}            {/* Primary CTA Row */}
+
+    justifyContent: 'center',
+
+    alignItems: 'center',                  onPress={() => router.push('/register')}            <View
+
+    marginBottom: 28,
+
+    gap: 8,                >              style={{
+
+  },
+
+  dot: {                  <LinearGradient                flexDirection: "row",
+
+    width: 8,
+
+    height: 8,                    colors={['#00D4AA', '#00B894']}                flexWrap: "wrap",
+
+    borderRadius: 4,
+
+  },                    start={{ x: 0, y: 0 }}                gap: 12,
+
+  dotActive: {
+
+    backgroundColor: '#00D4AA',                    end={{ x: 1, y: 0 }}                marginBottom: 28,
+
+    width: 24,
+
+  },                    style={styles.buttonGradient}                justifyContent: "center",
+
+  dotInactive: {
+
+    backgroundColor: '#E5E7EB',                  >              }}
+
+  },
+
+  featuresContainer: {                    <Ionicons name="person-add" size={20} color="#FFF" />            >
+
+    marginBottom: 28,
+
+  },                    <Text style={styles.primaryButtonText}>Créer un compte</Text>              <TouchableOpacity
+
+  featureItem: {
+
+    flexDirection: 'row',                  </LinearGradient>                style={{
+
+    alignItems: 'center',
+
+    backgroundColor: '#F9FAFB',                </TouchableOpacity>                  backgroundColor: t.primaryBtn,
+
+    padding: 16,
+
+    borderRadius: 16,                  paddingHorizontal: 24,
+
+    marginBottom: 12,
+
+    borderWidth: 1,                {/* Secondary Button */}                  paddingVertical: 14,
+
+    borderColor: '#F3F4F6',
+
+  },                <TouchableOpacity                  borderRadius: 14,
+
+  featureIconContainer: {
+
+    width: 44,                  style={styles.secondaryButton}                  flexDirection: "row",
+
+    height: 44,
+
+    borderRadius: 12,                  onPress={() => router.push('/login')}                  alignItems: "center",
+
+    backgroundColor: 'rgba(0,212,170,0.1)',
+
+    justifyContent: 'center',                >                }}
+
+    alignItems: 'center',
+
+    marginRight: 14,                  <Ionicons name="log-in" size={20} color="#FFF" />                onPress={() => router.push("/register" as any)}
+
+  },
+
+  featureTextContainer: {                  <Text style={styles.secondaryButtonText}>Se connecter</Text>              >
+
+    flex: 1,
+
+  },                </TouchableOpacity>                <Text style={{ color: t.white, fontWeight: "600", marginRight: 8 }}>🎯</Text>
+
+  featureTitle: {
+
+    fontSize: 16,                <Text style={{ color: t.white, fontWeight: "600" }}>Rejoindre la communauté</Text>
+
+    fontWeight: '600',
+
+    color: '#1A1A2E',                {/* Browse without account */}              </TouchableOpacity>
+
+    marginBottom: 2,
+
+  },                <TouchableOpacity              <TouchableOpacity
+
+  featureDescription: {
+
+    fontSize: 13,                  style={styles.browseButton}                style={{
+
+    color: '#6B7280',
+
+  },                  onPress={() => router.push('/(tabs)')}                  borderWidth: 1,
+
+  primaryButton: {
+
+    backgroundColor: '#00D4AA',                >                  borderColor: t.border,
+
+    paddingVertical: 16,
+
+    borderRadius: 14,                  <Text style={styles.browseButtonText}>                  backgroundColor: t.white,
+
+    alignItems: 'center',
+
+    marginBottom: 12,                    Explorer sans compte →                  paddingHorizontal: 24,
+
+  },
+
+  primaryButtonText: {                  </Text>                  paddingVertical: 14,
+
+    color: '#FFFFFF',
+
+    fontSize: 16,                </TouchableOpacity>                  borderRadius: 14,
+
+    fontWeight: '700',
+
+  },              </View>                }}
+
+  secondaryButton: {
+
+    paddingVertical: 14,            </BlurView>                onPress={() => router.push("/login" as any)}
+
+    alignItems: 'center',
+
+  },              >
+
+  secondaryButtonText: {
+
+    color: '#6B7280',            {/* Trust Badges */}                <Text style={{ color: t.heading, fontWeight: "600" }}>Connexion</Text>
+
+    fontSize: 15,
+
+  },            <View style={styles.trustSection}>              </TouchableOpacity>
+
+});
 
               <View style={styles.trustBadge}>            </View>
 

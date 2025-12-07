@@ -10,10 +10,10 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
-  ImageBackground,
+  Image,
   StatusBar,
+  ScrollView,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -116,166 +116,148 @@ export default function LoginScreen() {
     }
   };
 
-  const handleDemoLogin = async () => {
-    setLoading(true);
-    try {
-      const response = await authService.login({ email: 'demo@gearted.eu', password: 'Demo123!' });
-      
-      if (response.tokens && response.user) {
-        await AsyncStorage.setItem('authToken', response.tokens.accessToken);
-        await AsyncStorage.setItem('userData', JSON.stringify(response.user));
-        router.replace('/(tabs)');
-      }
-    } catch (error: any) {
-      console.error('Demo login error:', error);
-      Alert.alert('Erreur', 'Compte démo non disponible');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
       
-      {/* Background Image */}
-      <ImageBackground
-        source={require('../assets/accueil.png')}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      >
-        {/* Gradient Overlay */}
+      {/* Header with image and fade effect */}
+      <View style={styles.headerContainer}>
+        <Image
+          source={require('../assets/accueil.png')}
+          style={styles.headerImage}
+          resizeMode="cover"
+        />
+        {/* Gradient fade from image to white */}
         <LinearGradient
-          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0.9)']}
-          style={styles.gradientOverlay}
+          colors={['transparent', 'rgba(255,255,255,0.3)', 'rgba(255,255,255,0.8)', '#FFFFFF']}
+          style={styles.fadeGradient}
+        />
+        {/* Side gradients for glow effect */}
+        <LinearGradient
+          colors={['rgba(99,102,241,0.3)', 'transparent']}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.leftGlow}
+        />
+        <LinearGradient
+          colors={['transparent', 'rgba(168,85,247,0.3)']}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.rightGlow}
+        />
+        
+        {/* Close button */}
+        <TouchableOpacity 
+          style={styles.closeButton}
+          onPress={() => router.back()}
         >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.keyboardView}
+          <Ionicons name="close" size={24} color="#6B7280" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Content */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.content}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Title */}
+          <Text style={styles.title}>Content de te revoir !</Text>
+          <Text style={styles.subtitle}>Connecte-toi pour accéder à ton compte.</Text>
+
+          {/* Email Input */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="#9CA3AF"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+
+          {/* Password Input */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Mot de passe"
+              placeholderTextColor="#9CA3AF"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+            />
+            <TouchableOpacity
+              onPress={() => setShowPassword(!showPassword)}
+              style={styles.eyeIcon}
+            >
+              <Ionicons
+                name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                size={20}
+                color="#9CA3AF"
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Forgot Password */}
+          <TouchableOpacity
+            onPress={() => router.push('/forgot-password')}
+            style={styles.forgotPassword}
           >
-            {/* Logo Section */}
-            <View style={styles.logoSection}>
-              <View style={styles.logoContainer}>
-                <Ionicons name="shield-checkmark" size={50} color="#FFFFFF" />
-              </View>
-              <Text style={styles.brandName}>GEARTED</Text>
-              <Text style={styles.tagline}>L'équipement airsoft de confiance</Text>
-            </View>
+            <Text style={styles.forgotPasswordText}>Mot de passe oublié ?</Text>
+          </TouchableOpacity>
 
-            {/* Form Card */}
-            <BlurView intensity={20} tint="dark" style={styles.formCard}>
-              <View style={styles.formContent}>
-                <Text style={styles.title}>Connexion</Text>
-                <Text style={styles.subtitle}>Accédez à votre compte</Text>
+          {/* Login Button */}
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.primaryButtonText}>Se connecter</Text>
+            )}
+          </TouchableOpacity>
 
-                {/* Email Input */}
-                <View style={styles.inputContainer}>
-                  <Ionicons name="mail-outline" size={20} color="rgba(255,255,255,0.6)" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Email"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                </View>
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>ou</Text>
+            <View style={styles.dividerLine} />
+          </View>
 
-                {/* Password Input */}
-                <View style={styles.inputContainer}>
-                  <Ionicons name="lock-closed-outline" size={20} color="rgba(255,255,255,0.6)" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Mot de passe"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                  />
-                  <TouchableOpacity
-                    onPress={() => setShowPassword(!showPassword)}
-                    style={styles.eyeIcon}
-                  >
-                    <Ionicons
-                      name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                      size={20}
-                      color="rgba(255,255,255,0.6)"
-                    />
-                  </TouchableOpacity>
-                </View>
+          {/* Discord Button */}
+          <TouchableOpacity
+            style={styles.discordButton}
+            onPress={handleDiscordLogin}
+            disabled={discordLoading}
+          >
+            <Ionicons name="logo-discord" size={22} color="#FFF" />
+            {discordLoading ? (
+              <ActivityIndicator color="#FFF" style={{ marginLeft: 10 }} />
+            ) : (
+              <Text style={styles.discordButtonText}>Continuer avec Discord</Text>
+            )}
+          </TouchableOpacity>
 
-                {/* Forgot Password */}
-                <TouchableOpacity
-                  onPress={() => router.push('/forgot-password')}
-                  style={styles.forgotPassword}
-                >
-                  <Text style={styles.forgotPasswordText}>Mot de passe oublié ?</Text>
-                </TouchableOpacity>
-
-                {/* Login Button */}
-                <TouchableOpacity
-                  style={styles.loginButton}
-                  onPress={handleLogin}
-                  disabled={loading}
-                >
-                  <LinearGradient
-                    colors={['#00D4AA', '#00B894']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.buttonGradient}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="#FFF" />
-                    ) : (
-                      <Text style={styles.loginButtonText}>Se connecter</Text>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-
-                {/* Divider */}
-                <View style={styles.divider}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>ou</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                {/* Discord Button */}
-                <TouchableOpacity
-                  style={styles.discordButton}
-                  onPress={handleDiscordLogin}
-                  disabled={discordLoading}
-                >
-                  <Ionicons name="logo-discord" size={24} color="#FFF" />
-                  {discordLoading ? (
-                    <ActivityIndicator color="#FFF" style={{ marginLeft: 10 }} />
-                  ) : (
-                    <Text style={styles.discordButtonText}>Continuer avec Discord</Text>
-                  )}
-                </TouchableOpacity>
-
-                {/* Demo Login */}
-                <TouchableOpacity
-                  style={styles.demoButton}
-                  onPress={handleDemoLogin}
-                  disabled={loading}
-                >
-                  <Text style={styles.demoButtonText}>🎮 Compte démo</Text>
-                </TouchableOpacity>
-              </View>
-            </BlurView>
-
-            {/* Register Link */}
-            <View style={styles.registerSection}>
-              <Text style={styles.registerText}>Pas encore de compte ?</Text>
-              <TouchableOpacity onPress={() => router.push('/register')}>
-                <Text style={styles.registerLink}>S'inscrire</Text>
-              </TouchableOpacity>
-            </View>
-          </KeyboardAvoidingView>
-        </LinearGradient>
-      </ImageBackground>
+          {/* Register Link */}
+          <View style={styles.registerSection}>
+            <Text style={styles.registerText}>Pas encore de compte ?</Text>
+            <TouchableOpacity onPress={() => router.push('/register')}>
+              <Text style={styles.registerLink}>S'inscrire</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -283,76 +265,76 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#FFFFFF',
   },
-  backgroundImage: {
-    flex: 1,
+  headerContainer: {
+    height: height * 0.30,
+    position: 'relative',
+  },
+  headerImage: {
     width: '100%',
     height: '100%',
   },
-  gradientOverlay: {
+  fadeGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+  },
+  leftGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 60,
+    height: '100%',
+  },
+  rightGlow: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 60,
+    height: '100%',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  content: {
     flex: 1,
   },
-  keyboardView: {
-    flex: 1,
-    justifyContent: 'center',
+  scrollContent: {
     paddingHorizontal: 24,
-  },
-  logoSection: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(0,212,170,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(0,212,170,0.5)',
-  },
-  brandName: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 4,
-  },
-  tagline: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 8,
-  },
-  formCard: {
-    borderRadius: 24,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  formContent: {
-    padding: 24,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    paddingBottom: 40,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 4,
+    color: '#1A1A2E',
+    textAlign: 'center',
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
-    marginBottom: 24,
+    fontSize: 15,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 28,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
-    marginBottom: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: '#F3F4F6',
   },
   inputIcon: {
     paddingLeft: 16,
@@ -361,7 +343,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 52,
     paddingHorizontal: 12,
-    color: '#FFFFFF',
+    color: '#1A1A2E',
     fontSize: 16,
   },
   eyeIcon: {
@@ -369,23 +351,21 @@ const styles = StyleSheet.create({
   },
   forgotPassword: {
     alignSelf: 'flex-end',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   forgotPasswordText: {
     color: '#00D4AA',
     fontSize: 14,
+    fontWeight: '500',
   },
-  loginButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
+  primaryButton: {
+    backgroundColor: '#00D4AA',
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
     marginBottom: 20,
   },
-  buttonGradient: {
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loginButtonText: {
+  primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
@@ -398,10 +378,10 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#E5E7EB',
   },
   dividerText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: '#9CA3AF',
     paddingHorizontal: 16,
     fontSize: 14,
   },
@@ -411,39 +391,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#5865F2',
     paddingVertical: 14,
-    borderRadius: 12,
-    marginBottom: 12,
+    borderRadius: 14,
+    marginBottom: 24,
+    gap: 10,
   },
   discordButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 10,
-  },
-  demoButton: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  demoButtonText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 14,
   },
   registerSection: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 24,
   },
   registerText: {
-    color: 'rgba(255,255,255,0.6)',
+    color: '#6B7280',
     fontSize: 14,
   },
   registerLink: {
     color: '#00D4AA',
     fontSize: 14,
     fontWeight: '600',
-    marginLeft: 8,
+    marginLeft: 6,
   },
 });
