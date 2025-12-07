@@ -472,7 +472,8 @@ async function initializeServer() {
     console.log('[Server] ts-node registered successfully');
 
     console.log('[Server] Requiring adminjs.setup.ts...');
-    const configPath = './config/adminjs.setup.ts';
+    // Use minimal setup to avoid bundling issues on Railway
+    const configPath = './config/adminjs-minimal.setup.ts';
     console.log('[Server] Loading from:', configPath);
     const { setupAdminJS } = require(configPath);
     console.log('[Server] adminjs.setup.ts loaded, setupAdminJS type:', typeof setupAdminJS);
