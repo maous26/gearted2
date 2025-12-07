@@ -723,12 +723,19 @@ router.post('/expert/create-test', async (req, res) => {
     }
 
     // Create a test transaction (required for ExpertService)
+    const productPrice = parseFloat(product.price.toString());
     const transaction = await (prisma as any).transaction.create({
       data: {
         productId,
         buyerId,
-        amount: product.price,
+        amount: productPrice,
         platformFee: 0, // Test transaction - no fees
+        sellerAmount: productPrice, // Seller gets full amount for test
+        totalPaid: productPrice + 19.90, // Product + expert fee
+        buyerFee: 0,
+        sellerFee: 0,
+        buyerFeePercent: 0,
+        sellerFeePercent: 0,
         currency: 'EUR',
         status: 'COMPLETED',
         paymentIntentId: `pi_test_expert_${Date.now()}`,
