@@ -1351,4 +1351,69 @@ router.post('/settings/latest-section', async (req, res) => {
   }
 });
 
+// ==========================================
+// ASSURANCE PROTECTION (Casse/Perte)
+// ==========================================
+
+// GET /api/admin/settings/protection - Get protection/insurance settings
+router.get('/settings/protection', async (req, res) => {
+  try {
+    const settings = await (prisma as any).platformSettings.findFirst({
+      where: { key: 'protection_settings' }
+    });
+
+    const defaultSettings = {
+      enabled: true,
+      price: 4.99,
+      maxCoverage: 500,
+      franchise: 50,
+      maxClaimsPerYear: 2
+    };
+
+    return res.json({
+      success: true,
+      settings: settings?.value || defaultSettings
+    });
+  } catch (error) {
+    console.error('[admin] Failed to get protection settings:', error);
+    return res.status(500).json({ error: 'Failed to get protection settings' });
+  }
+});
+
+// POST /api/admin/settings/protection - Toggle protection/insurance feature
+router.post('/settings/protection', async (req, res) => {
+  try {
+    const { enabled, price, maxCoverage, franchise, maxClaimsPerYear } = req.body;
+
+    const currentSettings = await (prisma as any).platformSettings.findFirst({
+      where: { key: 'protection_settings' }
+    });
+
+    const currentValue = currentSettings?.value || {};
+
+    const newSettings = {
+      enabled: enabled !== undefined ? enabled : (currentValue.enabled ?? true),
+      price: price !== undefined ? price : (currentValue.price ?? 4.99),
+      maxCoverage: maxCoverage !== undefined ? maxCoverage : (currentValue.maxCoverage ?? 500),
+      franchise: franchise !== undefined ? franchise : (currentValue.franchise ?? 50),
+      maxClaimsPerYear: maxClaimsPerYear !== undefined ? maxClaimsPerYear : (currentValue.maxClaimsPerYear ?? 2)
+    };
+
+    const settings = await (prisma as any).platformSettings.upsert({
+      where: { key: 'protection_settings' },
+      update: { value: newSettings },
+      create: { key: 'protection_settings', value: newSettings }
+    });
+
+    return res.json({
+      success: true,
+      message: `Assurance Protection ${newSettings.enabled ? 'activee' : 'desactivee'}`,
+      settings: settings.value
+    });
+  } catch (error) {
+    console.error('[admin] Failed to update protection settings:', error);
+    return res.status(500).json({ error: 'Failed to update protection settings' });
+  }
+});
+
 export default router;

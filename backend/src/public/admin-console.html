@@ -529,7 +529,39 @@
         </div>
       </div>
 
-      <h3>�🚀 Système de Boost</h3>
+      <h3>🛡️ Assurance Protection (Casse/Perte)</h3>
+      <div class="setting-row">
+        <div class="setting-info">
+          <h4>Activer l'assurance Protection</h4>
+          <p>Permet aux acheteurs de souscrire une assurance casse/perte</p>
+        </div>
+        <div class="toggle" id="protectionToggle" onclick="toggleProtection()"></div>
+      </div>
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="address-form">
+          <div class="form-group">
+            <label>Prix de l'assurance (€)</label>
+            <input type="number" id="protectionPrice" step="0.01" min="0" value="4.99" style="width:100%;padding:10px;background:#0f0f0f;border:1px solid #333;border-radius:8px;color:#fff;">
+          </div>
+          <div class="form-group">
+            <label>Couverture max (€)</label>
+            <input type="number" id="protectionMaxCoverage" step="1" min="0" value="500" style="width:100%;padding:10px;background:#0f0f0f;border:1px solid #333;border-radius:8px;color:#fff;">
+          </div>
+          <div class="form-group">
+            <label>Franchise (€)</label>
+            <input type="number" id="protectionFranchise" step="1" min="0" value="50" style="width:100%;padding:10px;background:#0f0f0f;border:1px solid #333;border-radius:8px;color:#fff;">
+          </div>
+          <div class="form-group">
+            <label>Max sinistres/an</label>
+            <input type="number" id="protectionMaxClaims" step="1" min="1" value="2" style="width:100%;padding:10px;background:#0f0f0f;border:1px solid #333;border-radius:8px;color:#fff;">
+          </div>
+          <div class="full-width">
+            <button class="btn btn-primary btn-sm" onclick="saveProtectionSettings()">💾 Sauvegarder les paramètres</button>
+          </div>
+        </div>
+      </div>
+
+      <h3>🚀 Système de Boost</h3>
       <div class="setting-row">
         <div class="setting-info">
           <h4>Activer le Boost</h4>
@@ -913,6 +945,7 @@
     // Settings
     let commissionSettings = { enabled: true, rate: 8, minAmount: 0.50 };
     let expertFeatureSettings = { enabled: true, price: 19.90 };
+    let protectionSettings = { enabled: true, price: 4.99, maxCoverage: 500, franchise: 50, maxClaimsPerYear: 2 };
 
     async function loadSettings() {
       try {
@@ -924,10 +957,10 @@
             showLatestSection: result.settings?.latestSection?.visible ?? false
           };
         }
-        
+
         document.getElementById('boostToggle').classList.toggle('active', boostSettings.enabled);
         document.getElementById('latestSectionToggle').classList.toggle('active', boostSettings.showLatestSection);
-        
+
         // Load commission settings (buyer & seller)
         try {
           const commResult = await api('/api/admin/commissions/settings');
@@ -943,7 +976,7 @@
             document.getElementById('sellerFeeMin').value = commissionSettings.sellerFeeMin || 0.50;
           }
         } catch (e) { console.log('No commission settings yet'); }
-        
+
         // Load expert settings (address + price)
         const expertResult = await api('/api/admin/expert/settings');
         if (expertResult.success && expertResult.settings) {
@@ -953,7 +986,7 @@
           };
           document.getElementById('expertToggle').classList.toggle('active', expertFeatureSettings.enabled);
           document.getElementById('expertPrice').value = expertFeatureSettings.price;
-          
+
           if (expertResult.settings.address) {
             const addr = expertResult.settings.address;
             document.getElementById('addrName').value = addr.name || '';
@@ -965,6 +998,19 @@
             document.getElementById('addrEmail').value = addr.email || '';
           }
         }
+
+        // Load protection/insurance settings
+        try {
+          const protResult = await api('/api/admin/settings/protection');
+          if (protResult.success && protResult.settings) {
+            protectionSettings = protResult.settings;
+            document.getElementById('protectionToggle').classList.toggle('active', protectionSettings.enabled !== false);
+            document.getElementById('protectionPrice').value = protectionSettings.price || 4.99;
+            document.getElementById('protectionMaxCoverage').value = protectionSettings.maxCoverage || 500;
+            document.getElementById('protectionFranchise').value = protectionSettings.franchise || 50;
+            document.getElementById('protectionMaxClaims').value = protectionSettings.maxClaimsPerYear || 2;
+          }
+        } catch (e) { console.log('No protection settings yet'); }
       } catch (err) {
         console.error('Settings error:', err);
       }
@@ -1119,13 +1165,62 @@
         phone: document.getElementById('addrPhone').value,
         email: document.getElementById('addrEmail').value
       };
-      
+
       try {
         await api('/api/admin/expert/settings', {
           method: 'PUT',
           body: JSON.stringify({ address, enabled: expertFeatureSettings.enabled, price: expertFeatureSettings.price })
         });
         showAlert('settingsAlert', 'Adresse Gearted sauvegardée !', 'success');
+      } catch (err) {
+        showAlert('settingsAlert', err.message, 'error');
+      }
+    }
+
+    // Protection/Insurance Toggle
+    async function toggleProtection() {
+      const newValue = !protectionSettings.enabled;
+      try {
+        await api('/api/admin/settings/protection', {
+          method: 'POST',
+          body: JSON.stringify({
+            enabled: newValue,
+            price: protectionSettings.price,
+            maxCoverage: protectionSettings.maxCoverage,
+            franchise: protectionSettings.franchise,
+            maxClaimsPerYear: protectionSettings.maxClaimsPerYear
+          })
+        });
+        protectionSettings.enabled = newValue;
+        document.getElementById('protectionToggle').classList.toggle('active', newValue);
+        showAlert('settingsAlert', `Assurance Protection ${newValue ? 'activée' : 'désactivée'} !`, 'success');
+      } catch (err) {
+        showAlert('settingsAlert', err.message, 'error');
+      }
+    }
+
+    async function saveProtectionSettings() {
+      const price = parseFloat(document.getElementById('protectionPrice').value);
+      const maxCoverage = parseFloat(document.getElementById('protectionMaxCoverage').value);
+      const franchise = parseFloat(document.getElementById('protectionFranchise').value);
+      const maxClaimsPerYear = parseInt(document.getElementById('protectionMaxClaims').value);
+
+      try {
+        await api('/api/admin/settings/protection', {
+          method: 'POST',
+          body: JSON.stringify({
+            enabled: protectionSettings.enabled,
+            price: price,
+            maxCoverage: maxCoverage,
+            franchise: franchise,
+            maxClaimsPerYear: maxClaimsPerYear
+          })
+        });
+        protectionSettings.price = price;
+        protectionSettings.maxCoverage = maxCoverage;
+        protectionSettings.franchise = franchise;
+        protectionSettings.maxClaimsPerYear = maxClaimsPerYear;
+        showAlert('settingsAlert', 'Paramètres de l\'assurance Protection sauvegardés !', 'success');
       } catch (err) {
         showAlert('settingsAlert', err.message, 'error');
       }

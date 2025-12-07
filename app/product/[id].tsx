@@ -53,8 +53,28 @@ export default function ProductDetailScreen() {
   const [loadingRates, setLoadingRates] = useState(false);
   const [hasDimensions, setHasDimensions] = useState<boolean | null>(null);
 
+  // Protection/Insurance settings from backend
+  const [protectionEnabled, setProtectionEnabled] = useState(true);
+  const [protectionPrice, setProtectionPrice] = useState(4.99);
+
   const EXPERTISE_PRICE = 19.90;
-  const INSURANCE_PRICE = 4.99;
+  const INSURANCE_PRICE = protectionPrice;
+
+  // Charger les settings de protection au montage
+  useEffect(() => {
+    const loadProtectionSettings = async () => {
+      try {
+        const response = await api.get<{ success: boolean; settings?: { enabled: boolean; price: number } }>('/api/settings/protection');
+        if (response.success && response.settings) {
+          setProtectionEnabled(response.settings.enabled);
+          setProtectionPrice(response.settings.price);
+        }
+      } catch (error) {
+        console.error('[Product] Failed to load protection settings:', error);
+      }
+    };
+    loadProtectionSettings();
+  }, []);
 
   // Charger les tarifs de livraison quand le modal s'ouvre
   useEffect(() => {
@@ -902,35 +922,37 @@ export default function ProductDetailScreen() {
                 </View>
               </TouchableOpacity>
 
-              {/* Assurance Gearted */}
-              <TouchableOpacity
-                onPress={() => setWantInsurance(!wantInsurance)}
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  backgroundColor: wantInsurance ? t.primaryBtn + '15' : 'transparent',
-                  padding: 12,
-                  borderRadius: 10,
-                  borderWidth: 1,
-                  borderColor: wantInsurance ? t.primaryBtn : t.border
-                }}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, color: t.heading, fontWeight: '600' }}>🛡️ Assurance Casse & Perte</Text>
-                  <Text style={{ fontSize: 12, color: t.muted, marginTop: 2 }}>Protection complète pendant l'expédition</Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontSize: 15, color: t.primaryBtn, fontWeight: '700' }}>{INSURANCE_PRICE.toFixed(2)} €</Text>
-                  <View style={{
-                    width: 24, height: 24, borderRadius: 12,
-                    backgroundColor: wantInsurance ? t.primaryBtn : t.border,
-                    justifyContent: 'center', alignItems: 'center'
-                  }}>
-                    {wantInsurance && <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>✓</Text>}
+              {/* Assurance Gearted - Only show if enabled in admin */}
+              {protectionEnabled && (
+                <TouchableOpacity
+                  onPress={() => setWantInsurance(!wantInsurance)}
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    backgroundColor: wantInsurance ? t.primaryBtn + '15' : 'transparent',
+                    padding: 12,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor: wantInsurance ? t.primaryBtn : t.border
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 15, color: t.heading, fontWeight: '600' }}>🛡️ Assurance Casse & Perte</Text>
+                    <Text style={{ fontSize: 12, color: t.muted, marginTop: 2 }}>Protection complète pendant l'expédition</Text>
                   </View>
-                </View>
-              </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: 15, color: t.primaryBtn, fontWeight: '700' }}>{INSURANCE_PRICE.toFixed(2)} €</Text>
+                    <View style={{
+                      width: 24, height: 24, borderRadius: 12,
+                      backgroundColor: wantInsurance ? t.primaryBtn : t.border,
+                      justifyContent: 'center', alignItems: 'center'
+                    }}>
+                      {wantInsurance && <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>✓</Text>}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              )}
 
               {/* Total options si sélectionnées */}
               {purchaseSummary.optionsTotal > 0 && (

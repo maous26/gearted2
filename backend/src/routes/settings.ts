@@ -80,4 +80,36 @@ router.get('/commissions', async (_req, res) => {
   }
 });
 
+// Public protection/insurance settings - needed by frontend to show/hide option
+router.get('/protection', async (_req, res) => {
+  try {
+    const settings = await (prisma as any).platformSettings?.findFirst({
+      where: { key: 'protection_settings' }
+    });
+
+    const protection = settings?.value || {
+      enabled: true,
+      price: 4.99
+    };
+
+    // Return only what the frontend needs
+    res.json({
+      success: true,
+      settings: {
+        enabled: protection.enabled ?? true,
+        price: protection.price ?? 4.99
+      }
+    });
+  } catch (error) {
+    console.error('[settings] Failed to get protection settings', error);
+    res.json({
+      success: true,
+      settings: {
+        enabled: true,
+        price: 4.99
+      }
+    });
+  }
+});
+
 export default router;
