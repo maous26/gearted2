@@ -153,7 +153,6 @@ router.delete('/products/cleanup', async (req, res) => {
 // GET /api/admin/commissions/settings - Get commission settings
 router.get('/commissions/settings', async (req, res) => {
   try {
-    // Récupérer les paramètres globaux (à stocker dans une table Settings)
     const settings = await (prisma as any).platformSettings.findFirst({
       where: { key: 'commissions' }
     });
@@ -161,9 +160,12 @@ router.get('/commissions/settings', async (req, res) => {
     return res.json({
       success: true,
       settings: settings?.value || {
-        enabled: true,
+        buyerEnabled: true,
         buyerFeePercent: 5,
-        sellerFeePercent: 5
+        buyerFeeMin: 0.50,
+        sellerEnabled: true,
+        sellerFeePercent: 8,
+        sellerFeeMin: 0.50
       }
     });
   } catch (error) {
@@ -175,18 +177,35 @@ router.get('/commissions/settings', async (req, res) => {
 // PUT /api/admin/commissions/settings - Update commission settings
 router.put('/commissions/settings', async (req, res) => {
   try {
-    const { enabled, buyerFeePercent, sellerFeePercent } = req.body;
+    const { 
+      buyerEnabled, 
+      buyerFeePercent, 
+      buyerFeeMin,
+      sellerEnabled, 
+      sellerFeePercent,
+      sellerFeeMin
+    } = req.body;
 
-    // Upsert settings
+    // Get current settings to merge
+    const current = await (prisma as any).platformSettings.findFirst({
+      where: { key: 'commissions' }
+    });
+    
+    const currentValue = current?.value || {};
+    
+    const newSettings = {
+      buyerEnabled: buyerEnabled !== undefined ? buyerEnabled : (currentValue.buyerEnabled ?? true),
+      buyerFeePercent: buyerFeePercent !== undefined ? buyerFeePercent : (currentValue.buyerFeePercent ?? 5),
+      buyerFeeMin: buyerFeeMin !== undefined ? buyerFeeMin : (currentValue.buyerFeeMin ?? 0.50),
+      sellerEnabled: sellerEnabled !== undefined ? sellerEnabled : (currentValue.sellerEnabled ?? true),
+      sellerFeePercent: sellerFeePercent !== undefined ? sellerFeePercent : (currentValue.sellerFeePercent ?? 8),
+      sellerFeeMin: sellerFeeMin !== undefined ? sellerFeeMin : (currentValue.sellerFeeMin ?? 0.50)
+    };
+
     const settings = await (prisma as any).platformSettings.upsert({
       where: { key: 'commissions' },
-      update: {
-        value: { enabled, buyerFeePercent, sellerFeePercent }
-      },
-      create: {
-        key: 'commissions',
-        value: { enabled, buyerFeePercent, sellerFeePercent }
-      }
+      update: { value: newSettings },
+      create: { key: 'commissions', value: newSettings }
     });
 
     return res.json({

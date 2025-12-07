@@ -463,28 +463,50 @@
       <h2>⚙️ Paramètres de la plateforme</h2>
       <div id="settingsAlert" class="alert hidden"></div>
 
-      <h3>� Commissions</h3>
+      <h3>💰 Commissions Acheteur</h3>
       <div class="setting-row">
         <div class="setting-info">
-          <h4>Activer les commissions</h4>
-          <p>Prélever une commission sur chaque vente</p>
+          <h4>Activer les frais acheteur</h4>
+          <p>Prélever des frais de service sur les achats</p>
         </div>
-        <div class="toggle" id="commissionsToggle" onclick="toggleCommissions()"></div>
+        <div class="toggle" id="buyerCommissionToggle" onclick="toggleBuyerCommission()"></div>
       </div>
       <div class="card" style="margin-bottom: 20px;">
         <div class="address-form">
           <div class="form-group">
-            <label>Taux de commission (%)</label>
-            <input type="number" id="commissionRate" step="0.1" min="0" max="100" value="8" style="width:100%;padding:10px;background:#0f0f0f;border:1px solid #333;border-radius:8px;color:#fff;">
+            <label>Taux acheteur (%)</label>
+            <input type="number" id="buyerFeePercent" step="0.1" min="0" max="100" value="5" style="width:100%;padding:10px;background:#0f0f0f;border:1px solid #333;border-radius:8px;color:#fff;">
           </div>
           <div class="form-group">
-            <label>Commission minimum (€)</label>
-            <input type="number" id="commissionMin" step="0.01" min="0" value="0.50" style="width:100%;padding:10px;background:#0f0f0f;border:1px solid #333;border-radius:8px;color:#fff;">
-          </div>
-          <div class="full-width">
-            <button class="btn btn-primary btn-sm" onclick="saveCommissionSettings()">💾 Sauvegarder</button>
+            <label>Minimum acheteur (€)</label>
+            <input type="number" id="buyerFeeMin" step="0.01" min="0" value="0.50" style="width:100%;padding:10px;background:#0f0f0f;border:1px solid #333;border-radius:8px;color:#fff;">
           </div>
         </div>
+      </div>
+
+      <h3>💸 Commissions Vendeur</h3>
+      <div class="setting-row">
+        <div class="setting-info">
+          <h4>Activer les frais vendeur</h4>
+          <p>Prélever une commission sur les ventes</p>
+        </div>
+        <div class="toggle" id="sellerCommissionToggle" onclick="toggleSellerCommission()"></div>
+      </div>
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="address-form">
+          <div class="form-group">
+            <label>Taux vendeur (%)</label>
+            <input type="number" id="sellerFeePercent" step="0.1" min="0" max="100" value="8" style="width:100%;padding:10px;background:#0f0f0f;border:1px solid #333;border-radius:8px;color:#fff;">
+          </div>
+          <div class="form-group">
+            <label>Minimum vendeur (€)</label>
+            <input type="number" id="sellerFeeMin" step="0.01" min="0" value="0.50" style="width:100%;padding:10px;background:#0f0f0f;border:1px solid #333;border-radius:8px;color:#fff;">
+          </div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <button class="btn btn-primary" onclick="saveCommissionSettings()">💾 Sauvegarder les commissions</button>
       </div>
 
       <h3>⭐ Fonctions Premium</h3>
@@ -906,14 +928,19 @@
         document.getElementById('boostToggle').classList.toggle('active', boostSettings.enabled);
         document.getElementById('latestSectionToggle').classList.toggle('active', boostSettings.showLatestSection);
         
-        // Load commission settings
+        // Load commission settings (buyer & seller)
         try {
           const commResult = await api('/api/admin/commissions/settings');
           if (commResult.success && commResult.settings) {
             commissionSettings = commResult.settings;
-            document.getElementById('commissionsToggle').classList.toggle('active', commissionSettings.enabled !== false);
-            document.getElementById('commissionRate').value = commissionSettings.rate || 8;
-            document.getElementById('commissionMin').value = commissionSettings.minAmount || 0.50;
+            // Buyer commissions
+            document.getElementById('buyerCommissionToggle').classList.toggle('active', commissionSettings.buyerEnabled !== false);
+            document.getElementById('buyerFeePercent').value = commissionSettings.buyerFeePercent || 5;
+            document.getElementById('buyerFeeMin').value = commissionSettings.buyerFeeMin || 0.50;
+            // Seller commissions
+            document.getElementById('sellerCommissionToggle').classList.toggle('active', commissionSettings.sellerEnabled !== false);
+            document.getElementById('sellerFeePercent').value = commissionSettings.sellerFeePercent || 8;
+            document.getElementById('sellerFeeMin').value = commissionSettings.sellerFeeMin || 0.50;
           }
         } catch (e) { console.log('No commission settings yet'); }
         
@@ -973,41 +1000,74 @@
       }
     }
 
-    // Commissions
-    async function toggleCommissions() {
-      const newValue = !(commissionSettings.enabled !== false);
+    // Commissions Acheteur
+    async function toggleBuyerCommission() {
+      const newValue = !(commissionSettings.buyerEnabled !== false);
       try {
         await api('/api/admin/commissions/settings', {
           method: 'PUT',
           body: JSON.stringify({ 
-            enabled: newValue,
-            rate: commissionSettings.rate,
-            minAmount: commissionSettings.minAmount
+            buyerEnabled: newValue,
+            sellerEnabled: commissionSettings.sellerEnabled,
+            buyerFeePercent: commissionSettings.buyerFeePercent,
+            sellerFeePercent: commissionSettings.sellerFeePercent,
+            buyerFeeMin: commissionSettings.buyerFeeMin,
+            sellerFeeMin: commissionSettings.sellerFeeMin
           })
         });
-        commissionSettings.enabled = newValue;
-        document.getElementById('commissionsToggle').classList.toggle('active', newValue);
-        showAlert('settingsAlert', `Commissions ${newValue ? 'activées' : 'désactivées'} !`, 'success');
+        commissionSettings.buyerEnabled = newValue;
+        document.getElementById('buyerCommissionToggle').classList.toggle('active', newValue);
+        showAlert('settingsAlert', `Commissions acheteur ${newValue ? 'activées' : 'désactivées'} !`, 'success');
+      } catch (err) {
+        showAlert('settingsAlert', err.message, 'error');
+      }
+    }
+
+    // Commissions Vendeur
+    async function toggleSellerCommission() {
+      const newValue = !(commissionSettings.sellerEnabled !== false);
+      try {
+        await api('/api/admin/commissions/settings', {
+          method: 'PUT',
+          body: JSON.stringify({ 
+            buyerEnabled: commissionSettings.buyerEnabled,
+            sellerEnabled: newValue,
+            buyerFeePercent: commissionSettings.buyerFeePercent,
+            sellerFeePercent: commissionSettings.sellerFeePercent,
+            buyerFeeMin: commissionSettings.buyerFeeMin,
+            sellerFeeMin: commissionSettings.sellerFeeMin
+          })
+        });
+        commissionSettings.sellerEnabled = newValue;
+        document.getElementById('sellerCommissionToggle').classList.toggle('active', newValue);
+        showAlert('settingsAlert', `Commissions vendeur ${newValue ? 'activées' : 'désactivées'} !`, 'success');
       } catch (err) {
         showAlert('settingsAlert', err.message, 'error');
       }
     }
 
     async function saveCommissionSettings() {
-      const rate = parseFloat(document.getElementById('commissionRate').value);
-      const minAmount = parseFloat(document.getElementById('commissionMin').value);
+      const buyerRate = parseFloat(document.getElementById('buyerFeePercent').value);
+      const buyerMin = parseFloat(document.getElementById('buyerFeeMin').value);
+      const sellerRate = parseFloat(document.getElementById('sellerFeePercent').value);
+      const sellerMin = parseFloat(document.getElementById('sellerFeeMin').value);
       try {
         await api('/api/admin/commissions/settings', {
           method: 'PUT',
           body: JSON.stringify({ 
-            enabled: commissionSettings.enabled !== false,
-            rate: rate,
-            minAmount: minAmount
+            buyerEnabled: commissionSettings.buyerEnabled !== false,
+            sellerEnabled: commissionSettings.sellerEnabled !== false,
+            buyerFeePercent: buyerRate,
+            sellerFeePercent: sellerRate,
+            buyerFeeMin: buyerMin,
+            sellerFeeMin: sellerMin
           })
         });
-        commissionSettings.rate = rate;
-        commissionSettings.minAmount = minAmount;
-        showAlert('settingsAlert', 'Paramètres de commission sauvegardés !', 'success');
+        commissionSettings.buyerFeePercent = buyerRate;
+        commissionSettings.buyerFeeMin = buyerMin;
+        commissionSettings.sellerFeePercent = sellerRate;
+        commissionSettings.sellerFeeMin = sellerMin;
+        showAlert('settingsAlert', 'Tous les paramètres de commission sauvegardés !', 'success');
       } catch (err) {
         showAlert('settingsAlert', err.message, 'error');
       }
