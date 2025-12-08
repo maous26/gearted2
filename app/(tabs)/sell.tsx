@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
+import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from "expo-router";
 import React, { useState } from "react";
@@ -24,6 +25,50 @@ import { usePublicSettings } from "../../hooks/useProducts";
 import api from "../../services/api";
 import { useProductsStore } from "../../stores/productsStore";
 import { THEMES } from "../../themes";
+
+// Helper function to convert file:// URI to base64
+const convertImageToBase64 = async (uri: string): Promise<string> => {
+  // If already a valid URL, return as-is
+  if (uri.startsWith('http://') || uri.startsWith('https://')) {
+    return uri;
+  }
+
+  // Convert file:// URI to base64
+  try {
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: 'base64',
+    });
+    // Determine extension from URI
+    const extension = uri.toLowerCase().includes('.png') ? 'png' : 'jpeg';
+    return `data:image/${extension};base64,${base64}`;
+  } catch (error) {
+    console.error('[Sell] Error converting image to base64:', error);
+    throw error;
+  }
+};
+
+// Upload images to server and return public URLs
+const uploadImagesToServer = async (imageUris: string[]): Promise<string[]> => {
+  const base64Images: string[] = [];
+
+  // Convert all images to base64
+  for (const uri of imageUris) {
+    const base64 = await convertImageToBase64(uri);
+    base64Images.push(base64);
+  }
+
+  // Upload to server
+  const response = await api.post<{ success: boolean; urls: string[]; count: number }>(
+    '/api/uploads/images',
+    { images: base64Images }
+  );
+
+  if (!response.success || !response.urls) {
+    throw new Error('Failed to upload images');
+  }
+
+  return response.urls;
+};
 
 type ThemeTokens = typeof THEMES["ranger"];
 
@@ -257,6 +302,19 @@ export default function SellScreen() {
       setSubmitting(true);
       const wantsBoost = Boolean(data.boost);
 
+      // Upload images to server first
+      console.log('[Sell] Uploading images to server...');
+      let uploadedImageUrls: string[] = [];
+      try {
+        uploadedImageUrls = await uploadImagesToServer(images);
+        console.log('[Sell] Images uploaded successfully:', uploadedImageUrls.length);
+      } catch (uploadError) {
+        console.error('[Sell] Failed to upload images:', uploadError);
+        Alert.alert('Erreur', 'Impossible d\'uploader les images. Veuillez réessayer.');
+        setSubmitting(false);
+        return;
+      }
+
       const payload = {
         title: data.title,
         description: data.description,
@@ -264,7 +322,7 @@ export default function SellScreen() {
         condition: data.condition,
         category: data.category,
         location: 'Paris, 75001',
-        images,
+        images: uploadedImageUrls, // Use uploaded URLs instead of local file:// URIs
         handDelivery: Boolean(data.handDelivery),
         featured: false, // Le boost sera activé après paiement
         // Dimensions du colis (optionnelles)
@@ -293,7 +351,7 @@ export default function SellScreen() {
         seller: user?.username || 'Utilisateur',
         sellerId: user?.id || 'user-1',
         rating: 4.5,
-        images,
+        images: uploadedImageUrls, // Use uploaded URLs
         featured: false,
         createdAt: new Date().toISOString(),
         handDelivery: Boolean(data.handDelivery),

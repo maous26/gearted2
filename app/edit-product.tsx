@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -20,6 +21,55 @@ import { useTheme } from "../components/ThemeProvider";
 import { useProduct, useUpdateProduct } from "../hooks/useProducts";
 import { CATEGORIES } from "../data/index";
 import { THEMES } from "../themes";
+import api from "../services/api";
+
+// Helper function to convert file:// URI to base64
+const convertImageToBase64 = async (uri: string): Promise<string> => {
+  if (uri.startsWith('http://') || uri.startsWith('https://')) {
+    return uri;
+  }
+  try {
+    const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+    const extension = uri.toLowerCase().includes('.png') ? 'png' : 'jpeg';
+    return `data:image/${extension};base64,${base64}`;
+  } catch (error) {
+    console.error('[EditProduct] Error converting image to base64:', error);
+    throw error;
+  }
+};
+
+// Upload images to server and return public URLs
+const uploadImagesToServer = async (imageUris: string[]): Promise<string[]> => {
+  const base64Images: string[] = [];
+  for (const uri of imageUris) {
+    // Skip already uploaded URLs
+    if (uri.startsWith('http://') || uri.startsWith('https://')) {
+      base64Images.push(uri);
+      continue;
+    }
+    const base64 = await convertImageToBase64(uri);
+    base64Images.push(base64);
+  }
+
+  // Only upload if there are new images (base64)
+  const newImages = base64Images.filter(img => img.startsWith('data:'));
+  const existingUrls = base64Images.filter(img => img.startsWith('http'));
+
+  if (newImages.length === 0) {
+    return existingUrls;
+  }
+
+  const response = await api.post<{ success: boolean; urls: string[]; count: number }>(
+    '/api/uploads/images',
+    { images: newImages }
+  );
+
+  if (!response.success || !response.urls) {
+    throw new Error('Failed to upload images');
+  }
+
+  return [...existingUrls, ...response.urls];
+};
 
 type ThemeTokens = typeof THEMES["ranger"];
 
@@ -242,13 +292,26 @@ export default function EditProductScreen() {
     try {
       setSubmitting(true);
 
+      // Upload any new images to server first
+      let uploadedImageUrls: string[] = [];
+      try {
+        console.log('[EditProduct] Uploading images...', images.length);
+        uploadedImageUrls = await uploadImagesToServer(images);
+        console.log('[EditProduct] Images uploaded:', uploadedImageUrls.length);
+      } catch (uploadError) {
+        console.error('[EditProduct] Image upload failed:', uploadError);
+        Alert.alert('Erreur', 'Impossible d\'uploader les images. Veuillez réessayer.');
+        setSubmitting(false);
+        return;
+      }
+
       const updateData: any = {
         title: data.title,
         description: data.description,
         price: Number(data.price),
         condition: data.condition,
         category: data.category,
-        images: images,
+        images: uploadedImageUrls,
       };
 
       // Add parcel dimensions if provided
