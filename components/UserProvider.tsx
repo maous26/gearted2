@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { authEvents, AUTH_SESSION_EXPIRED } from '../services/api';
 import TokenManager from '../services/storage';
 import { queryClient } from './QueryProvider';
 
@@ -42,6 +44,34 @@ export function UserProvider({ children }: { children: ReactNode }) {
   // Load user profile from AsyncStorage on mount
   useEffect(() => {
     loadUserProfile();
+  }, []);
+
+  // Listen for session expiry events from API service
+  useEffect(() => {
+    const handleSessionExpired = async () => {
+      console.log('[UserProvider] Session expired event received, logging out...');
+      // Clear all auth data
+      try {
+        queryClient.clear();
+        await AsyncStorage.removeItem('authToken');
+        await AsyncStorage.removeItem('userData');
+        await AsyncStorage.removeItem(USER_STORAGE_KEY);
+      } catch (error) {
+        console.error('[UserProvider] Error clearing data on session expiry:', error);
+      }
+      // Clear state
+      setIsOnboarded(false);
+      setUser(null);
+      // Navigate to landing page
+      setTimeout(() => {
+        router.replace('/');
+      }, 100);
+    };
+
+    authEvents.on(AUTH_SESSION_EXPIRED, handleSessionExpired);
+    return () => {
+      authEvents.off(AUTH_SESSION_EXPIRED, handleSessionExpired);
+    };
   }, []);
 
   const loadUserProfile = async () => {
