@@ -21,7 +21,6 @@ export default function GeartedLanding() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [hasChecked, setHasChecked] = useState(false);
 
   // Check auth on initial mount only - wait for user profile to load first
   useFocusEffect(
@@ -32,13 +31,14 @@ export default function GeartedLanding() {
         return;
       }
 
-      // If user is null after loading, show landing page (logout case or first launch)
-      if (user === null && hasChecked) {
-        console.log('[Landing] User is null (logged out), showing landing page');
+      // If user is null after loading, show landing page immediately (logout case or first launch)
+      if (user === null) {
+        console.log('[Landing] User is null (logged out or first launch), showing landing page');
         setIsCheckingAuth(false);
         return;
       }
 
+      // User exists, but we need to verify the token is still valid
       const checkAuth = async () => {
         try {
           // Check both token AND user state
@@ -61,16 +61,14 @@ export default function GeartedLanding() {
             console.log('[Landing] No valid auth, showing landing page');
             setIsCheckingAuth(false);
           }
-          setHasChecked(true);
         } catch (error) {
           console.error('[Landing] Auth check error:', error);
           setIsCheckingAuth(false);
-          setHasChecked(true);
         }
       };
 
       checkAuth();
-    }, [user, hasChecked, isLoaded])
+    }, [user, isLoaded])
   );
 
   if (isCheckingAuth) {

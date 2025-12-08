@@ -458,8 +458,13 @@ router.post(
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    // Log pour déboguer shippingCategory
+    console.log('[Products POST] Received shippingCategory:', shippingCategory, '| Type:', typeof shippingCategory);
+    console.log('[Products POST] Full body shippingCategory:', req.body.shippingCategory);
+
     // Validation: shippingCategory obligatoire pour tous les produits
     if (!shippingCategory) {
+      console.log('[Products POST] REJECTED - shippingCategory is falsy:', shippingCategory);
       return res.status(400).json({
         error: 'La catégorie d\'expédition est obligatoire'
       });
