@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { authEvents, AUTH_SESSION_EXPIRED } from '../services/api';
+import { authEvents } from '../services/api';
 import TokenManager from '../services/storage';
 import { queryClient } from './QueryProvider';
 
@@ -68,9 +68,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }, 100);
     };
 
-    authEvents.on(AUTH_SESSION_EXPIRED, handleSessionExpired);
+    // Subscribe to session expiry events
+    const unsubscribe = authEvents.onSessionExpired(handleSessionExpired);
     return () => {
-      authEvents.off(AUTH_SESSION_EXPIRED, handleSessionExpired);
+      unsubscribe();
     };
   }, []);
 
