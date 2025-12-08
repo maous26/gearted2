@@ -29,6 +29,7 @@ interface UserContextValue {
   logout: () => void;
   isOnboarded: boolean;
   completeOnboarding: () => void;
+  isLoaded: boolean;
 }
 
 const UserContext = createContext<UserContextValue | undefined>(undefined);
@@ -152,7 +153,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <UserContext.Provider value={{ user, setUser, updateProfile, logout, isOnboarded, completeOnboarding }}>
+    <UserContext.Provider value={{ user, setUser, updateProfile, logout, isOnboarded, completeOnboarding, isLoaded }}>
       {children}
     </UserContext.Provider>
   );

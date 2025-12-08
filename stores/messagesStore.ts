@@ -8,6 +8,7 @@ const HUGO_MESSAGES_KEY = '@gearted_hugo_transaction_messages';
 export type HugoMessageType =
   | 'SALE_COMPLETED'           // Vendeur: quelqu'un a acheté
   | 'PURCHASE_COMPLETED'       // Acheteur: achat confirmé
+  | 'DIMENSIONS_REQUIRED'      // Vendeur: doit renseigner les dimensions (BLOQUANT)
   | 'DIMENSIONS_SET'           // Acheteur: vendeur a saisi les dimensions
   | 'LABEL_GENERATED'          // Vendeur: acheteur a généré l'étiquette
   | 'SHIPPING_READY'           // Les deux: colis prêt à expédier
@@ -106,6 +107,12 @@ export function getHugoMessageContent(msg: HugoTransactionMessage): { emoji: str
         emoji: '✅',
         title: 'Achat confirmé !',
         content: `Votre achat de "${msg.productTitle}" a été confirmé ! Le vendeur ${msg.otherPartyName} va maintenant préparer votre colis et renseigner ses dimensions.`
+      };
+    case 'DIMENSIONS_REQUIRED':
+      return {
+        emoji: '⚠️',
+        title: 'Action requise - Vente bloquée !',
+        content: `Votre vente "${msg.productTitle}" à ${msg.otherPartyName} est bloquée ! Vous devez renseigner les dimensions du colis pour que l'acheteur puisse générer son étiquette d'expédition. Rendez-vous dans "Mes transactions" maintenant.`
       };
     case 'DIMENSIONS_SET':
       return {

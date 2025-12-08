@@ -122,7 +122,12 @@ export default function OrdersScreen() {
         if (role === 'SELLER') {
           // Notification: Vente effectuée
           await sendHugoNotification(tx, 'SALE_COMPLETED', 'SELLER');
-          
+
+          // Si dimensions non renseignées, envoyer notification d'alerte
+          if (!tx.product?.parcelDimensionsId && !tx.trackingNumber) {
+            await sendHugoNotification(tx, 'DIMENSIONS_REQUIRED', 'SELLER');
+          }
+
           // Si étiquette générée, notifier le vendeur
           if (tx.trackingNumber) {
             await sendHugoNotification(tx, 'LABEL_GENERATED', 'SELLER');

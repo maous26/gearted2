@@ -1,8 +1,11 @@
+import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
+  RefreshControl,
   ScrollView,
   StatusBar,
   Text,
@@ -99,6 +102,7 @@ export default function MessagesScreen() {
   const [searchText, setSearchText] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([WELCOME_MESSAGE]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
   // Charger les donnees du store au demarrage et nettoyer les doublons
@@ -153,37 +157,51 @@ export default function MessagesScreen() {
     return Object.values(grouped);
   };
 
-  useEffect(() => {
+  // Fonction pour charger les conversations
+  const loadConversations = useCallback(async (showLoading = true) => {
     if (!user?.id) {
       setConversations([WELCOME_MESSAGE]);
       setLoading(false);
       return;
     }
-    setLoading(true);
-    api
-      .get<Conversation[]>('/api/messages/conversations')
-      .then((data) => {
-        const apiConversations = Array.isArray(data) ? data : [];
-        const groupedConversations = groupConversationsByUser(apiConversations, user.id);
-        groupedConversations.sort((a, b) => {
-          const dateA = a.messages?.[0]?.sentAt ? new Date(a.messages[0].sentAt).getTime() : 0;
-          const dateB = b.messages?.[0]?.sentAt ? new Date(b.messages[0].sentAt).getTime() : 0;
-          return dateB - dateA;
-        });
-        setConversations([WELCOME_MESSAGE, ...groupedConversations]);
-        setError('');
-      })
-      .catch((err) => {
-        console.warn('[MessagesScreen] Failed to load conversations:', err);
-        if ((err as any)?.response?.status === 401) {
-          setError("Vous devez etre connecte pour voir vos messages.");
-        } else {
-          setError("Impossible de charger les conversations.");
-        }
-        setConversations([WELCOME_MESSAGE]);
-      })
-      .finally(() => setLoading(false));
+    if (showLoading) setLoading(true);
+    try {
+      const data = await api.get<Conversation[]>('/api/messages/conversations');
+      const apiConversations = Array.isArray(data) ? data : [];
+      const groupedConversations = groupConversationsByUser(apiConversations, user.id);
+      groupedConversations.sort((a, b) => {
+        const dateA = a.messages?.[0]?.sentAt ? new Date(a.messages[0].sentAt).getTime() : 0;
+        const dateB = b.messages?.[0]?.sentAt ? new Date(b.messages[0].sentAt).getTime() : 0;
+        return dateB - dateA;
+      });
+      setConversations([WELCOME_MESSAGE, ...groupedConversations]);
+      setError('');
+    } catch (err) {
+      console.warn('[MessagesScreen] Failed to load conversations:', err);
+      if ((err as any)?.response?.status === 401) {
+        setError("Vous devez etre connecte pour voir vos messages.");
+      } else {
+        setError("Impossible de charger les conversations.");
+      }
+      setConversations([WELCOME_MESSAGE]);
+    } finally {
+      setLoading(false);
+    }
   }, [user?.id]);
+
+  // Charger les conversations au focus de l'écran
+  useFocusEffect(
+    useCallback(() => {
+      loadConversations();
+    }, [loadConversations])
+  );
+
+  // Pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadConversations(false);
+    setRefreshing(false);
+  }, [loadConversations]);
 
   const deleteConversation = (conversationId: string) => {
     Alert.alert(
@@ -492,12 +510,20 @@ export default function MessagesScreen() {
       {/* Loading indicator */}
       {loading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ fontSize: 24, color: t.muted }}>Chargement...</Text>
+          <ActivityIndicator size="large" color={t.primaryBtn} />
+          <Text style={{ fontSize: 16, color: t.muted, marginTop: 12 }}>Chargement...</Text>
         </View>
       ) : (
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={t.primaryBtn}
+            />
+          }
         >
           {/* Section: Transactions */}
           {filteredThreads.length > 0 && (

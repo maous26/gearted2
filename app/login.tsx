@@ -20,10 +20,12 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import authService from '../services/auth';
 import discordAuthService from '../services/discord-auth';
+import { useUser } from '../components/UserProvider';
 
 const { width, height } = Dimensions.get('window');
 
 export default function LoginScreen() {
+  const { updateProfile } = useUser();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -69,6 +71,23 @@ export default function LoginScreen() {
       if (response.tokens && response.user) {
         await AsyncStorage.setItem('authToken', response.tokens.accessToken);
         await AsyncStorage.setItem('userData', JSON.stringify(response.user));
+        // Update UserProvider with user data
+        updateProfile({
+          id: response.user.id,
+          username: response.user.username,
+          email: response.user.email,
+          avatar: response.user.avatar,
+          teamName: (response.user as any).teamName || 'Sans équipe',
+          firstName: response.user.firstName,
+          lastName: response.user.lastName,
+          location: response.user.location,
+          phone: response.user.phone,
+          bio: response.user.bio,
+          provider: (response.user as any).provider,
+          role: (response.user as any).role,
+          badge: (response.user as any).badge,
+          badges: (response.user as any).badges,
+        });
         router.replace('/(tabs)');
       } else {
         Alert.alert('Erreur', 'Réponse de connexion invalide');
@@ -100,6 +119,23 @@ export default function LoginScreen() {
       
       if (result.success && result.user) {
         await AsyncStorage.setItem('userData', JSON.stringify(result.user));
+        // Update UserProvider with user data
+        updateProfile({
+          id: result.user.id,
+          username: result.user.username,
+          email: result.user.email,
+          avatar: result.user.avatar,
+          teamName: result.user.teamName || 'Sans équipe',
+          firstName: result.user.firstName,
+          lastName: result.user.lastName,
+          location: result.user.location,
+          phone: result.user.phone,
+          bio: result.user.bio,
+          provider: result.user.provider,
+          role: result.user.role,
+          badge: result.user.badge,
+          badges: result.user.badges,
+        });
         router.replace('/(tabs)');
       } else {
         if (result.error === 'Connexion annulée') {
