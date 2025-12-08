@@ -264,7 +264,7 @@ export default function MessagesScreen() {
       thread.otherPartyName.toLowerCase().includes(q);
   });
 
-  // Card pour un fil de transaction
+  // Card pour un fil de transaction (affiché comme une conversation normale)
   const TransactionThreadCard = ({ thread }: { thread: TransactionThread }) => {
     const lastMessage = thread.messages[thread.messages.length - 1];
     const lastContent = lastMessage ? getHugoMessageContent(lastMessage) : null;
@@ -283,7 +283,7 @@ export default function MessagesScreen() {
           borderRadius: 12,
           padding: 12,
           marginBottom: 12,
-          borderWidth: 2,
+          borderWidth: thread.hasUnread ? 2 : 1,
           borderColor: thread.hasUnread ? '#3B82F6' : t.border,
         }}
       >
@@ -317,28 +317,28 @@ export default function MessagesScreen() {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
               <Text
                 style={{
-                  fontSize: 15,
+                  fontSize: 16,
                   fontWeight: thread.hasUnread ? '700' : '600',
                   color: t.heading,
                   flex: 1
                 }}
                 numberOfLines={1}
               >
-                {thread.productTitle}
+                Suivi de transaction
               </Text>
-              <Text style={{ fontSize: 11, color: t.muted }}>
+              <Text style={{ fontSize: 12, color: t.muted }}>
                 {formatTimestamp(thread.lastMessageAt)}
               </Text>
             </View>
 
-            <Text style={{ fontSize: 12, color: t.muted, marginBottom: 4 }}>
-              {thread.forRole === 'SELLER' ? '💼 Vente a' : '🛒 Achat de'} {thread.otherPartyName}
+            <Text style={{ fontSize: 13, color: t.muted, marginBottom: 4 }} numberOfLines={1}>
+              {thread.productTitle}
             </Text>
 
             {lastContent && (
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: 14,
                   color: thread.hasUnread ? t.heading : t.muted,
                   fontWeight: thread.hasUnread ? '500' : 'normal'
                 }}
@@ -347,26 +347,7 @@ export default function MessagesScreen() {
                 {lastContent.emoji} {lastContent.title}
               </Text>
             )}
-
-            {/* Badge nombre de messages */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-              <View
-                style={{
-                  backgroundColor: t.primaryBtn + '20',
-                  paddingHorizontal: 8,
-                  paddingVertical: 2,
-                  borderRadius: 10,
-                }}
-              >
-                <Text style={{ fontSize: 11, color: t.primaryBtn, fontWeight: '500' }}>
-                  {thread.messages.length} etape{thread.messages.length > 1 ? 's' : ''}
-                </Text>
-              </View>
-            </View>
           </View>
-
-          {/* Chevron */}
-          <Text style={{ fontSize: 18, color: t.muted, marginLeft: 8 }}>›</Text>
         </View>
       </TouchableOpacity>
     );
@@ -530,7 +511,7 @@ export default function MessagesScreen() {
       ) : (
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, paddingTop: 8 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -539,29 +520,13 @@ export default function MessagesScreen() {
             />
           }
         >
-          {/* Section: Transactions */}
-          {filteredThreads.length > 0 && (
-            <>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: t.muted, marginBottom: 12, marginTop: 8 }}>
-                📦 SUIVI DE TRANSACTIONS
-              </Text>
-              {filteredThreads.map((thread) => (
-                <TransactionThreadCard key={thread.transactionId} thread={thread} />
-              ))}
-            </>
-          )}
-
-          {/* Section: Conversations */}
-          {filteredConversations.length > 0 && (
-            <>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: t.muted, marginBottom: 12, marginTop: 16 }}>
-                💬 CONVERSATIONS
-              </Text>
-              {filteredConversations.map((conversation) => (
-                <ConversationCard key={conversation.id} conversation={conversation} />
-              ))}
-            </>
-          )}
+          {/* Liste unifiée - Transactions d'abord, puis conversations */}
+          {filteredThreads.map((thread) => (
+            <TransactionThreadCard key={`thread-${thread.transactionId}`} thread={thread} />
+          ))}
+          {filteredConversations.map((conversation) => (
+            <ConversationCard key={conversation.id} conversation={conversation} />
+          ))}
 
           {/* Empty state */}
           {filteredConversations.length === 0 && filteredThreads.length === 0 && (

@@ -21,40 +21,19 @@ function TabBarIcon(props: {
 
 function MessagesIcon({ color }: { color: string }) {
   const { user } = useUser();
-  const { unreadCount, loadFromStorage, refreshUnreadCount } = useMessagesStore();
+  const { unreadCount, loadFromStorage } = useMessagesStore();
+  const [isLoaded, setIsLoaded] = React.useState(false);
 
   useEffect(() => {
     // Charger les données depuis le storage au démarrage
-    loadFromStorage();
+    // Le unreadCount sera calculé dans loadFromStorage
+    loadFromStorage().then(() => setIsLoaded(true));
   }, []);
 
-  useEffect(() => {
-    // Fetch conversations et rafraîchir le compteur
-    const fetchConversations = async () => {
-      try {
-        if (!user) {
-          // Sans utilisateur, juste rafraîchir avec Hugo
-          refreshUnreadCount([]);
-          return;
-        }
-
-        const conversations = await api.get<any[]>('/api/messages/conversations');
-        const conversationIds = Array.isArray(conversations) 
-          ? conversations.map((c: any) => c.id) 
-          : [];
-        
-        refreshUnreadCount(conversationIds);
-      } catch (error) {
-        // En cas d'erreur, juste rafraîchir avec Hugo
-        refreshUnreadCount([]);
-      }
-    };
-
-    fetchConversations();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchConversations, 30000);
-    return () => clearInterval(interval);
-  }, [user]);
+  // Ne plus faire de polling qui recalcule le compteur
+  // Le compteur est maintenant géré uniquement par:
+  // - loadFromStorage() au démarrage
+  // - markAsRead() quand on lit un message
 
   return (
     <View style={{ position: 'relative' }}>
