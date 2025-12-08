@@ -1,9 +1,10 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   Image,
   RefreshControl,
   ScrollView,
@@ -107,6 +108,9 @@ export default function MessagesScreen() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const pollingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const appState = useRef(AppState.currentState);
+  const isScreenFocused = useRef(false);
 
   // Charger les donnees du store au demarrage et nettoyer les doublons
   useEffect(() => {
@@ -118,6 +122,23 @@ export default function MessagesScreen() {
     };
     init();
   }, []);
+
+  // Rafraîchir quand l'app revient au premier plan
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === 'active' &&
+        isScreenFocused.current
+      ) {
+        // App revient au premier plan et cet écran est actif
+        loadConversations(false);
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => subscription.remove();
+  }, [loadConversations]);
 
   // Recuperer les threads de transaction regroupes
   const transactionThreads = getTransactionThreads();
@@ -194,10 +215,24 @@ export default function MessagesScreen() {
     }
   }, [user?.id]);
 
-  // Charger les conversations au focus de l'écran
+  // Charger les conversations au focus de l'écran + polling
   useFocusEffect(
     useCallback(() => {
+      isScreenFocused.current = true;
       loadConversations();
+
+      // Démarrer le polling toutes les 30 secondes
+      pollingInterval.current = setInterval(() => {
+        loadConversations(false); // Silent refresh
+      }, 30000);
+
+      return () => {
+        isScreenFocused.current = false;
+        if (pollingInterval.current) {
+          clearInterval(pollingInterval.current);
+          pollingInterval.current = null;
+        }
+      };
     }, [loadConversations])
   );
 

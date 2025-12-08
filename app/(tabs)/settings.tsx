@@ -25,16 +25,25 @@ import { THEMES, ThemeKey } from "../../themes";
 
 export default function Settings() {
   const { theme, setTheme } = useTheme();
-  const { user, updateProfile, logout } = useUser();
+  const { user, updateProfile, logout, isLoaded } = useUser();
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [editUsername, setEditUsername] = useState(user?.username || "");
-  const [editTeamName, setEditTeamName] = useState(user?.teamName || "");
-  const [editLocation, setEditLocation] = useState(user?.location || "");
+  const [editUsername, setEditUsername] = useState("");
+  const [editTeamName, setEditTeamName] = useState("");
+  const [editLocation, setEditLocation] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   const t = THEMES[theme];
+
+  // Synchroniser les champs d'édition quand l'utilisateur change
+  React.useEffect(() => {
+    if (user) {
+      setEditUsername(user.username || "");
+      setEditTeamName(user.teamName || "");
+      setEditLocation(user.location || "");
+    }
+  }, [user]);
 
   const selectAvatar = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -172,17 +181,12 @@ export default function Settings() {
           style: "destructive",
           onPress: async () => {
             console.log('[Settings] Starting logout...');
+            // Navigate FIRST, then logout to avoid empty profile state
+            // Use navigate to go to login screen which will redirect to landing
+            router.replace('/login');
+            // Then clear the data
             await logout();
-            console.log('[Settings] Logout complete, navigating to landing...');
-            // Navigate to landing page - use replace only to avoid POP_TO_TOP error
-            // dismissAll can fail if there's nothing to dismiss
-            try {
-              router.dismissAll();
-            } catch (e) {
-              // Ignore dismissAll errors - this can happen if navigation stack is empty
-              console.log('[Settings] dismissAll skipped:', e);
-            }
-            router.replace('/');
+            console.log('[Settings] Logout complete');
           }
         }
       ]

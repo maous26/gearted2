@@ -52,7 +52,8 @@ export default function ProductDetailScreen() {
   const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
   const [selectedShippingRate, setSelectedShippingRate] = useState<ShippingRate | null>(null);
   const [loadingRates, setLoadingRates] = useState(false);
-  const [hasDimensions, setHasDimensions] = useState<boolean | null>(null);
+  const [hasShippingCategory, setHasShippingCategory] = useState<boolean | null>(null);
+  const [needsCustomDimensions, setNeedsCustomDimensions] = useState(false);
 
   // Protection/Insurance settings from backend
   const [protectionEnabled, setProtectionEnabled] = useState(true);
@@ -88,22 +89,29 @@ export default function ProductDetailScreen() {
     if (!product) return;
     setLoadingRates(true);
     try {
-      const response = await api.get<{ success: boolean; rates?: ShippingRate[]; error?: string; hasDimensions?: boolean }>(`/api/shipping/rates/product/${product.id}`);
+      const response = await api.get<{
+        success: boolean;
+        rates?: ShippingRate[];
+        error?: string;
+        hasShippingCategory?: boolean;
+        needsCustomDimensions?: boolean;
+      }>(`/api/shipping/rates/product/${product.id}`);
+
       if (response.success && response.rates) {
         setShippingRates(response.rates);
-        setHasDimensions(true);
+        setHasShippingCategory(true);
+        setNeedsCustomDimensions(false);
         // Sélectionner le premier tarif par défaut
         if (response.rates.length > 0) {
           setSelectedShippingRate(response.rates[0]);
         }
-      } else if (response.hasDimensions === false) {
-        setHasDimensions(false);
+      } else {
+        setHasShippingCategory(response.hasShippingCategory ?? false);
+        setNeedsCustomDimensions(response.needsCustomDimensions ?? false);
       }
     } catch (error: any) {
       console.error('[Product] Failed to load shipping rates:', error);
-      if (error.message?.includes('dimensions')) {
-        setHasDimensions(false);
-      }
+      setHasShippingCategory(false);
     } finally {
       setLoadingRates(false);
     }
@@ -803,7 +811,7 @@ export default function ProductDetailScreen() {
                       <ActivityIndicator color={t.primaryBtn} />
                       <Text style={{ color: t.muted, marginTop: 8 }}>Chargement des tarifs...</Text>
                     </View>
-                  ) : hasDimensions === false ? (
+                  ) : hasShippingCategory === false ? (
                     <View style={{
                       backgroundColor: '#FFF3CD',
                       padding: 12,
@@ -812,10 +820,25 @@ export default function ProductDetailScreen() {
                       borderColor: '#FFEEBA'
                     }}>
                       <Text style={{ color: '#856404', fontSize: 14, fontWeight: '600' }}>
-                        ⚠️ Dimensions non renseignées
+                        ⚠️ Catégorie d'expédition non définie
                       </Text>
                       <Text style={{ color: '#856404', fontSize: 12, marginTop: 4 }}>
-                        Le vendeur n'a pas encore renseigné les dimensions du colis. L'achat sera possible une fois les dimensions saisies.
+                        Ce produit n'a pas de catégorie d'expédition définie. Veuillez contacter le vendeur.
+                      </Text>
+                    </View>
+                  ) : needsCustomDimensions ? (
+                    <View style={{
+                      backgroundColor: '#FFF3CD',
+                      padding: 12,
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: '#FFEEBA'
+                    }}>
+                      <Text style={{ color: '#856404', fontSize: 14, fontWeight: '600' }}>
+                        ⚠️ Dimensions personnalisées requises
+                      </Text>
+                      <Text style={{ color: '#856404', fontSize: 12, marginTop: 4 }}>
+                        Ce produit est en catégorie "Gros volume" et nécessite des dimensions personnalisées. L'achat sera possible une fois les dimensions saisies par le vendeur.
                       </Text>
                     </View>
                   ) : shippingRates.length > 0 ? (
@@ -978,7 +1001,7 @@ export default function ProductDetailScreen() {
             {/* Bouton de paiement - désactivé si livraison requise mais non sélectionnée */}
             {(() => {
               const needsShipping = !product?.handDelivery;
-              const shippingNotReady = needsShipping && (hasDimensions === false || !selectedShippingRate);
+              const shippingNotReady = needsShipping && (hasShippingCategory === false || needsCustomDimensions || !selectedShippingRate);
               const isDisabled = shippingNotReady || loadingRates;
 
               return (
@@ -1001,17 +1024,19 @@ export default function ProductDetailScreen() {
                     <Text style={{ fontSize: 16, fontWeight: '700', color: t.white }}>
                       {loadingRates
                         ? 'Chargement...'
-                        : hasDimensions === false
-                          ? 'En attente des dimensions'
-                          : needsShipping && !selectedShippingRate
-                            ? 'Sélectionnez une livraison'
-                            : `Payer ${purchaseSummary.grandTotal.toFixed(2)} €`
+                        : hasShippingCategory === false
+                          ? 'Catégorie d\'expédition requise'
+                          : needsCustomDimensions
+                            ? 'Dimensions requises'
+                            : needsShipping && !selectedShippingRate
+                              ? 'Sélectionnez une livraison'
+                              : `Payer ${purchaseSummary.grandTotal.toFixed(2)} €`
                       }
                     </Text>
                   </TouchableOpacity>
-                  {hasDimensions === false && (
+                  {needsCustomDimensions && (
                     <Text style={{ textAlign: 'center', marginTop: 8, color: '#DC3545', fontSize: 12 }}>
-                      Le vendeur doit d'abord renseigner les dimensions du colis
+                      Ce produit nécessite des dimensions personnalisées (gros volume)
                     </Text>
                   )}
                 </>

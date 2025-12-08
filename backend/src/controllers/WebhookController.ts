@@ -141,21 +141,20 @@ export class WebhookController {
         }
       });
 
-      // Marquer le produit avec paymentCompleted (ne pas marquer SOLD tout de suite)
+      // Marquer le produit comme SOLD et paymentCompleted
       const soldAt = new Date();
       const deletionScheduledAt = new Date(soldAt.getTime() + (3 * 24 * 60 * 60 * 1000)); // +3 jours
 
+      // Avec le nouveau système shippingCategory, on marque TOUJOURS le produit comme SOLD
+      // car la catégorie d'expédition est obligatoire à la création de l'annonce
       await prisma.product.update({
         where: { id: transaction.productId },
         data: {
+          status: 'SOLD',
+          soldAt: soldAt,
           paymentCompleted: true,
           paymentCompletedAt: soldAt,
           deletionScheduledAt: deletionScheduledAt,
-          // Ne marquer SOLD que si dimensions déjà renseignées
-          ...(transaction.product.parcelDimensionsId ? {
-            status: 'SOLD',
-            soldAt: soldAt
-          } : {})
         }
       });
 

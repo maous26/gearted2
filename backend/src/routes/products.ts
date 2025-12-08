@@ -215,11 +215,11 @@ router.get('/', async (req, res) => {
       | undefined;
 
     // 1) Récupérer les produits persistés en base
-    // Exclure les produits vendus (paymentCompleted = true) et les produits non actifs
+    // Filtre simplifié: seul le status compte (ACTIVE = disponible, SOLD = vendu)
+    // Le champ paymentCompleted est dérivé du status via le webhook Stripe
     const dbProductsRaw = await prisma.product.findMany({
       where: {
-        status: 'ACTIVE',           // Seulement les produits actifs
-        paymentCompleted: false,    // Exclure dès que le paiement est effectué
+        status: 'ACTIVE',           // Seulement les produits actifs (non vendus)
       },
       include: {
         images: true,
@@ -333,10 +333,10 @@ router.get('/featured', async (req, res) => {
       const boostedIds = featuredProducts.map(p => p.id);
 
       // Get random products (excluding already boosted ones)
+      // Filtre simplifié: seul status: ACTIVE suffit
       const randomProducts = await prisma.product.findMany({
         where: {
           status: 'ACTIVE',
-          paymentCompleted: false,
           id: { notIn: boostedIds },
         },
         include: {
@@ -445,6 +445,8 @@ router.post(
       category,
       location,
       images = [],
+      // Remise en main propre
+      handDelivery = false,
       // Catégorie d'expédition (obligatoire si pas de remise en main propre)
       shippingCategory,
       // Dimensions personnalisées (uniquement pour CAT_VOLUMINEUX)
@@ -456,6 +458,22 @@ router.post(
 
     if (!title || !description || !condition || !category) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Validation: shippingCategory obligatoire si pas de remise en main propre
+    if (!handDelivery && !shippingCategory) {
+      return res.status(400).json({
+        error: 'La catégorie d\'expédition est obligatoire pour les articles expédiés'
+      });
+    }
+
+    // Validation: dimensions obligatoires pour CAT_VOLUMINEUX
+    if (shippingCategory === 'CAT_VOLUMINEUX') {
+      if (!customParcelLength || !customParcelWidth || !customParcelHeight || !customParcelWeight) {
+        return res.status(400).json({
+          error: 'Les dimensions personnalisées sont obligatoires pour la catégorie "Gros volume"'
+        });
+      }
     }
 
     // Use authenticated user's ID as sellerId
@@ -503,6 +521,8 @@ router.post(
         location: location || 'Paris, 75001',
         shippingIncluded: false,
         shippingCost: null,
+        // Remise en main propre
+        handDelivery: handDelivery || false,
         // Catégorie d'expédition
         shippingCategory: shippingCategory || null,
         // Dimensions personnalisées (uniquement pour CAT_VOLUMINEUX)

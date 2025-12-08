@@ -53,12 +53,6 @@ export default function BuyerChooseShippingScreen() {
   const [rates, setRates] = useState<ShippingRate[]>([]);
   const [selectedRate, setSelectedRate] = useState<string | null>(null);
   const [creatingLabel, setCreatingLabel] = useState(false);
-  const [dimensions, setDimensions] = useState<{
-    length: number;
-    width: number;
-    height: number;
-    weight: number;
-  } | null>(null);
   const [showRelayMap, setShowRelayMap] = useState(false);
   const [selectedRelayPoint, setSelectedRelayPoint] = useState<SelectedRelayPoint | null>(null);
 
@@ -209,7 +203,7 @@ export default function BuyerChooseShippingScreen() {
           <Ionicons name="information-circle" size={24} color={t.primaryBtn} style={{ marginRight: 12 }} />
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 14, color: t.heading, lineHeight: 20 }}>
-              Le vendeur a défini les dimensions du colis. Choisissez votre mode de livraison préféré.
+              Choisissez votre mode de livraison préféré parmi les options disponibles.
             </Text>
           </View>
         </View>
@@ -375,10 +369,10 @@ export default function BuyerChooseShippingScreen() {
           >
             <Ionicons name="cube-outline" size={48} color={t.muted} />
             <Text style={{ fontSize: 16, color: t.heading, fontWeight: '600', marginTop: 16 }}>
-              En attente des dimensions
+              Aucun tarif disponible
             </Text>
             <Text style={{ fontSize: 14, color: t.muted, textAlign: 'center', marginTop: 8 }}>
-              Le vendeur n'a pas encore défini les dimensions du colis.
+              Veuillez réessayer plus tard ou contacter le vendeur.
             </Text>
           </View>
         )}

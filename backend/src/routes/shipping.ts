@@ -251,12 +251,22 @@ router.get('/products/:productId/shipping-info', async (req: Request, res: Respo
   }
 });
 
+// Catégories d'expédition avec dimensions par défaut
+const SHIPPING_CATEGORY_DIMENSIONS: Record<string, { length: number; width: number; height: number; weight: number }> = {
+  'CAT_1': { length: 30, width: 20, height: 10, weight: 0.8 },
+  'CAT_2': { length: 40, width: 25, height: 15, weight: 1.75 },
+  'CAT_3': { length: 90, width: 30, height: 12, weight: 3.25 },
+  'CAT_4': { length: 120, width: 30, height: 15, weight: 6 },
+  'CAT_5': { length: 100, width: 50, height: 40, weight: 11.5 },
+};
+
 /**
  * Récupérer les tarifs de livraison pour un produit (AVANT ACHAT - pour le checkout)
  * GET /api/shipping/rates/product/:productId
  *
  * Utilisé par l'acheteur pour choisir son mode de livraison pendant le checkout.
- * Le vendeur doit avoir renseigné les dimensions du colis pour que ça fonctionne.
+ * Le vendeur doit avoir défini une catégorie d'expédition (shippingCategory).
+ * Pour CAT_VOLUMINEUX, des dimensions personnalisées sont requises (parcelDimensions).
  */
 router.get('/rates/product/:productId', async (req: Request, res: Response): Promise<any> => {
   if (!req.user) {
@@ -266,7 +276,7 @@ router.get('/rates/product/:productId', async (req: Request, res: Response): Pro
   const { productId } = req.params;
 
   try {
-    // Récupérer le produit avec ses dimensions
+    // Récupérer le produit avec sa catégorie d'expédition et dimensions custom si CAT_VOLUMINEUX
     const product = await prisma.product.findUnique({
       where: { id: productId },
       include: {
@@ -279,17 +289,49 @@ router.get('/rates/product/:productId', async (req: Request, res: Response): Pro
       return res.status(404).json({ error: 'Produit non trouvé' });
     }
 
-    // Vérifier que les dimensions sont définies
-    if (!product.parcelDimensions) {
+    // Vérifier que le produit a une catégorie d'expédition
+    if (!product.shippingCategory) {
       return res.json({
         success: false,
-        hasDimensions: false,
-        error: 'Le vendeur n\'a pas encore renseigné les dimensions du colis. L\'achat n\'est pas possible pour le moment.',
+        hasShippingCategory: false,
+        error: 'La catégorie d\'expédition n\'est pas définie pour ce produit.',
         rates: []
       });
     }
 
-    const dimensions = product.parcelDimensions;
+    // Déterminer les dimensions à utiliser
+    let dimensions: { length: number; width: number; height: number; weight: number };
+
+    if (product.shippingCategory === 'CAT_VOLUMINEUX') {
+      // Pour les colis volumineux, on a besoin des dimensions personnalisées
+      if (!product.parcelDimensions) {
+        return res.json({
+          success: false,
+          hasShippingCategory: true,
+          needsCustomDimensions: true,
+          error: 'Ce produit est en catégorie "Gros volume" et nécessite des dimensions personnalisées.',
+          rates: []
+        });
+      }
+      dimensions = {
+        length: product.parcelDimensions.length,
+        width: product.parcelDimensions.width,
+        height: product.parcelDimensions.height,
+        weight: product.parcelDimensions.weight
+      };
+    } else {
+      // Utiliser les dimensions par défaut de la catégorie
+      const defaultDims = SHIPPING_CATEGORY_DIMENSIONS[product.shippingCategory];
+      if (!defaultDims) {
+        return res.json({
+          success: false,
+          error: 'Catégorie d\'expédition non reconnue.',
+          rates: []
+        });
+      }
+      dimensions = defaultDims;
+    }
+
     const basePrice = Math.max(5, (dimensions.weight * 3) + ((dimensions.length + dimensions.width + dimensions.height) / 100));
 
     // Tarifs de livraison disponibles
@@ -334,14 +376,10 @@ router.get('/rates/product/:productId', async (req: Request, res: Response): Pro
 
     return res.json({
       success: true,
-      hasDimensions: true,
+      hasShippingCategory: true,
+      shippingCategory: product.shippingCategory,
       rates,
-      dimensions: {
-        length: dimensions.length,
-        width: dimensions.width,
-        height: dimensions.height,
-        weight: dimensions.weight
-      },
+      dimensions,
       sellerLocation: product.location || 'France'
     });
 

@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   RefreshControl,
   ScrollView,
   Text,
@@ -24,9 +25,39 @@ export default function NotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const pollingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const appState = useRef(AppState.currentState);
 
+  // Load notifications when screen becomes focused
+  useFocusEffect(
+    useCallback(() => {
+      loadNotifications();
+
+      // Start polling every 30 seconds for new notifications
+      pollingInterval.current = setInterval(() => {
+        loadNotificationsQuiet();
+      }, 30000);
+
+      return () => {
+        // Stop polling when screen loses focus
+        if (pollingInterval.current) {
+          clearInterval(pollingInterval.current);
+          pollingInterval.current = null;
+        }
+      };
+    }, [])
+  );
+
+  // Reload when app comes back to foreground
   useEffect(() => {
-    loadNotifications();
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        loadNotificationsQuiet();
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => subscription.remove();
   }, []);
 
   const loadNotifications = async () => {
@@ -39,6 +70,17 @@ export default function NotificationsScreen() {
       Alert.alert('Erreur', error.message || 'Impossible de charger les notifications');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Silent refresh - no loading indicator, no error alert (for polling)
+  const loadNotificationsQuiet = async () => {
+    try {
+      const { notifications: notifs } = await notificationService.getNotifications();
+      setNotifications(notifs);
+    } catch (error: any) {
+      console.error('[Notifications] Silent refresh failed:', error);
+      // Don't show alert on silent refresh failure
     }
   };
 
