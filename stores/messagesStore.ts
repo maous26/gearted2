@@ -472,22 +472,36 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
   },
 
   // Restaurer le message de bienvenue s'il a été supprimé
+  // NOTE: Cette fonction n'est plus appelée automatiquement pour éviter de réinitialiser le badge
   restoreWelcomeMessage: async () => {
-    const { deletedMessageIds, readMessageIds } = get();
+    const { deletedMessageIds, readMessageIds, hugoMessages } = get();
     const newDeletedIds = deletedMessageIds.filter(id => id !== 'gearted-welcome');
-    const newReadIds = readMessageIds.filter(id => id !== 'gearted-welcome');
+    // Conserver le statut "lu" pour éviter que le badge réapparaisse
+    // Ne pas supprimer 'gearted-welcome' de readMessageIds
+
+    // Calculer le nouveau unreadCount correctement
+    let newUnreadCount = 0;
+
+    // Le message de bienvenue: non lu seulement s'il n'a jamais été lu
+    if (!readMessageIds.includes('gearted-welcome')) {
+      newUnreadCount = 1;
+    }
+
+    // Compter les messages Hugo de transaction non lus
+    hugoMessages.forEach((msg: HugoTransactionMessage) => {
+      const msgId = `hugo-${msg.type}-${msg.transactionId}`;
+      if (!readMessageIds.includes(msgId) && !newDeletedIds.includes(msgId)) {
+        newUnreadCount++;
+      }
+    });
 
     set({
       deletedMessageIds: newDeletedIds,
-      readMessageIds: newReadIds,
-      unreadCount: 1
+      unreadCount: newUnreadCount
     });
 
-    await Promise.all([
-      AsyncStorage.setItem(DELETED_MESSAGES_KEY, JSON.stringify(newDeletedIds)),
-      AsyncStorage.setItem(UNREAD_MESSAGES_KEY, JSON.stringify(newReadIds))
-    ]);
-    console.log('[MessagesStore] Welcome message restored');
+    await AsyncStorage.setItem(DELETED_MESSAGES_KEY, JSON.stringify(newDeletedIds));
+    console.log('[MessagesStore] Welcome message restored, unreadCount:', newUnreadCount);
   }
 }));
 

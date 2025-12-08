@@ -174,8 +174,14 @@ export default function Settings() {
             console.log('[Settings] Starting logout...');
             await logout();
             console.log('[Settings] Logout complete, navigating to landing...');
-            // Navigate to landing page outside of tabs
-            router.dismissAll();
+            // Navigate to landing page - use replace only to avoid POP_TO_TOP error
+            // dismissAll can fail if there's nothing to dismiss
+            try {
+              router.dismissAll();
+            } catch (e) {
+              // Ignore dismissAll errors - this can happen if navigation stack is empty
+              console.log('[Settings] dismissAll skipped:', e);
+            }
             router.replace('/');
           }
         }

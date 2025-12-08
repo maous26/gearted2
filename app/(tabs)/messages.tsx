@@ -113,14 +113,8 @@ export default function MessagesScreen() {
     const init = async () => {
       await loadFromStorage();
       await cleanDuplicates();
-
-      // Si le message de bienvenue a été supprimé, le restaurer
-      // Ceci est temporaire pour corriger les comptes existants
-      const { deletedMessageIds: deleted } = useMessagesStore.getState();
-      if (deleted.includes('gearted-welcome')) {
-        console.log('[MessagesScreen] Restoring welcome message...');
-        await useMessagesStore.getState().restoreWelcomeMessage();
-      }
+      // Le message de bienvenue n'est plus restauré automatiquement
+      // pour éviter que le badge réapparaisse après lecture
     };
     init();
   }, []);
