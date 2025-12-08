@@ -174,10 +174,8 @@ export default function Settings() {
             console.log('[Settings] Starting logout...');
             await logout();
             console.log('[Settings] Logout complete, navigating to landing...');
-            // Use dismissAll to clear navigation stack then navigate to root
-            while (router.canGoBack()) {
-              router.back();
-            }
+            // Navigate to landing page outside of tabs
+            router.dismissAll();
             router.replace('/');
           }
         }
