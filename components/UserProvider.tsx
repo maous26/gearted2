@@ -146,7 +146,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    // Déconnexion : supprimer les tokens et vider le profil
+    // Déconnexion : supprimer les tokens et vider le profil et le store d'auth
     console.log('[UserProvider] Starting logout process...');
 
     try {
@@ -170,12 +170,24 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // 5. Clear state AFTER storage is cleared
       setIsOnboarded(false);
       setUser(null);
+      // 6. Reset authStore (Zustand)
+      try {
+        const { useAuthStore } = require('../stores/authStore');
+        useAuthStore.getState().logout();
+        console.log('[UserProvider] authStore reset');
+      } catch (storeError) {
+        console.warn('[UserProvider] Could not reset authStore:', storeError);
+      }
       console.log('[UserProvider] State cleared - logout complete');
     } catch (error) {
       console.error('[UserProvider] Error during logout:', error);
       // Still clear state even if storage operations fail
       setIsOnboarded(false);
       setUser(null);
+      try {
+        const { useAuthStore } = require('../stores/authStore');
+        useAuthStore.getState().logout();
+      } catch (storeError) {}
     }
   };
 
