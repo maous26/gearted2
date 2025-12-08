@@ -98,7 +98,8 @@ export default function MessagesScreen() {
     deleteTransactionThread,
     getTransactionThreads,
     cleanDuplicates,
-    refreshUnreadCount
+    refreshUnreadCount,
+    resetAllNotifications
   } = useMessagesStore();
 
   const [searchText, setSearchText] = useState("");
@@ -112,6 +113,14 @@ export default function MessagesScreen() {
     const init = async () => {
       await loadFromStorage();
       await cleanDuplicates();
+
+      // Si le message de bienvenue a été supprimé, le restaurer
+      // Ceci est temporaire pour corriger les comptes existants
+      const { deletedMessageIds: deleted } = useMessagesStore.getState();
+      if (deleted.includes('gearted-welcome')) {
+        console.log('[MessagesScreen] Restoring welcome message...');
+        await useMessagesStore.getState().restoreWelcomeMessage();
+      }
     };
     init();
   }, []);

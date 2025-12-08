@@ -167,6 +167,8 @@ interface MessagesStore {
   hasHugoMessage: (transactionId: string, type: HugoMessageType) => boolean;
   cleanDuplicates: () => Promise<number>;
   clearAllHugoMessages: () => Promise<void>;
+  resetAllNotifications: () => Promise<void>;
+  restoreWelcomeMessage: () => Promise<void>;
 }
 
 export const useMessagesStore = create<MessagesStore>((set, get) => ({
@@ -465,6 +467,41 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
     set({ hugoMessages: [] });
     await AsyncStorage.removeItem(HUGO_MESSAGES_KEY);
     console.log('[MessagesStore] All Hugo messages cleared');
+  },
+
+  // Réinitialiser complètement les notifications (pour debug)
+  resetAllNotifications: async () => {
+    set({
+      readMessageIds: [],
+      deletedMessageIds: [],
+      hugoMessages: [],
+      unreadCount: 1 // 1 pour le message de bienvenue
+    });
+    await Promise.all([
+      AsyncStorage.removeItem(UNREAD_MESSAGES_KEY),
+      AsyncStorage.removeItem(DELETED_MESSAGES_KEY),
+      AsyncStorage.removeItem(HUGO_MESSAGES_KEY)
+    ]);
+    console.log('[MessagesStore] All notifications reset');
+  },
+
+  // Restaurer le message de bienvenue s'il a été supprimé
+  restoreWelcomeMessage: async () => {
+    const { deletedMessageIds, readMessageIds } = get();
+    const newDeletedIds = deletedMessageIds.filter(id => id !== 'gearted-welcome');
+    const newReadIds = readMessageIds.filter(id => id !== 'gearted-welcome');
+
+    set({
+      deletedMessageIds: newDeletedIds,
+      readMessageIds: newReadIds,
+      unreadCount: 1
+    });
+
+    await Promise.all([
+      AsyncStorage.setItem(DELETED_MESSAGES_KEY, JSON.stringify(newDeletedIds)),
+      AsyncStorage.setItem(UNREAD_MESSAGES_KEY, JSON.stringify(newReadIds))
+    ]);
+    console.log('[MessagesStore] Welcome message restored');
   }
 }));
 
