@@ -63,7 +63,7 @@ const WELCOME_MESSAGE: Conversation = {
   messages: [
     {
       id: 'welcome-msg-1',
-      content: "Bienvenue sur Gearted ! 🎯 Je suis Hugo, fondateur de la plateforme. N'hesitez pas a me contacter si vous avez des questions. Bonnes ventes !",
+      content: "Bienvenue sur Gearted ! 🎯 L'equipe est ravie de t'accueillir sur la premiere marketplace airsoft. Clique pour en savoir plus...",
       sentAt: new Date().toISOString(),
       senderId: 'hugo-gearted'
     }
@@ -385,8 +385,12 @@ export default function MessagesScreen() {
       // Marquer comme lu immédiatement
       await markAsRead(conversation.id);
 
-      // Naviguer si ce n'est pas un message système
-      if (!conversation.isSystemMessage) {
+      // Naviguer vers la page appropriée
+      if (conversation.isSystemMessage && conversation.id === 'gearted-welcome') {
+        // Message de bienvenue - ouvrir la page dédiée
+        router.push('/welcome-message' as any);
+      } else if (!conversation.isSystemMessage) {
+        // Conversation normale
         router.push({
           pathname: '/chat/[id]',
           params: {

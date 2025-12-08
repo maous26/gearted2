@@ -170,11 +170,11 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
         AsyncStorage.getItem(DELETED_MESSAGES_KEY),
         AsyncStorage.getItem(HUGO_MESSAGES_KEY)
       ]);
-      
+
       const readIds = readJson ? JSON.parse(readJson) : [];
       const deletedIds = deletedJson ? JSON.parse(deletedJson) : [];
       let hugoMsgs = hugoJson ? JSON.parse(hugoJson) : [];
-      
+
       // Nettoyer les doublons (même transactionId + type)
       const seen = new Set<string>();
       const cleanedHugoMsgs = hugoMsgs.filter((msg: HugoTransactionMessage) => {
@@ -185,17 +185,33 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
         seen.add(key);
         return true;
       });
-      
+
       // Si on a nettoyé des doublons, sauvegarder
       if (cleanedHugoMsgs.length !== hugoMsgs.length) {
         console.log(`[MessagesStore] Cleaned ${hugoMsgs.length - cleanedHugoMsgs.length} duplicate Hugo messages`);
         await AsyncStorage.setItem(HUGO_MESSAGES_KEY, JSON.stringify(cleanedHugoMsgs));
       }
-      
-      set({ 
-        readMessageIds: readIds, 
+
+      // Calculer le unreadCount initial basé sur les données chargées
+      const hugoRead = readIds.includes('gearted-welcome');
+      const hugoDeleted = deletedIds.includes('gearted-welcome');
+      let initialUnreadCount = (!hugoRead && !hugoDeleted) ? 1 : 0;
+
+      // Compter les messages Hugo de transaction non lus
+      cleanedHugoMsgs.forEach((msg: HugoTransactionMessage) => {
+        const msgId = `hugo-${msg.type}-${msg.transactionId}`;
+        if (!readIds.includes(msgId) && !deletedIds.includes(msgId)) {
+          initialUnreadCount++;
+        }
+      });
+
+      console.log(`[MessagesStore] Loaded from storage - readIds: ${readIds.length}, unreadCount: ${initialUnreadCount}`);
+
+      set({
+        readMessageIds: readIds,
         deletedMessageIds: deletedIds,
-        hugoMessages: cleanedHugoMsgs
+        hugoMessages: cleanedHugoMsgs,
+        unreadCount: initialUnreadCount
       });
     } catch (e) {
       console.warn('Failed to load messages from storage', e);
