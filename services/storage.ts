@@ -56,8 +56,18 @@ class TokenManager {
 
   static async clearTokens(): Promise<void> {
     try {
+      console.log('[TokenManager] Clearing tokens...');
       await SecureStore.deleteItemAsync(this.ACCESS_TOKEN_KEY);
       await SecureStore.deleteItemAsync(this.REFRESH_TOKEN_KEY);
+      console.log('[TokenManager] Tokens cleared successfully');
+
+      // Verify tokens are actually cleared
+      const accessAfter = await SecureStore.getItemAsync(this.ACCESS_TOKEN_KEY);
+      const refreshAfter = await SecureStore.getItemAsync(this.REFRESH_TOKEN_KEY);
+      console.log('[TokenManager] Verification after clear:', {
+        hasAccessToken: !!accessAfter,
+        hasRefreshToken: !!refreshAfter
+      });
     } catch (error) {
       console.error('Error clearing tokens:', error);
       throw error;
@@ -66,6 +76,7 @@ class TokenManager {
 
   static async hasValidToken(): Promise<boolean> {
     const token = await this.getAccessToken();
+    console.log('[TokenManager] hasValidToken check:', { hasToken: token !== null });
     return token !== null;
   }
 }

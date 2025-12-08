@@ -37,18 +37,19 @@ export default function GeartedLanding() {
       // User exists, but we need to verify the token is still valid
       const checkAuth = async () => {
         try {
-          // Small delay to ensure SecureStore is fully updated after logout
-          await new Promise(resolve => setTimeout(resolve, 100));
+          // Longer delay to ensure SecureStore is fully updated after logout
+          // This gives time for the logout process to complete
+          await new Promise(resolve => setTimeout(resolve, 500));
 
           // ALWAYS check token first - this is the source of truth for auth state
           const hasValidToken = await TokenManager.hasValidToken();
 
           console.log('[Landing] Auth check:', { hasValidToken, hasUser: !!user, isLoaded });
 
-          // Only redirect if BOTH token AND user exist
-          // Token check is async and always up-to-date (reads from SecureStore)
-          if (hasValidToken && user) {
-            console.log('[Landing] Valid token and user found, redirecting to home');
+          // Only redirect if token is valid (token is the source of truth, not React state)
+          // The token check is async and reads directly from SecureStore
+          if (hasValidToken) {
+            console.log('[Landing] Valid token found, redirecting to home');
             // Small delay to ensure navigation is ready
             setTimeout(() => {
               try {
@@ -59,7 +60,7 @@ export default function GeartedLanding() {
               }
             }, 100);
           } else {
-            console.log('[Landing] No valid auth (token:', hasValidToken, ', user:', !!user, '), showing landing page');
+            console.log('[Landing] No valid token, showing landing page');
             setIsCheckingAuth(false);
           }
         } catch (error) {
@@ -69,7 +70,7 @@ export default function GeartedLanding() {
       };
 
       checkAuth();
-    }, [user, isLoaded])
+    }, [isLoaded])
   );
 
   if (isCheckingAuth) {
