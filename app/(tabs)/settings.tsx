@@ -181,12 +181,14 @@ export default function Settings() {
           style: "destructive",
           onPress: async () => {
             console.log('[Settings] Starting logout...');
-            // Navigate FIRST, then logout to avoid empty profile state
-            // Use navigate to go to login screen which will redirect to landing
-            router.replace('/login');
-            // Then clear the data
+            // Clear data first
             await logout();
-            console.log('[Settings] Logout complete');
+            console.log('[Settings] Logout complete, navigating to landing...');
+            // Navigate to root landing page (not /login) to avoid double-click issue
+            // Use setTimeout to ensure state is cleared before navigation
+            setTimeout(() => {
+              router.replace('/');
+            }, 100);
           }
         }
       ]

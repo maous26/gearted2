@@ -197,7 +197,7 @@ function mapDbProductToListingShape(p: any) {
     featured: p.featured || false,
     status: p.status || 'ACTIVE',
     createdAt: p.createdAt?.toISOString?.() ?? new Date().toISOString(),
-    handDelivery: p.handDelivery || false,
+    shippingCategory: p.shippingCategory || null,
   };
 }
 
@@ -445,9 +445,7 @@ router.post(
       category,
       location,
       images = [],
-      // Remise en main propre
-      handDelivery = false,
-      // Catégorie d'expédition (obligatoire si pas de remise en main propre)
+      // Catégorie d'expédition (obligatoire)
       shippingCategory,
       // Dimensions personnalisées (uniquement pour CAT_VOLUMINEUX)
       customParcelLength,
@@ -460,10 +458,10 @@ router.post(
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Validation: shippingCategory obligatoire si pas de remise en main propre
-    if (!handDelivery && !shippingCategory) {
+    // Validation: shippingCategory obligatoire pour tous les produits
+    if (!shippingCategory) {
       return res.status(400).json({
-        error: 'La catégorie d\'expédition est obligatoire pour les articles expédiés'
+        error: 'La catégorie d\'expédition est obligatoire'
       });
     }
 
@@ -521,8 +519,6 @@ router.post(
         location: location || 'Paris, 75001',
         shippingIncluded: false,
         shippingCost: null,
-        // Remise en main propre
-        handDelivery: handDelivery || false,
         // Catégorie d'expédition
         shippingCategory: shippingCategory || null,
         // Dimensions personnalisées (uniquement pour CAT_VOLUMINEUX)
