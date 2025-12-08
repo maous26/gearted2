@@ -192,8 +192,10 @@ export default function Settings() {
             await logout();
             console.log('[Settings] Logout complete, navigating to landing...');
             // Navigate to landing page outside of (tabs) group
-            // Use longer delay to ensure SecureStore is fully cleared
+            // Use dismissTo to completely exit the tabs navigator
             setTimeout(() => {
+              // First dismiss all screens in the stack, then navigate
+              router.dismissAll();
               router.replace('/landing');
             }, 300);
           }
