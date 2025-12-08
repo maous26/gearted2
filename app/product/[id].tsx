@@ -11,6 +11,7 @@ import { useDeleteProduct, useProduct } from "../../hooks/useProducts";
 import api from "../../services/api";
 import stripeService from "../../services/stripe";
 import { THEMES } from "../../themes";
+import { PLACEHOLDER_IMAGE } from "../../utils/imageUtils";
 
 interface ShippingRate {
   rateId: string;
@@ -131,7 +132,12 @@ export default function ProductDetailScreen() {
 
   const images = useMemo(() => {
     const arr = product?.images || [];
-    return arr.filter((u: string) => typeof u === 'string' && !u.startsWith('file://'));
+    // Filter out file:// URLs (local device paths not accessible to other users)
+    const validImages = arr.filter((u: string) =>
+      typeof u === 'string' && (u.startsWith('http://') || u.startsWith('https://'))
+    );
+    // If no valid images, return placeholder
+    return validImages.length > 0 ? validImages : [PLACEHOLDER_IMAGE];
   }, [product]);
 
   /**

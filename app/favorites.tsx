@@ -17,6 +17,7 @@ import { useTheme } from "../components/ThemeProvider";
 import { useFavoritesWithAuth, useProducts, useToggleFavorite } from '../hooks/useProducts';
 import { Product } from '../stores/productsStore';
 import { THEMES } from "../themes";
+import { getFirstValidImage } from "../utils/imageUtils";
 
 
 
@@ -51,7 +52,7 @@ export default function FavoritesScreen() {
       onPress={() => router.push(`/product/${item.id}` as any)}
     >
       <Image
-        source={{ uri: item.images?.[0] || 'https://via.placeholder.com/150' }}
+        source={{ uri: getFirstValidImage(item.images) }}
         style={{ width: 120, height: 120 }}
       />
 

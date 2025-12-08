@@ -22,6 +22,7 @@ import { useDebounce } from "../../hooks/useDebounce";
 import { useFavoritesWithAuth, useInfiniteProducts, useToggleFavorite } from "../../hooks/useProducts";
 import { Product, useProductsStore } from "../../stores/productsStore";
 import { THEMES } from "../../themes";
+import { getFirstValidImage } from "../../utils/imageUtils";
 
 export default function BrowseScreen() {
   const { theme } = useTheme();
@@ -101,7 +102,7 @@ export default function BrowseScreen() {
       {/* Product Image */}
       <View style={{ position: 'relative', backgroundColor: '#f5f5f5' }}>
         <Image
-          source={{ uri: product.images[0] }}
+          source={{ uri: getFirstValidImage(product.images) }}
           style={{ width: '100%', height: 200 }}
           contentFit="contain"
           cachePolicy="memory-disk"

@@ -18,6 +18,7 @@ import { useTheme } from '../components/ThemeProvider';
 import transactionService, { Transaction } from '../services/transactions';
 import { HugoMessageType, HugoTransactionMessage, useMessagesStore } from '../stores/messagesStore';
 import { THEMES } from '../themes';
+import { getFirstValidImage } from '../utils/imageUtils';
 
 const NOTIFIED_TRANSACTIONS_KEY = '@gearted_notified_transactions';
 
@@ -361,7 +362,7 @@ export default function OrdersScreen() {
       <View style={{ flexDirection: 'row' }}>
         {/* Product image */}
         <Image
-          source={{ uri: order.product?.images?.[0] || 'https://via.placeholder.com/80' }}
+          source={{ uri: getFirstValidImage(order.product?.images) }}
           style={{
             width: 80,
             height: 80,

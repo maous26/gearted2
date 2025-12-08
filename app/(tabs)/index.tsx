@@ -18,6 +18,7 @@ import { useTheme } from "../../components/ThemeProvider";
 import { CATEGORIES } from "../../data";
 import { useCategoryStats, useFeaturedProducts, useProducts, usePublicSettings } from "../../hooks/useProducts";
 import { THEMES } from "../../themes";
+import { getFirstValidImage } from "../../utils/imageUtils";
 
 const { width } = Dimensions.get('window');
 
@@ -213,7 +214,7 @@ export default function AuthenticatedHome() {
 
                   <View style={{ backgroundColor: '#f5f5f5' }}>
                     <Image
-                      source={{ uri: (product.images?.[0] || 'https://via.placeholder.com/400x300/4B5D3A/FFFFFF?text=Photo') }}
+                      source={{ uri: getFirstValidImage(product.images) }}
                       style={{ width: '100%', height: 180 }}
                       contentFit="contain"
                       cachePolicy="memory-disk"
@@ -369,7 +370,7 @@ export default function AuthenticatedHome() {
                     >
                       <View style={{ backgroundColor: '#f5f5f5' }}>
                         <Image
-                          source={{ uri: product.images[0] }}
+                          source={{ uri: getFirstValidImage(product.images) }}
                           style={{ width: '100%', height: 140 }}
                           contentFit="contain"
                           cachePolicy="memory-disk"
