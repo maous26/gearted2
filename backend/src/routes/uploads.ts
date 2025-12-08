@@ -11,6 +11,27 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+/**
+ * Get the base URL for public assets
+ * Priority: BACKEND_URL > RAILWAY_PUBLIC_DOMAIN > EXPO_PUBLIC_API_URL > localhost
+ */
+function getPublicBaseUrl(): string {
+  // Railway sets this automatically
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+    return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+  }
+  // Explicit backend URL (recommended for production)
+  if (process.env.BACKEND_URL) {
+    return process.env.BACKEND_URL;
+  }
+  // Fallback to frontend API URL (might work if same domain)
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+  // Local development fallback
+  return `http://localhost:${process.env.PORT || 3000}`;
+}
+
 // Upload single image (base64)
 router.post('/image', async (req, res): Promise<any> => {
   try {
@@ -44,10 +65,10 @@ router.post('/image', async (req, res): Promise<any> => {
     fs.writeFileSync(filePath, buffer);
 
     // Build public URL
-    const baseUrl = process.env.EXPO_PUBLIC_API_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const baseUrl = getPublicBaseUrl();
     const publicUrl = `${baseUrl}/uploads/${uniqueFilename}`;
 
-    console.log(`[Uploads] Image saved: ${uniqueFilename}`);
+    console.log(`[Uploads] Image saved: ${uniqueFilename}, URL: ${publicUrl}`);
 
     return res.json({
       success: true,
@@ -72,7 +93,7 @@ router.post('/images', async (req, res): Promise<any> => {
       return res.status(400).json({ error: 'No images provided' });
     }
 
-    const baseUrl = process.env.EXPO_PUBLIC_API_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const baseUrl = getPublicBaseUrl();
     const uploadedUrls: string[] = [];
 
     for (const image of images) {
@@ -113,7 +134,7 @@ router.post('/images', async (req, res): Promise<any> => {
       const publicUrl = `${baseUrl}/uploads/${uniqueFilename}`;
       uploadedUrls.push(publicUrl);
 
-      console.log(`[Uploads] Image saved: ${uniqueFilename}`);
+      console.log(`[Uploads] Image saved: ${uniqueFilename}, URL: ${publicUrl}`);
     }
 
     return res.json({
