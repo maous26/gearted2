@@ -215,22 +215,21 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
   },
 
   markAsRead: async (conversationId: string) => {
-    const { readMessageIds } = get();
+    const { readMessageIds, deletedMessageIds, hugoMessages, unreadCount } = get();
     if (readMessageIds.includes(conversationId)) return;
-    
+
     const newReadIds = [...readMessageIds, conversationId];
     set({ readMessageIds: newReadIds });
-    
+
     try {
       await AsyncStorage.setItem(UNREAD_MESSAGES_KEY, JSON.stringify(newReadIds));
     } catch (e) {
       console.warn('Failed to save read messages', e);
     }
-    
-    // Recalculer le compteur
-    const { deletedMessageIds, unreadCount } = get();
-    if (unreadCount > 0) {
-      set({ unreadCount: unreadCount - 1 });
+
+    // Décrémenter le compteur seulement si la conversation n'était pas supprimée
+    if (unreadCount > 0 && !deletedMessageIds.includes(conversationId)) {
+      set({ unreadCount: Math.max(0, unreadCount - 1) });
     }
   },
 
