@@ -64,7 +64,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setUser(null);
       // Navigate to landing page
       setTimeout(() => {
-        router.replace('/');
+        router.replace('/landing');
       }, 100);
     };
 

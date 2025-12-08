@@ -191,10 +191,10 @@ export default function Settings() {
             // Clear data first
             await logout();
             console.log('[Settings] Logout complete, navigating to landing...');
-            // Navigate to root landing page
+            // Navigate to landing page outside of (tabs) group
             // Use longer delay to ensure SecureStore is fully cleared
             setTimeout(() => {
-              router.replace('/');
+              router.replace('/landing');
             }, 300);
           }
         }
