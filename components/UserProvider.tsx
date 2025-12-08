@@ -122,15 +122,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
       queryClient.clear();
       console.log('[UserProvider] Query cache cleared');
 
-      // 2. Supprimer les tokens JWT
+      // 2. Supprimer les tokens JWT (SecureStore)
       await TokenManager.clearTokens();
-      console.log('[UserProvider] Tokens cleared');
+      console.log('[UserProvider] SecureStore tokens cleared');
 
-      // 3. Supprimer le profil du stockage local
+      // 3. Supprimer aussi authToken et userData de AsyncStorage (utilisé par login.tsx)
+      await AsyncStorage.removeItem('authToken');
+      await AsyncStorage.removeItem('userData');
+      console.log('[UserProvider] AsyncStorage auth data cleared');
+
+      // 4. Supprimer le profil du stockage local
       await AsyncStorage.removeItem(USER_STORAGE_KEY);
       console.log('[UserProvider] User profile removed from storage');
 
-      // 4. Clear state AFTER storage is cleared
+      // 5. Clear state AFTER storage is cleared
       setIsOnboarded(false);
       setUser(null);
       console.log('[UserProvider] State cleared - logout complete');
