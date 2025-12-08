@@ -174,10 +174,11 @@ export default function Settings() {
             console.log('[Settings] Starting logout...');
             await logout();
             console.log('[Settings] Logout complete, navigating to landing...');
-            // Small delay to ensure state is fully cleared before navigation
-            setTimeout(() => {
-              router.replace('/');
-            }, 100);
+            // Use dismissAll to clear navigation stack then navigate to root
+            while (router.canGoBack()) {
+              router.back();
+            }
+            router.replace('/');
           }
         }
       ]
