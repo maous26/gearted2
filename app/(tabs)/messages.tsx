@@ -91,12 +91,14 @@ export default function MessagesScreen() {
   const {
     deletedMessageIds,
     readMessageIds,
+    unreadCount,
     loadFromStorage,
     markAsRead,
     deleteConversation: deleteFromStore,
     deleteTransactionThread,
     getTransactionThreads,
-    cleanDuplicates
+    cleanDuplicates,
+    refreshUnreadCount
   } = useMessagesStore();
 
   const [searchText, setSearchText] = useState("");
@@ -376,29 +378,34 @@ export default function MessagesScreen() {
     const lastMsg = conversation.messages?.[0];
     const isRead = readMessageIds.includes(conversation.id);
 
+    const handlePress = async () => {
+      // Marquer comme lu immédiatement
+      await markAsRead(conversation.id);
+
+      // Naviguer si ce n'est pas un message système
+      if (!conversation.isSystemMessage) {
+        router.push({
+          pathname: '/chat/[id]',
+          params: {
+            id: conversation.id,
+            otherUsername: other?.username || '',
+            otherAvatar: other?.avatar || ''
+          }
+        });
+      }
+    };
+
     return (
       <TouchableOpacity
-        onPress={async () => {
-          await markAsRead(conversation.id);
-          if (!conversation.isSystemMessage) {
-            router.push({
-              pathname: '/chat/[id]',
-              params: {
-                id: conversation.id,
-                otherUsername: other?.username || '',
-                otherAvatar: other?.avatar || ''
-              }
-            });
-          }
-        }}
+        onPress={handlePress}
         onLongPress={() => deleteConversation(conversation.id)}
         style={{
           backgroundColor: t.cardBg,
           borderRadius: 12,
           padding: 12,
           marginBottom: 12,
-          borderWidth: isSystem ? 2 : 1,
-          borderColor: isSystem ? t.primaryBtn : (!isRead ? '#3B82F6' : t.border),
+          borderWidth: !isRead ? 2 : 1,
+          borderColor: !isRead ? '#3B82F6' : (isSystem ? t.primaryBtn : t.border),
         }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -409,7 +416,7 @@ export default function MessagesScreen() {
               style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: t.primaryBtn }}
             />
             {/* Badge non lu */}
-            {!isRead && !isSystem && (
+            {!isRead && (
               <View
                 style={{
                   position: 'absolute',

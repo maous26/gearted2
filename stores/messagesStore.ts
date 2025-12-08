@@ -216,20 +216,51 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
 
   markAsRead: async (conversationId: string) => {
     const { readMessageIds, deletedMessageIds, hugoMessages, unreadCount } = get();
-    if (readMessageIds.includes(conversationId)) return;
+
+    // Si déjà lu, ne rien faire
+    if (readMessageIds.includes(conversationId)) {
+      console.log(`[MessagesStore] Already read: ${conversationId}`);
+      return;
+    }
+
+    console.log(`[MessagesStore] Marking as read: ${conversationId}, current unread: ${unreadCount}`);
 
     const newReadIds = [...readMessageIds, conversationId];
-    set({ readMessageIds: newReadIds });
+
+    // Calculer le nouveau compteur immédiatement
+    // Compter Hugo welcome
+    const hugoRead = newReadIds.includes('gearted-welcome');
+    const hugoDeleted = deletedMessageIds.includes('gearted-welcome');
+    let newUnreadCount = (!hugoRead && !hugoDeleted) ? 1 : 0;
+
+    // Compter les messages Hugo de transaction non lus
+    hugoMessages.forEach((msg: HugoTransactionMessage) => {
+      const msgId = `hugo-${msg.type}-${msg.transactionId}`;
+      if (!newReadIds.includes(msgId) && !deletedMessageIds.includes(msgId)) {
+        newUnreadCount++;
+      }
+    });
+
+    // Note: Pour les conversations API, on ne peut pas les compter ici car on n'a pas la liste
+    // On va donc juste décrémenter de 1 si c'est une conversation non-Hugo
+    const isHugoMessage = conversationId === 'gearted-welcome' || conversationId.startsWith('hugo-');
+    if (!isHugoMessage && unreadCount > newUnreadCount) {
+      // C'est une conversation API, ajuster en conséquence
+      newUnreadCount = Math.max(0, unreadCount - 1);
+    }
+
+    console.log(`[MessagesStore] New unread count: ${newUnreadCount}`);
+
+    // Mettre à jour le state en une seule fois
+    set({
+      readMessageIds: newReadIds,
+      unreadCount: newUnreadCount
+    });
 
     try {
       await AsyncStorage.setItem(UNREAD_MESSAGES_KEY, JSON.stringify(newReadIds));
     } catch (e) {
       console.warn('Failed to save read messages', e);
-    }
-
-    // Décrémenter le compteur seulement si la conversation n'était pas supprimée
-    if (unreadCount > 0 && !deletedMessageIds.includes(conversationId)) {
-      set({ unreadCount: Math.max(0, unreadCount - 1) });
     }
   },
 
