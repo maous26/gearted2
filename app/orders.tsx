@@ -123,11 +123,6 @@ export default function OrdersScreen() {
           // Notification: Vente effectuée
           await sendHugoNotification(tx, 'SALE_COMPLETED', 'SELLER');
 
-          // Si dimensions non renseignées, envoyer notification d'alerte
-          if (!tx.product?.parcelDimensionsId && !tx.trackingNumber) {
-            await sendHugoNotification(tx, 'DIMENSIONS_REQUIRED', 'SELLER');
-          }
-
           // Si étiquette générée, notifier le vendeur
           if (tx.trackingNumber) {
             await sendHugoNotification(tx, 'LABEL_GENERATED', 'SELLER');
@@ -136,12 +131,7 @@ export default function OrdersScreen() {
           // BUYER
           // Notification: Achat effectué
           await sendHugoNotification(tx, 'PURCHASE_COMPLETED', 'BUYER');
-          
-          // Si dimensions saisies, notifier l'acheteur
-          if (tx.product?.parcelDimensionsId) {
-            await sendHugoNotification(tx, 'DIMENSIONS_SET', 'BUYER');
-          }
-          
+
           // Si étiquette générée, notifier aussi
           if (tx.trackingNumber) {
             await sendHugoNotification(tx, 'SHIPPING_READY', 'BUYER');
@@ -465,37 +455,8 @@ export default function OrdersScreen() {
             </View>
           )}
 
-          {/* Action buttons for sellers - set dimensions */}
-          {isSale && !order.trackingNumber && !order.product?.parcelDimensionsId && (
-            <TouchableOpacity
-              style={{
-                marginTop: 12,
-                backgroundColor: t.primaryBtn,
-                paddingVertical: 10,
-                paddingHorizontal: 16,
-                borderRadius: 10,
-                alignItems: 'center',
-              }}
-              onPress={() => {
-                console.log('[Orders] Opening dimensions screen for transaction:', order.id);
-                router.push({
-                  pathname: '/seller-set-dimensions' as any,
-                  params: {
-                    transactionId: order.id,
-                    productTitle: order.product?.title || 'Produit',
-                    buyerName: order.buyer?.username || 'Inconnu',
-                  },
-                });
-              }}
-            >
-              <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>
-                📦 Définir les dimensions du colis
-              </Text>
-            </TouchableOpacity>
-          )}
-          
-          {/* Show dimensions already set for seller */}
-          {isSale && order.product?.parcelDimensionsId && (
+          {/* Shipping category info for sellers */}
+          {isSale && order.product?.shippingCategory && !order.trackingNumber && (
             <View
               style={{
                 marginTop: 12,
@@ -509,19 +470,19 @@ export default function OrdersScreen() {
               }}
             >
               <Text style={{ color: '#4CAF50', fontWeight: '600', fontSize: 14 }}>
-                ✅ Dimensions du colis enregistrées
+                📦 Catégorie: {order.product.shippingCategory}
               </Text>
               <Text style={{ color: t.muted, fontSize: 11, marginTop: 4 }}>
-                L'acheteur peut maintenant générer son étiquette
+                L'acheteur peut générer son étiquette
               </Text>
             </View>
           )}
 
           {/* Action buttons for buyers - choose shipping */}
           {!isSale && !order.trackingNumber && (() => {
-            const hasDimensions = !!order.product?.parcelDimensionsId;
+            const hasShippingCategory = !!order.product?.shippingCategory;
             const hasAddress = !!order.shippingAddress;
-            console.log(`[Orders/Button] Transaction ${order.id}: hasDimensions = ${hasDimensions}, hasAddress = ${hasAddress}`);
+            console.log(`[Orders/Button] Transaction ${order.id}: hasShippingCategory = ${hasShippingCategory}, hasAddress = ${hasAddress}`);
 
             // Si pas d'adresse, demander d'abord l'adresse
             if (!hasAddress) {
@@ -554,8 +515,8 @@ export default function OrdersScreen() {
               );
             }
 
-            // Si adresse OK mais pas de dimensions
-            if (!hasDimensions) {
+            // Si pas de catégorie d'expédition (ancien produit)
+            if (!hasShippingCategory) {
               return (
                 <View
                   style={{
@@ -568,10 +529,10 @@ export default function OrdersScreen() {
                   }}
                 >
                   <Text style={{ color: t.muted, fontWeight: '600', fontSize: 14 }}>
-                    ⏳ En attente des dimensions du colis
+                    ⚠️ Catégorie d'expédition manquante
                   </Text>
                   <Text style={{ color: t.muted, fontSize: 11, marginTop: 4 }}>
-                    Le vendeur doit renseigner les dimensions
+                    Contactez le vendeur
                   </Text>
                 </View>
               );

@@ -21,6 +21,7 @@ import { useTheme } from "../components/ThemeProvider";
 import { useProduct, useUpdateProduct } from "../hooks/useProducts";
 import { CATEGORIES } from "../data/index";
 import { THEMES } from "../themes";
+import { SHIPPING_CATEGORIES } from "../constants/shipping";
 import api from "../services/api";
 
 // Helper function to convert file:// URI to base64
@@ -87,10 +88,13 @@ const editListingSchema = z.object({
     { message: "Le prix doit être un nombre positif" }
   ),
   images: z.array(z.string()).min(1, "Au moins une photo est requise").max(5, "Maximum 5 photos"),
-  parcelLength: z.string().optional(),
-  parcelWidth: z.string().optional(),
-  parcelHeight: z.string().optional(),
-  parcelWeight: z.string().optional(),
+  // Catégorie d'expédition
+  shippingCategory: z.string().optional(),
+  // Dimensions personnalisées (uniquement pour CAT_VOLUMINEUX)
+  customParcelLength: z.string().optional(),
+  customParcelWidth: z.string().optional(),
+  customParcelHeight: z.string().optional(),
+  customParcelWeight: z.string().optional(),
 });
 
 type EditListingFormData = z.infer<typeof editListingSchema>;
@@ -247,7 +251,7 @@ export default function EditProductScreen() {
 
   const t = THEMES[theme];
 
-  const { control, handleSubmit, formState: { errors }, setValue, reset } = useForm<EditListingFormData>({
+  const { control, handleSubmit, formState: { errors }, setValue, reset, watch } = useForm<EditListingFormData>({
     resolver: zodResolver(editListingSchema),
     defaultValues: {
       title: "",
@@ -256,10 +260,11 @@ export default function EditProductScreen() {
       category: "",
       condition: "",
       images: [],
-      parcelLength: "",
-      parcelWidth: "",
-      parcelHeight: "",
-      parcelWeight: ""
+      shippingCategory: "",
+      customParcelLength: "",
+      customParcelWidth: "",
+      customParcelHeight: "",
+      customParcelWeight: ""
     }
   });
 
@@ -273,10 +278,11 @@ export default function EditProductScreen() {
         category: product.category || "",
         condition: product.condition || "",
         images: product.images || [],
-        parcelLength: "",
-        parcelWidth: "",
-        parcelHeight: "",
-        parcelWeight: ""
+        shippingCategory: product.shippingCategory || "",
+        customParcelLength: product.customParcelLength?.toString() || "",
+        customParcelWidth: product.customParcelWidth?.toString() || "",
+        customParcelHeight: product.customParcelHeight?.toString() || "",
+        customParcelWeight: product.customParcelWeight?.toString() || ""
       });
       setImages(product.images || []);
       setInitialized(true);
@@ -312,14 +318,16 @@ export default function EditProductScreen() {
         condition: data.condition,
         category: data.category,
         images: uploadedImageUrls,
+        // Catégorie d'expédition
+        shippingCategory: data.shippingCategory || null,
       };
 
-      // Add parcel dimensions if provided
-      if (data.parcelLength && data.parcelWidth && data.parcelHeight && data.parcelWeight) {
-        updateData.parcelLength = Number(data.parcelLength);
-        updateData.parcelWidth = Number(data.parcelWidth);
-        updateData.parcelHeight = Number(data.parcelHeight);
-        updateData.parcelWeight = Number(data.parcelWeight);
+      // Add custom dimensions if CAT_VOLUMINEUX
+      if (data.shippingCategory === 'CAT_VOLUMINEUX') {
+        updateData.customParcelLength = data.customParcelLength ? Number(data.customParcelLength) : null;
+        updateData.customParcelWidth = data.customParcelWidth ? Number(data.customParcelWidth) : null;
+        updateData.customParcelHeight = data.customParcelHeight ? Number(data.customParcelHeight) : null;
+        updateData.customParcelWeight = data.customParcelWeight ? Number(data.customParcelWeight) : null;
       }
 
       await updateProductMutation.mutateAsync({
@@ -650,132 +658,194 @@ export default function EditProductScreen() {
             />
           </View>
 
-          {/* Section: Dimensions du colis */}
+          {/* Section: Catégorie d'expédition */}
           <View style={{ marginBottom: 24 }}>
             <Text style={{ fontSize: 18, fontWeight: '800', color: t.heading, marginBottom: 8 }}>
-              Dimensions du colis
+              Catégorie d'expédition
             </Text>
             <Text style={{ color: t.muted, fontSize: 13, marginBottom: 16 }}>
-              Optionnel - Nécessaire pour calculer les frais de livraison
+              Choisissez la catégorie correspondant au poids de votre colis
             </Text>
 
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Controller
-                  control={control}
-                  name="parcelLength"
-                  render={({ field: { onChange, value } }) => (
-                    <View>
-                      <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Longueur (cm)</Text>
-                      <TextInput
-                        style={{
-                          backgroundColor: t.cardBg,
-                          borderRadius: 8,
-                          paddingHorizontal: 12,
-                          paddingVertical: 10,
-                          borderWidth: 1,
-                          borderColor: t.border,
-                          fontSize: 16,
-                          color: t.heading,
-                        }}
-                        value={value}
-                        onChangeText={onChange}
-                        placeholder="30"
-                        placeholderTextColor={t.muted}
-                        keyboardType="numeric"
-                      />
-                    </View>
-                  )}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Controller
-                  control={control}
-                  name="parcelWidth"
-                  render={({ field: { onChange, value } }) => (
-                    <View>
-                      <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Largeur (cm)</Text>
-                      <TextInput
-                        style={{
-                          backgroundColor: t.cardBg,
-                          borderRadius: 8,
-                          paddingHorizontal: 12,
-                          paddingVertical: 10,
-                          borderWidth: 1,
-                          borderColor: t.border,
-                          fontSize: 16,
-                          color: t.heading,
-                        }}
-                        value={value}
-                        onChangeText={onChange}
-                        placeholder="20"
-                        placeholderTextColor={t.muted}
-                        keyboardType="numeric"
-                      />
-                    </View>
-                  )}
-                />
-              </View>
-            </View>
+            {/* Shipping category selector */}
+            <Controller
+              control={control}
+              name="shippingCategory"
+              render={({ field: { onChange, value } }) => (
+                <View>
+                  {SHIPPING_CATEGORIES.map((cat) => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      onPress={() => onChange(cat.id)}
+                      style={{
+                        backgroundColor: value === cat.id ? t.primaryBtn + '15' : t.cardBg,
+                        borderRadius: 12,
+                        padding: 14,
+                        marginBottom: 10,
+                        borderWidth: 2,
+                        borderColor: value === cat.id ? t.primaryBtn : t.border,
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 24, marginRight: 12 }}>{cat.icon}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{
+                            fontSize: 16,
+                            fontWeight: '600',
+                            color: value === cat.id ? t.primaryBtn : t.heading,
+                            marginBottom: 2
+                          }}>
+                            {cat.name}
+                          </Text>
+                          <Text style={{ fontSize: 13, color: t.muted }}>
+                            {cat.weightRange} • {cat.description}
+                          </Text>
+                        </View>
+                        {value === cat.id && (
+                          <View style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: 12,
+                            backgroundColor: t.primaryBtn,
+                            justifyContent: 'center',
+                            alignItems: 'center'
+                          }}>
+                            <Text style={{ color: '#fff', fontWeight: 'bold' }}>✓</Text>
+                          </View>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            />
 
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Controller
-                  control={control}
-                  name="parcelHeight"
-                  render={({ field: { onChange, value } }) => (
-                    <View>
-                      <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Hauteur (cm)</Text>
-                      <TextInput
-                        style={{
-                          backgroundColor: t.cardBg,
-                          borderRadius: 8,
-                          paddingHorizontal: 12,
-                          paddingVertical: 10,
-                          borderWidth: 1,
-                          borderColor: t.border,
-                          fontSize: 16,
-                          color: t.heading,
-                        }}
-                        value={value}
-                        onChangeText={onChange}
-                        placeholder="15"
-                        placeholderTextColor={t.muted}
-                        keyboardType="numeric"
-                      />
-                    </View>
-                  )}
-                />
+            {/* Dimensions personnalisées pour CAT_VOLUMINEUX */}
+            {watch('shippingCategory') === 'CAT_VOLUMINEUX' && (
+              <View style={{ marginTop: 16 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: t.heading, marginBottom: 12 }}>
+                  Dimensions du colis volumineux
+                </Text>
+
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <Controller
+                      control={control}
+                      name="customParcelLength"
+                      render={({ field: { onChange, value } }) => (
+                        <View>
+                          <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Longueur (cm)</Text>
+                          <TextInput
+                            style={{
+                              backgroundColor: t.cardBg,
+                              borderRadius: 8,
+                              paddingHorizontal: 12,
+                              paddingVertical: 10,
+                              borderWidth: 1,
+                              borderColor: t.border,
+                              fontSize: 16,
+                              color: t.heading,
+                            }}
+                            value={value}
+                            onChangeText={onChange}
+                            placeholder="100"
+                            placeholderTextColor={t.muted}
+                            keyboardType="numeric"
+                          />
+                        </View>
+                      )}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Controller
+                      control={control}
+                      name="customParcelWidth"
+                      render={({ field: { onChange, value } }) => (
+                        <View>
+                          <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Largeur (cm)</Text>
+                          <TextInput
+                            style={{
+                              backgroundColor: t.cardBg,
+                              borderRadius: 8,
+                              paddingHorizontal: 12,
+                              paddingVertical: 10,
+                              borderWidth: 1,
+                              borderColor: t.border,
+                              fontSize: 16,
+                              color: t.heading,
+                            }}
+                            value={value}
+                            onChangeText={onChange}
+                            placeholder="50"
+                            placeholderTextColor={t.muted}
+                            keyboardType="numeric"
+                          />
+                        </View>
+                      )}
+                    />
+                  </View>
+                </View>
+
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <Controller
+                      control={control}
+                      name="customParcelHeight"
+                      render={({ field: { onChange, value } }) => (
+                        <View>
+                          <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Hauteur (cm)</Text>
+                          <TextInput
+                            style={{
+                              backgroundColor: t.cardBg,
+                              borderRadius: 8,
+                              paddingHorizontal: 12,
+                              paddingVertical: 10,
+                              borderWidth: 1,
+                              borderColor: t.border,
+                              fontSize: 16,
+                              color: t.heading,
+                            }}
+                            value={value}
+                            onChangeText={onChange}
+                            placeholder="40"
+                            placeholderTextColor={t.muted}
+                            keyboardType="numeric"
+                          />
+                        </View>
+                      )}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Controller
+                      control={control}
+                      name="customParcelWeight"
+                      render={({ field: { onChange, value } }) => (
+                        <View>
+                          <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Poids (kg)</Text>
+                          <TextInput
+                            style={{
+                              backgroundColor: t.cardBg,
+                              borderRadius: 8,
+                              paddingHorizontal: 12,
+                              paddingVertical: 10,
+                              borderWidth: 1,
+                              borderColor: t.border,
+                              fontSize: 16,
+                              color: t.heading,
+                            }}
+                            value={value}
+                            onChangeText={onChange}
+                            placeholder="10"
+                            placeholderTextColor={t.muted}
+                            keyboardType="decimal-pad"
+                          />
+                        </View>
+                      )}
+                    />
+                  </View>
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <Controller
-                  control={control}
-                  name="parcelWeight"
-                  render={({ field: { onChange, value } }) => (
-                    <View>
-                      <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Poids (kg)</Text>
-                      <TextInput
-                        style={{
-                          backgroundColor: t.cardBg,
-                          borderRadius: 8,
-                          paddingHorizontal: 12,
-                          paddingVertical: 10,
-                          borderWidth: 1,
-                          borderColor: t.border,
-                          fontSize: 16,
-                          color: t.heading,
-                        }}
-                        value={value}
-                        onChangeText={onChange}
-                        placeholder="2.5"
-                        placeholderTextColor={t.muted}
-                        keyboardType="decimal-pad"
-                      />
-                    </View>
-                  )}
-                />
-              </View>
-            </View>
+            )}
           </View>
 
           {/* Submit Button */}

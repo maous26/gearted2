@@ -20,6 +20,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { z } from "zod";
 import { useTheme } from "../../components/ThemeProvider";
 import { useUser } from "../../components/UserProvider";
+import { SHIPPING_CATEGORIES } from "../../constants/shipping";
 import { CATEGORIES } from "../../data/index";
 import { usePublicSettings } from "../../hooks/useProducts";
 import api from "../../services/api";
@@ -89,12 +90,32 @@ const listingSchema = z.object({
   images: z.array(z.string()).min(1, "Au moins une photo est requise").max(5, "Maximum 5 photos"),
   handDelivery: z.boolean().optional(),
   boost: z.boolean().optional(),
-  // Dimensions du colis (optionnelles - peuvent être saisies ultérieurement)
-  parcelLength: z.string().optional(),
-  parcelWidth: z.string().optional(),
-  parcelHeight: z.string().optional(),
-  parcelWeight: z.string().optional(),
-});
+  // Catégorie d'expédition (obligatoire si pas de remise en main propre)
+  shippingCategory: z.string().optional(),
+  // Dimensions personnalisées (uniquement pour CAT_VOLUMINEUX)
+  customParcelLength: z.string().optional(),
+  customParcelWidth: z.string().optional(),
+  customParcelHeight: z.string().optional(),
+  customParcelWeight: z.string().optional(),
+}).refine(
+  (data) => {
+    // Si remise en main propre, pas besoin de catégorie d'expédition
+    if (data.handDelivery) return true;
+    // Sinon, la catégorie d'expédition est obligatoire
+    return data.shippingCategory && data.shippingCategory.length > 0;
+  },
+  { message: "La catégorie d'expédition est requise", path: ["shippingCategory"] }
+).refine(
+  (data) => {
+    // Si catégorie volumineux, les dimensions sont obligatoires
+    if (data.shippingCategory === 'CAT_VOLUMINEUX') {
+      return data.customParcelLength && data.customParcelWidth &&
+             data.customParcelHeight && data.customParcelWeight;
+    }
+    return true;
+  },
+  { message: "Les dimensions sont requises pour un colis volumineux", path: ["customParcelLength"] }
+);
 
 type ListingFormData = z.infer<typeof listingSchema>;
 
@@ -282,10 +303,11 @@ export default function SellScreen() {
       images: [],
       handDelivery: false,
       boost: false,
-      parcelLength: "",
-      parcelWidth: "",
-      parcelHeight: "",
-      parcelWeight: ""
+      shippingCategory: "",
+      customParcelLength: "",
+      customParcelWidth: "",
+      customParcelHeight: "",
+      customParcelWeight: ""
     }
   });
 
@@ -325,11 +347,13 @@ export default function SellScreen() {
         images: uploadedImageUrls, // Use uploaded URLs instead of local file:// URIs
         handDelivery: Boolean(data.handDelivery),
         featured: false, // Le boost sera activé après paiement
-        // Dimensions du colis (optionnelles)
-        parcelLength: data.parcelLength ? Number(data.parcelLength) : null,
-        parcelWidth: data.parcelWidth ? Number(data.parcelWidth) : null,
-        parcelHeight: data.parcelHeight ? Number(data.parcelHeight) : null,
-        parcelWeight: data.parcelWeight ? Number(data.parcelWeight) : null,
+        // Catégorie d'expédition (obligatoire si pas de remise en main propre)
+        shippingCategory: data.shippingCategory || null,
+        // Dimensions personnalisées (uniquement pour CAT_VOLUMINEUX)
+        customParcelLength: data.customParcelLength ? Number(data.customParcelLength) : null,
+        customParcelWidth: data.customParcelWidth ? Number(data.customParcelWidth) : null,
+        customParcelHeight: data.customParcelHeight ? Number(data.customParcelHeight) : null,
+        customParcelWeight: data.customParcelWeight ? Number(data.customParcelWeight) : null,
       };
       const created = await api.post<{ id: string }>("/api/products", {
         ...payload,
@@ -792,139 +816,213 @@ export default function SellScreen() {
               )}
             />
 
-            {/* Dimensions du colis - visible uniquement si pas de remise en main propre */}
+            {/* Catégorie d'expédition - visible uniquement si pas de remise en main propre */}
             {!handDeliveryEnabled && (
               <View style={{ marginTop: 8 }}>
                 <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading, marginBottom: 8 }}>
-                  Dimensions du colis (optionnel)
+                  Catégorie d'expédition <Text style={{ color: '#FF6B6B' }}>*</Text>
                 </Text>
 
                 {/* Info box explicatif */}
                 <View style={{ backgroundColor: '#3498db' + '15', padding: 12, borderRadius: 8, marginBottom: 16 }}>
                   <Text style={{ color: '#2980b9', fontSize: 13, lineHeight: 18 }}>
-                    📦 Si vous ne connaissez pas les dimensions maintenant, vous pourrez les saisir plus tard depuis votre profil.{'\n'}
-                    L'acheteur ne pourra finaliser son achat qu'une fois les dimensions renseignées.
+                    📦 Choisissez la catégorie correspondant au poids de votre colis. Les frais de port seront calculés automatiquement.
                   </Text>
                 </View>
 
-                {/* Dimensions inputs - 2 colonnes */}
-                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
-                  <View style={{ flex: 1 }}>
-                    <Controller
-                      control={control}
-                      name="parcelLength"
-                      render={({ field: { onChange, value } }) => (
-                        <View>
-                          <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Longueur (cm)</Text>
-                          <TextInput
-                            style={{
-                              backgroundColor: t.cardBg,
-                              borderRadius: 8,
-                              paddingHorizontal: 12,
-                              paddingVertical: 10,
-                              borderWidth: 1,
-                              borderColor: t.border,
-                              fontSize: 16,
-                              color: t.heading,
-                            }}
-                            value={value}
-                            onChangeText={onChange}
-                            placeholder="30"
-                            placeholderTextColor={t.muted}
-                            keyboardType="numeric"
-                          />
-                        </View>
+                {/* Shipping category selector */}
+                <Controller
+                  control={control}
+                  name="shippingCategory"
+                  render={({ field: { onChange, value } }) => (
+                    <View>
+                      {SHIPPING_CATEGORIES.map((cat) => (
+                        <TouchableOpacity
+                          key={cat.id}
+                          onPress={() => onChange(cat.id)}
+                          style={{
+                            backgroundColor: value === cat.id ? t.primaryBtn + '15' : t.cardBg,
+                            borderRadius: 12,
+                            padding: 14,
+                            marginBottom: 10,
+                            borderWidth: 2,
+                            borderColor: value === cat.id ? t.primaryBtn : (errors.shippingCategory ? '#FF6B6B' : t.border),
+                          }}
+                        >
+                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Text style={{ fontSize: 24, marginRight: 12 }}>{cat.icon}</Text>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{
+                                fontSize: 16,
+                                fontWeight: '600',
+                                color: value === cat.id ? t.primaryBtn : t.heading,
+                                marginBottom: 2
+                              }}>
+                                {cat.name}
+                              </Text>
+                              <Text style={{ fontSize: 13, color: t.muted }}>
+                                {cat.weightRange} • {cat.description}
+                              </Text>
+                              <Text style={{ fontSize: 12, color: t.muted, marginTop: 4, fontStyle: 'italic' }}>
+                                Ex: {cat.examples.slice(0, 2).join(', ')}
+                              </Text>
+                            </View>
+                            {value === cat.id && (
+                              <View style={{
+                                width: 24,
+                                height: 24,
+                                borderRadius: 12,
+                                backgroundColor: t.primaryBtn,
+                                justifyContent: 'center',
+                                alignItems: 'center'
+                              }}>
+                                <Text style={{ color: '#fff', fontWeight: 'bold' }}>✓</Text>
+                              </View>
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                      {errors.shippingCategory && (
+                        <Text style={{ color: '#FF6B6B', fontSize: 12, marginTop: 4 }}>
+                          {errors.shippingCategory.message}
+                        </Text>
                       )}
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Controller
-                      control={control}
-                      name="parcelWidth"
-                      render={({ field: { onChange, value } }) => (
-                        <View>
-                          <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Largeur (cm)</Text>
-                          <TextInput
-                            style={{
-                              backgroundColor: t.cardBg,
-                              borderRadius: 8,
-                              paddingHorizontal: 12,
-                              paddingVertical: 10,
-                              borderWidth: 1,
-                              borderColor: t.border,
-                              fontSize: 16,
-                              color: t.heading,
-                            }}
-                            value={value}
-                            onChangeText={onChange}
-                            placeholder="20"
-                            placeholderTextColor={t.muted}
-                            keyboardType="numeric"
-                          />
-                        </View>
-                      )}
-                    />
-                  </View>
-                </View>
+                    </View>
+                  )}
+                />
 
-                <View style={{ flexDirection: 'row', gap: 12 }}>
-                  <View style={{ flex: 1 }}>
-                    <Controller
-                      control={control}
-                      name="parcelHeight"
-                      render={({ field: { onChange, value } }) => (
-                        <View>
-                          <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Hauteur (cm)</Text>
-                          <TextInput
-                            style={{
-                              backgroundColor: t.cardBg,
-                              borderRadius: 8,
-                              paddingHorizontal: 12,
-                              paddingVertical: 10,
-                              borderWidth: 1,
-                              borderColor: t.border,
-                              fontSize: 16,
-                              color: t.heading,
-                            }}
-                            value={value}
-                            onChangeText={onChange}
-                            placeholder="15"
-                            placeholderTextColor={t.muted}
-                            keyboardType="numeric"
-                          />
-                        </View>
-                      )}
-                    />
+                {/* Dimensions personnalisées pour CAT_VOLUMINEUX */}
+                {watch('shippingCategory') === 'CAT_VOLUMINEUX' && (
+                  <View style={{ marginTop: 16 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: t.heading, marginBottom: 12 }}>
+                      Dimensions du colis volumineux <Text style={{ color: '#FF6B6B' }}>*</Text>
+                    </Text>
+
+                    <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+                      <View style={{ flex: 1 }}>
+                        <Controller
+                          control={control}
+                          name="customParcelLength"
+                          render={({ field: { onChange, value } }) => (
+                            <View>
+                              <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Longueur (cm)</Text>
+                              <TextInput
+                                style={{
+                                  backgroundColor: t.cardBg,
+                                  borderRadius: 8,
+                                  paddingHorizontal: 12,
+                                  paddingVertical: 10,
+                                  borderWidth: 1,
+                                  borderColor: errors.customParcelLength ? '#FF6B6B' : t.border,
+                                  fontSize: 16,
+                                  color: t.heading,
+                                }}
+                                value={value}
+                                onChangeText={onChange}
+                                placeholder="100"
+                                placeholderTextColor={t.muted}
+                                keyboardType="numeric"
+                              />
+                            </View>
+                          )}
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Controller
+                          control={control}
+                          name="customParcelWidth"
+                          render={({ field: { onChange, value } }) => (
+                            <View>
+                              <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Largeur (cm)</Text>
+                              <TextInput
+                                style={{
+                                  backgroundColor: t.cardBg,
+                                  borderRadius: 8,
+                                  paddingHorizontal: 12,
+                                  paddingVertical: 10,
+                                  borderWidth: 1,
+                                  borderColor: t.border,
+                                  fontSize: 16,
+                                  color: t.heading,
+                                }}
+                                value={value}
+                                onChangeText={onChange}
+                                placeholder="50"
+                                placeholderTextColor={t.muted}
+                                keyboardType="numeric"
+                              />
+                            </View>
+                          )}
+                        />
+                      </View>
+                    </View>
+
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                      <View style={{ flex: 1 }}>
+                        <Controller
+                          control={control}
+                          name="customParcelHeight"
+                          render={({ field: { onChange, value } }) => (
+                            <View>
+                              <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Hauteur (cm)</Text>
+                              <TextInput
+                                style={{
+                                  backgroundColor: t.cardBg,
+                                  borderRadius: 8,
+                                  paddingHorizontal: 12,
+                                  paddingVertical: 10,
+                                  borderWidth: 1,
+                                  borderColor: t.border,
+                                  fontSize: 16,
+                                  color: t.heading,
+                                }}
+                                value={value}
+                                onChangeText={onChange}
+                                placeholder="40"
+                                placeholderTextColor={t.muted}
+                                keyboardType="numeric"
+                              />
+                            </View>
+                          )}
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Controller
+                          control={control}
+                          name="customParcelWeight"
+                          render={({ field: { onChange, value } }) => (
+                            <View>
+                              <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Poids (kg)</Text>
+                              <TextInput
+                                style={{
+                                  backgroundColor: t.cardBg,
+                                  borderRadius: 8,
+                                  paddingHorizontal: 12,
+                                  paddingVertical: 10,
+                                  borderWidth: 1,
+                                  borderColor: t.border,
+                                  fontSize: 16,
+                                  color: t.heading,
+                                }}
+                                value={value}
+                                onChangeText={onChange}
+                                placeholder="10"
+                                placeholderTextColor={t.muted}
+                                keyboardType="decimal-pad"
+                              />
+                            </View>
+                          )}
+                        />
+                      </View>
+                    </View>
+
+                    {errors.customParcelLength && (
+                      <Text style={{ color: '#FF6B6B', fontSize: 12, marginTop: 8 }}>
+                        {errors.customParcelLength.message}
+                      </Text>
+                    )}
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Controller
-                      control={control}
-                      name="parcelWeight"
-                      render={({ field: { onChange, value } }) => (
-                        <View>
-                          <Text style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>Poids (kg)</Text>
-                          <TextInput
-                            style={{
-                              backgroundColor: t.cardBg,
-                              borderRadius: 8,
-                              paddingHorizontal: 12,
-                              paddingVertical: 10,
-                              borderWidth: 1,
-                              borderColor: t.border,
-                              fontSize: 16,
-                              color: t.heading,
-                            }}
-                            value={value}
-                            onChangeText={onChange}
-                            placeholder="2.5"
-                            placeholderTextColor={t.muted}
-                            keyboardType="decimal-pad"
-                          />
-                        </View>
-                      )}
-                    />
-                  </View>
-                </View>
+                )}
               </View>
             )}
           </View>

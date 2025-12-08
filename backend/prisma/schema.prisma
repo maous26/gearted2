@@ -248,17 +248,17 @@ model Product {
   title       String
   description String
   slug        String @unique
-  
+
   // Basic information
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
   brandId    String?
   brand      Brand?   @relation(fields: [brandId], references: [id])
-  
+
   // Seller information
   sellerId String
   seller   User   @relation(fields: [sellerId], references: [id])
-  
+
   // Product details
   condition ProductCondition
   price     Decimal
@@ -274,9 +274,20 @@ model Product {
   location         String?
   shippingIncluded Boolean  @default(false)
   shippingCost     Decimal?
+
+  // Catégorie d'expédition (obligatoire pour les annonces)
+  shippingCategory ShippingCategory? // CAT_1, CAT_2, CAT_3, CAT_4, CAT_5, CAT_VOLUMINEUX
+
+  // Dimensions personnalisées (uniquement pour CAT_VOLUMINEUX)
+  customParcelLength Float? // Longueur en cm
+  customParcelWidth  Float? // Largeur en cm
+  customParcelHeight Float? // Hauteur en cm
+  customParcelWeight Float? // Poids en kg
+
+  // Ancien système (deprecated, gardé pour compatibilité)
   parcelDimensionsId String? // Lien vers les dimensions du colis
   parcelDimensions ParcelDimensions? @relation(fields: [parcelDimensionsId], references: [id])
-  
+
   // Payment tracking
   paymentCompleted Boolean   @default(false) // Paiement réussi
   paymentCompletedAt DateTime? // Date du paiement
@@ -286,7 +297,7 @@ model Product {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Relations
   images       ProductImage[]
   transactions Transaction[]
@@ -379,6 +390,16 @@ enum PartType {
   CYLINDER
   NOZZLE
   TAPPET_PLATE
+}
+
+// Catégories d'expédition pour le calcul des frais de port
+enum ShippingCategory {
+  CAT_1          // Airsoft léger - < 1 kg
+  CAT_2          // Standard - 1 à 2,5 kg
+  CAT_3          // Standard+ / Fusils - 2,5 à 4 kg
+  CAT_4          // Lourd / Sniper - 4 à 8 kg
+  CAT_5          // Kit / Bundle - 8 à 15 kg
+  CAT_VOLUMINEUX // Colis volumineux - dimensions personnalisées
 }
 
 // Stripe Connect Models
