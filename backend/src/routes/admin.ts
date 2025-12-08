@@ -1416,4 +1416,166 @@ router.post('/settings/protection', async (req, res) => {
   }
 });
 
+// ==========================================
+// FIX STUCK TRANSACTIONS (Manual webhook processing)
+// ==========================================
+
+// POST /api/admin/transactions/:id/fix-payment - Manually process a stuck payment
+router.post('/transactions/:id/fix-payment', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    console.log(`[admin] Manual fix requested for transaction: ${id}`);
+
+    // Get transaction with product and users
+    const transaction = await prisma.transaction.findUnique({
+      where: { id },
+      include: {
+        product: {
+          include: {
+            seller: true
+          }
+        },
+        buyer: true
+      }
+    });
+
+    if (!transaction) {
+      return res.status(404).json({ error: 'Transaction introuvable' });
+    }
+
+    // Check if already processed
+    if (transaction.status === 'SUCCEEDED') {
+      return res.status(400).json({
+        error: 'Transaction déjà traitée',
+        status: transaction.status
+      });
+    }
+
+    console.log(`[admin] Transaction status: ${transaction.status}, Product status: ${transaction.product.status}`);
+
+    // Update transaction to SUCCEEDED
+    await prisma.transaction.update({
+      where: { id },
+      data: {
+        status: 'SUCCEEDED',
+      }
+    });
+
+    // Mark product as SOLD
+    const soldAt = new Date();
+    const deletionScheduledAt = new Date(soldAt.getTime() + (3 * 24 * 60 * 60 * 1000)); // +3 jours
+
+    await prisma.product.update({
+      where: { id: transaction.productId },
+      data: {
+        status: 'SOLD',
+        soldAt: soldAt,
+        paymentCompleted: true,
+        paymentCompletedAt: soldAt,
+        deletionScheduledAt: deletionScheduledAt,
+      }
+    });
+
+    console.log(`[admin] ✅ Transaction ${id} marked as SUCCEEDED`);
+    console.log(`[admin] ✅ Product ${transaction.productId} marked as SOLD`);
+
+    // Send notifications
+    // Notification to buyer
+    try {
+      await NotificationController.createNotification({
+        userId: transaction.buyerId,
+        title: '✅ Achat confirmé !',
+        message: `Votre achat de "${transaction.product.title}" a été confirmé ! Le vendeur va maintenant préparer votre colis.`,
+        type: 'PAYMENT_UPDATE',
+        data: {
+          transactionId: transaction.id,
+          productId: transaction.productId,
+          productTitle: transaction.product.title,
+          amount: transaction.amount.toString(),
+          role: 'BUYER',
+          step: 'PURCHASE_COMPLETED',
+          sellerName: transaction.product.seller.username
+        }
+      });
+      console.log(`[admin] 🔔 Notification sent to buyer ${transaction.buyerId}`);
+    } catch (notifError) {
+      console.error(`[admin] Failed to send buyer notification:`, notifError);
+    }
+
+    // Notification to seller
+    try {
+      await NotificationController.createNotification({
+        userId: transaction.product.sellerId,
+        title: '🎉 Nouvelle vente !',
+        message: `Félicitations ! ${transaction.buyer.username} a acheté "${transaction.product.title}" pour ${Number(transaction.amount).toFixed(2)}€ ! Rendez-vous dans "Mes ventes" pour générer l'étiquette.`,
+        type: 'PAYMENT_UPDATE',
+        data: {
+          transactionId: transaction.id,
+          productId: transaction.productId,
+          productTitle: transaction.product.title,
+          amount: transaction.amount.toString(),
+          role: 'SELLER',
+          step: 'SALE_COMPLETED',
+          buyerName: transaction.buyer.username
+        }
+      });
+      console.log(`[admin] 🔔 Notification sent to seller ${transaction.product.sellerId}`);
+    } catch (notifError) {
+      console.error(`[admin] Failed to send seller notification:`, notifError);
+    }
+
+    return res.json({
+      success: true,
+      message: 'Transaction corrigée avec succès',
+      transaction: {
+        id: transaction.id,
+        status: 'SUCCEEDED',
+        productId: transaction.productId,
+        productStatus: 'SOLD'
+      }
+    });
+  } catch (error) {
+    console.error('[admin] Failed to fix transaction:', error);
+    return res.status(500).json({ error: 'Failed to fix transaction', details: String(error) });
+  }
+});
+
+// GET /api/admin/transactions/pending - Get all stuck/pending transactions
+router.get('/transactions/pending', async (req, res) => {
+  try {
+    const pendingTransactions = await prisma.transaction.findMany({
+      where: {
+        status: 'PENDING'
+      },
+      include: {
+        product: {
+          select: { id: true, title: true, status: true, price: true }
+        },
+        buyer: {
+          select: { id: true, username: true, email: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return res.json({
+      success: true,
+      count: pendingTransactions.length,
+      transactions: pendingTransactions.map(t => ({
+        id: t.id,
+        paymentIntentId: t.paymentIntentId,
+        amount: Number(t.amount),
+        status: t.status,
+        createdAt: t.createdAt,
+        product: t.product,
+        buyer: t.buyer
+      }))
+    });
+  } catch (error) {
+    console.error('[admin] Failed to get pending transactions:', error);
+    return res.status(500).json({ error: 'Failed to get pending transactions' });
+  }
+});
+
 export default router;
