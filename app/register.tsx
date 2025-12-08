@@ -205,9 +205,15 @@ export default function RegisterScreen() {
         />
         
         {/* Close button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.closeButton}
-          onPress={() => router.back()}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/');
+            }
+          }}
         >
           <Ionicons name="close" size={24} color="#6B7280" />
         </TouchableOpacity>
