@@ -22,30 +22,31 @@ export default function GeartedLanding() {
   const { user, isLoaded } = useUser();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  // Check auth on initial mount only - wait for user profile to load first
+  // Check auth on focus - this handles both initial load and returning from logout
   useFocusEffect(
     useCallback(() => {
+      // Reset checking state on each focus (important for logout flow)
+      setIsCheckingAuth(true);
+
       // Wait for UserProvider to finish loading from AsyncStorage
       if (!isLoaded) {
         console.log('[Landing] Waiting for user profile to load...');
         return;
       }
 
-      // If user is null after loading, show landing page immediately (logout case or first launch)
-      if (user === null) {
-        console.log('[Landing] User is null (logged out or first launch), showing landing page');
-        setIsCheckingAuth(false);
-        return;
-      }
-
       // User exists, but we need to verify the token is still valid
       const checkAuth = async () => {
         try {
-          // Check both token AND user state
+          // Small delay to ensure SecureStore is fully updated after logout
+          await new Promise(resolve => setTimeout(resolve, 100));
+
+          // ALWAYS check token first - this is the source of truth for auth state
           const hasValidToken = await TokenManager.hasValidToken();
 
           console.log('[Landing] Auth check:', { hasValidToken, hasUser: !!user, isLoaded });
 
+          // Only redirect if BOTH token AND user exist
+          // Token check is async and always up-to-date (reads from SecureStore)
           if (hasValidToken && user) {
             console.log('[Landing] Valid token and user found, redirecting to home');
             // Small delay to ensure navigation is ready
@@ -58,7 +59,7 @@ export default function GeartedLanding() {
               }
             }, 100);
           } else {
-            console.log('[Landing] No valid auth, showing landing page');
+            console.log('[Landing] No valid auth (token:', hasValidToken, ', user:', !!user, '), showing landing page');
             setIsCheckingAuth(false);
           }
         } catch (error) {
