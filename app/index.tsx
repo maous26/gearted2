@@ -48,7 +48,15 @@ export default function GeartedLanding() {
 
           if (hasValidToken && user) {
             console.log('[Landing] Valid token and user found, redirecting to home');
-            router.replace('/(tabs)');
+            // Small delay to ensure navigation is ready
+            setTimeout(() => {
+              try {
+                router.replace('/(tabs)');
+              } catch (navError) {
+                console.warn('[Landing] Navigation error, retrying...', navError);
+                router.push('/(tabs)');
+              }
+            }, 100);
           } else {
             console.log('[Landing] No valid auth, showing landing page');
             setIsCheckingAuth(false);
