@@ -213,6 +213,87 @@ export class TransactionController {
   }
 
   /**
+   * Récupérer une transaction par son paymentIntentId
+   * GET /api/transactions/by-payment-intent/:paymentIntentId
+   * Utilisé pour le polling après un paiement réussi
+   */
+  static async getByPaymentIntent(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { paymentIntentId } = req.params;
+
+      if (!paymentIntentId) {
+        return res.status(400).json({ error: 'Payment intent ID required' });
+      }
+
+      console.log(`[Transactions] Looking up transaction by paymentIntentId: ${paymentIntentId}`);
+
+      const transaction = await prisma.transaction.findFirst({
+        where: { paymentIntentId },
+        select: {
+          id: true,
+          status: true,
+          paymentIntentId: true,
+          productId: true,
+          buyerId: true,
+          amount: true,
+          createdAt: true,
+          updatedAt: true,
+          product: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              sellerId: true,
+            }
+          }
+        }
+      });
+
+      if (!transaction) {
+        console.log(`[Transactions] No transaction found for paymentIntentId: ${paymentIntentId}`);
+        return res.status(404).json({
+          success: false,
+          error: 'Transaction not found'
+        });
+      }
+
+      // Vérifier que l'utilisateur est soit l'acheteur soit le vendeur
+      if (transaction.buyerId !== userId && transaction.product.sellerId !== userId) {
+        return res.status(403).json({
+          success: false,
+          error: 'Unauthorized'
+        });
+      }
+
+      console.log(`[Transactions] Found transaction ${transaction.id} with status: ${transaction.status}`);
+
+      return res.json({
+        success: true,
+        transaction: {
+          id: transaction.id,
+          status: transaction.status,
+          paymentIntentId: transaction.paymentIntentId,
+          productId: transaction.productId,
+          amount: Number(transaction.amount),
+          createdAt: transaction.createdAt,
+          updatedAt: transaction.updatedAt,
+        }
+      });
+    } catch (error: any) {
+      console.error('[Transactions] Get by payment intent error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  /**
    * Récupérer les détails d'une transaction
    * GET /api/transactions/:transactionId
    */

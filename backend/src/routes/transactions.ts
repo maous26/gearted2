@@ -13,6 +13,9 @@ router.get('/my-sales', TransactionController.getMySales);
 // Récupérer mes achats (en tant qu'acheteur)
 router.get('/my-purchases', TransactionController.getMyPurchases);
 
+// Récupérer une transaction par paymentIntentId (pour le polling après paiement)
+router.get('/by-payment-intent/:paymentIntentId', TransactionController.getByPaymentIntent);
+
 // Annuler une transaction (avant génération d'étiquette)
 router.post('/:transactionId/cancel', TransactionController.cancelTransaction);
 

@@ -15,7 +15,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../components/ThemeProvider';
-import transactionService, { Transaction } from '../services/transactions';
+import { useCancelTransaction, useMyPurchases, useMySales } from '../hooks/useTransactions';
+import { Transaction } from '../services/transactions';
 import { HugoMessageType, HugoTransactionMessage, useMessagesStore } from '../stores/messagesStore';
 import { THEMES } from '../themes';
 import { getFirstValidImage } from '../utils/imageUtils';
@@ -34,12 +35,30 @@ export default function OrdersScreen() {
 
   const [activeTab, setActiveTab] = useState<'sales' | 'purchases'>('sales');
   const [statusFilter, setStatusFilter] = useState<'ongoing' | 'completed'>('ongoing');
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
-  const [sales, setSales] = useState<Transaction[]>([]);
-  const [purchases, setPurchases] = useState<Transaction[]>([]);
   const [storeLoaded, setStoreLoaded] = useState(false);
+
+  // React Query hooks pour les transactions (avec cache automatique)
+  const {
+    data: sales = [],
+    isLoading: salesLoading,
+    refetch: refetchSales,
+    isRefetching: salesRefetching
+  } = useMySales();
+
+  const {
+    data: purchases = [],
+    isLoading: purchasesLoading,
+    refetch: refetchPurchases,
+    isRefetching: purchasesRefetching
+  } = useMyPurchases();
+
+  // Hook pour l'annulation avec invalidation automatique du cache
+  const cancelMutation = useCancelTransaction();
+
+  // État de chargement basé sur l'onglet actif
+  const loading = activeTab === 'sales' ? salesLoading : purchasesLoading;
+  const refreshing = activeTab === 'sales' ? salesRefetching : purchasesRefetching;
 
   // Handle navigation params (from notifications)
   useEffect(() => {
@@ -55,19 +74,31 @@ export default function OrdersScreen() {
     loadFromStorage().then(() => setStoreLoaded(true));
   }, []);
 
+  // Traiter les notifications quand les données sont chargées
   useEffect(() => {
-    if (storeLoaded) {
-      loadOrders();
+    if (storeLoaded && sales.length > 0) {
+      processTransactionNotifications(sales, 'SELLER');
     }
-  }, [activeTab, statusFilter, storeLoaded]);
+  }, [storeLoaded, sales]);
+
+  useEffect(() => {
+    if (storeLoaded && purchases.length > 0) {
+      processTransactionNotifications(purchases, 'BUYER');
+    }
+  }, [storeLoaded, purchases]);
 
   // Recharger automatiquement quand on revient sur l'écran
   useFocusEffect(
     React.useCallback(() => {
       if (storeLoaded) {
-        loadOrders();
+        // React Query va automatiquement refetch si les données sont stale
+        if (activeTab === 'sales') {
+          refetchSales();
+        } else {
+          refetchPurchases();
+        }
       }
-    }, [activeTab, statusFilter, storeLoaded])
+    }, [activeTab, storeLoaded, refetchSales, refetchPurchases])
   );
 
   // Envoyer une notification Hugo pour une transaction
@@ -146,45 +177,19 @@ export default function OrdersScreen() {
     }
   };
 
-  const loadOrders = async () => {
-    try {
-      setLoading(true);
-
-      if (activeTab === 'sales') {
-        const salesData = await transactionService.getMySales();
-        console.log('[Orders] Sales data received:', JSON.stringify(salesData, null, 2));
-        setSales(salesData);
-        
-        // Traiter les notifications pour les ventes
-        processTransactionNotifications(salesData, 'SELLER');
-      } else {
-        const purchasesData = await transactionService.getMyPurchases();
-        console.log('[Orders] Purchases data received:', JSON.stringify(purchasesData, null, 2));
-        setPurchases(purchasesData);
-        
-        // Traiter les notifications pour les achats
-        processTransactionNotifications(purchasesData, 'BUYER');
-      }
-
-      setLoading(false);
-    } catch (error: any) {
-      console.error('Failed to load orders:', error);
-      Alert.alert('Erreur', error.message || 'Impossible de charger les transactions');
-      setLoading(false);
-    }
-  };
-
   const onRefresh = async () => {
-    setRefreshing(true);
-    await loadOrders();
-    setRefreshing(false);
+    if (activeTab === 'sales') {
+      await refetchSales();
+    } else {
+      await refetchPurchases();
+    }
   };
 
   // Annuler une transaction
   const handleCancelTransaction = (order: Transaction, isSale: boolean) => {
     const roleText = isSale ? 'vente' : 'achat';
     const actionText = isSale ? 'annuler cette vente' : 'annuler cet achat';
-    
+
     Alert.alert(
       `Annuler la ${roleText}`,
       `Êtes-vous sûr de vouloir ${actionText} ?\n\n` +
@@ -201,13 +206,17 @@ export default function OrdersScreen() {
               setCancelling(order.id);
 
               const reason = isSale ? 'seller_request' : 'buyer_request';
-              const data = await transactionService.cancelTransaction(order.id, reason);
+              const data = await cancelMutation.mutateAsync({
+                transactionId: order.id,
+                reason
+              });
 
               Alert.alert(
                 'Transaction annulée',
                 data.message || 'Transaction annulée avec succès',
-                [{ text: 'OK', onPress: () => loadOrders() }]
+                [{ text: 'OK' }]
               );
+              // Le cache est automatiquement invalidé par le mutation hook
             } catch (error: any) {
               console.error('[Cancel] Error:', error);
               Alert.alert('Erreur', error.message || 'Impossible d\'annuler la transaction');

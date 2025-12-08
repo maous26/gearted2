@@ -8,6 +8,7 @@ import RatingModal from "../../components/RatingModal";
 import { useTheme } from "../../components/ThemeProvider";
 import { useUser } from "../../components/UserProvider";
 import { useDeleteProduct, useProduct } from "../../hooks/useProducts";
+import { usePurchaseFlow } from "../../hooks/usePurchaseFlow";
 import api from "../../services/api";
 import stripeService from "../../services/stripe";
 import { THEMES } from "../../themes";
@@ -37,6 +38,7 @@ export default function ProductDetailScreen() {
   const canEditOrDelete = isOwnProduct && product?.status !== 'SOLD';
 
   const deleteProductMutation = useDeleteProduct();
+  const purchaseFlow = usePurchaseFlow();
   const [isDeleting, setIsDeleting] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -237,21 +239,50 @@ export default function ProductDetailScreen() {
         return;
       }
 
-      // 4. Paiement réussi !
+      // 4. Paiement réussi côté Stripe!
       setHasPurchased(true);
 
-      Alert.alert(
-        'Achat confirmé ! 🎉',
-        `Votre achat de "${product.title}" a été confirmé.\n\nVous avez payé ${paymentData.totalCharge.toFixed(2)} €.\n\nVeuillez maintenant entrer votre adresse de livraison.`,
-        [
-          {
-            text: 'Entrer mon adresse',
-            onPress: () => router.push({
-              pathname: '/shipping-address',
-              params: { transactionId: paymentData.paymentIntentId }
-            }),
-          },
-        ]
+      // 5. Démarrer le polling pour attendre la confirmation du webhook
+      // Cela résout le problème de race condition entre le frontend et le webhook
+      purchaseFlow.startPolling(
+        paymentData.paymentIntentId,
+        product.id,
+        // onConfirmed - callback quand la transaction est confirmée
+        (transactionId) => {
+          console.log('[Purchase] Transaction confirmed:', transactionId);
+          Alert.alert(
+            'Achat confirmé ! 🎉',
+            `Votre achat de "${product.title}" a été confirmé.\n\nVous avez payé ${paymentData.totalCharge.toFixed(2)} €.\n\nVeuillez maintenant entrer votre adresse de livraison.`,
+            [
+              {
+                text: 'Entrer mon adresse',
+                onPress: () => router.push({
+                  pathname: '/shipping-address',
+                  params: { transactionId: transactionId }
+                }),
+              },
+            ]
+          );
+        },
+        // onTimeout - callback si le polling expire
+        () => {
+          console.log('[Purchase] Polling timeout, proceeding anyway');
+          // Même en cas de timeout, on navigue vers l'adresse
+          // Le webhook finira par mettre à jour la transaction
+          Alert.alert(
+            'Achat en cours de confirmation',
+            `Votre paiement a été reçu. La confirmation peut prendre quelques instants.\n\nVeuillez entrer votre adresse de livraison.`,
+            [
+              {
+                text: 'Entrer mon adresse',
+                onPress: () => router.push({
+                  pathname: '/shipping-address',
+                  params: { transactionId: paymentData.paymentIntentId }
+                }),
+              },
+            ]
+          );
+        }
       );
     } catch (error: any) {
       Alert.alert('Erreur', error.message || 'Une erreur est survenue lors du paiement');
