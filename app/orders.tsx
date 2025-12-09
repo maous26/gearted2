@@ -391,7 +391,7 @@ export default function OrdersScreen() {
             color: t.muted,
             marginBottom: 8,
           }}>
-            {isSale ? `Acheteur: ${order.buyer?.username || 'Inconnu'}` : `Vendeur: ${order.seller?.username || 'Inconnu'}`}
+            {isSale ? `Acheteur: ${order.buyer?.username || 'Inconnu'}` : `Vendeur: ${order.product?.seller?.username || 'Inconnu'}`}
           </Text>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -565,7 +565,7 @@ export default function OrdersScreen() {
                     params: {
                       transactionId: order.id,
                       productTitle: order.product?.title || 'Produit',
-                      sellerName: order.seller?.username || 'Inconnu',
+                      sellerName: order.product?.seller?.username || 'Inconnu',
                     },
                   });
                 }}

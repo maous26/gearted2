@@ -57,6 +57,7 @@ export class TransactionController {
               images: true,
               price: true,
               status: true,
+              shippingCategory: true,
               parcelDimensionsId: true,
               parcelDimensions: true
             }
@@ -92,6 +93,7 @@ export class TransactionController {
             title: product.title,
             price: Number(product.price),
             status: product.status,
+            shippingCategory: product.shippingCategory,
             parcelDimensionsId: product.parcelDimensionsId,
             parcelDimensions: product.parcelDimensions,
             images: Array.isArray(product.images)
@@ -154,6 +156,7 @@ export class TransactionController {
               images: true,
               price: true,
               status: true,
+              shippingCategory: true,
               parcelDimensionsId: true,
               parcelDimensions: true,
               seller: {
@@ -189,6 +192,7 @@ export class TransactionController {
             title: product.title,
             price: Number(product.price),
             status: product.status,
+            shippingCategory: product.shippingCategory,
             parcelDimensionsId: product.parcelDimensionsId,
             parcelDimensions: product.parcelDimensions,
             images: Array.isArray(product.images)
