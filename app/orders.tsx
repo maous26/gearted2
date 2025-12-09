@@ -477,34 +477,39 @@ export default function OrdersScreen() {
             </View>
           )}
 
-          {/* Shipping category info for sellers */}
-          {isSale && order.product?.shippingCategory && !order.trackingNumber && (
-            <View
+          {/* Action button for sellers - generate label */}
+          {isSale && !order.trackingNumber && order.status === 'SUCCEEDED' && (
+            <TouchableOpacity
               style={{
                 marginTop: 12,
-                backgroundColor: '#4CAF50' + '20',
+                backgroundColor: t.primaryBtn,
                 paddingVertical: 10,
                 paddingHorizontal: 16,
                 borderRadius: 10,
                 alignItems: 'center',
-                borderWidth: 1,
-                borderColor: '#4CAF50',
+              }}
+              onPress={() => {
+                console.log('[Orders] Seller generating label for transaction:', order.id);
+                router.push({
+                  pathname: '/seller-generate-label' as any,
+                  params: {
+                    transactionId: order.id,
+                    productTitle: order.product?.title || 'Produit',
+                    buyerName: order.buyer?.username || 'Acheteur',
+                    shippingRateId: order.shippingRateId || order.selectedShippingRate || '',
+                  },
+                });
               }}
             >
-              <Text style={{ color: '#4CAF50', fontWeight: '600', fontSize: 14 }}>
-                📦 Catégorie: {order.product.shippingCategory}
+              <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>
+                📮 Générer l'étiquette et expédier
               </Text>
-              <Text style={{ color: t.muted, fontSize: 11, marginTop: 4 }}>
-                L'acheteur peut générer son étiquette
-              </Text>
-            </View>
+            </TouchableOpacity>
           )}
 
-          {/* Action buttons for buyers - choose shipping */}
-          {!isSale && !order.trackingNumber && (() => {
-            const hasShippingCategory = !!order.product?.shippingCategory;
+          {/* Status for buyers - waiting for seller to ship */}
+          {!isSale && !order.trackingNumber && order.status === 'SUCCEEDED' && (() => {
             const hasAddress = !!order.shippingAddress;
-            console.log(`[Orders/Button] Transaction ${order.id}: hasShippingCategory = ${hasShippingCategory}, hasAddress = ${hasAddress}`);
 
             // Si pas d'adresse, demander d'abord l'adresse
             if (!hasAddress) {
@@ -537,56 +542,27 @@ export default function OrdersScreen() {
               );
             }
 
-            // Si pas de catégorie d'expédition (ancien produit)
-            if (!hasShippingCategory) {
-              return (
-                <View
-                  style={{
-                    marginTop: 12,
-                    backgroundColor: t.muted + '40',
-                    paddingVertical: 10,
-                    paddingHorizontal: 16,
-                    borderRadius: 10,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Text style={{ color: t.muted, fontWeight: '600', fontSize: 14 }}>
-                    ⚠️ Catégorie d'expédition manquante
-                  </Text>
-                  <Text style={{ color: t.muted, fontSize: 11, marginTop: 4 }}>
-                    Contactez le vendeur
-                  </Text>
-                </View>
-              );
-            }
-
-            // Si tout est OK, permettre de générer l'étiquette
+            // Adresse renseignée - En attente d'expédition par le vendeur
             return (
-              <TouchableOpacity
+              <View
                 style={{
                   marginTop: 12,
-                  backgroundColor: t.primaryBtn,
+                  backgroundColor: '#2196F3' + '20',
                   paddingVertical: 10,
                   paddingHorizontal: 16,
                   borderRadius: 10,
                   alignItems: 'center',
-                }}
-                onPress={() => {
-                  console.log('[Orders] Opening shipping choice for transaction:', order.id);
-                  router.push({
-                    pathname: '/buyer-choose-shipping' as any,
-                    params: {
-                      transactionId: order.id,
-                      productTitle: order.product?.title || 'Produit',
-                      sellerName: order.product?.seller?.username || 'Inconnu',
-                    },
-                  });
+                  borderWidth: 1,
+                  borderColor: '#2196F3',
                 }}
               >
-                <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>
-                  📮 Générer l'étiquette d'expédition
+                <Text style={{ color: '#2196F3', fontWeight: '600', fontSize: 14 }}>
+                  ⏳ En attente d'expédition
                 </Text>
-              </TouchableOpacity>
+                <Text style={{ color: t.muted, fontSize: 11, marginTop: 4 }}>
+                  Le vendeur va préparer et expédier votre colis
+                </Text>
+              </View>
             );
           })()}
 
