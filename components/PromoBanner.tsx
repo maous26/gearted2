@@ -3,6 +3,9 @@ import { View, Text, Animated, StyleSheet, Easing } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
 
+// Debug: Log when module loads
+console.log('[PromoBanner] Module loaded');
+
 interface BannerSettings {
   enabled: boolean;
   message: string;
@@ -12,37 +15,39 @@ interface BannerSettings {
   effect: 'none' | 'scroll' | 'blink';
 }
 
-const FONT_FAMILIES: Record<string, { fontFamily?: string; letterSpacing?: number; fontWeight?: 'normal' | 'bold' | '600' }> = {
+const FONT_FAMILIES: Record<string, { fontFamily?: string; letterSpacing?: number; fontWeight?: '600' | '700' | 'bold' }> = {
   default: { fontWeight: '600', letterSpacing: 0 },
-  stencil: { fontWeight: 'bold', letterSpacing: 3 },
-  impact: { fontWeight: 'bold', letterSpacing: 1 },
-  courier: { fontFamily: 'Courier', fontWeight: 'bold', letterSpacing: 0 },
-  'arial-black': { fontWeight: 'bold', letterSpacing: 1 },
+  stencil: { fontWeight: '700', letterSpacing: 3 },
+  impact: { fontWeight: '700', letterSpacing: 1 },
+  courier: { fontFamily: 'Courier', fontWeight: '700', letterSpacing: 0 },
+  'arial-black': { fontWeight: '700', letterSpacing: 1 },
 };
 
 export default function PromoBanner() {
+  // Debug: Log when component mounts
+  console.log('[PromoBanner] Component function called');
+
   const scrollAnim = useRef(new Animated.Value(0)).current;
   const blinkAnim = useRef(new Animated.Value(1)).current;
   const [textWidth, setTextWidth] = useState(0);
 
-  const { data: bannerData, error, isLoading } = useQuery({
+  const { data: bannerData, error, isLoading, isFetching } = useQuery({
     queryKey: ['promo-banner'],
     queryFn: async () => {
-      console.log('[PromoBanner] Fetching banner settings...');
-      const response = await api.get('/api/settings/promo-banner');
-      console.log('[PromoBanner] Response:', JSON.stringify(response.data));
-      return response.data.banner as BannerSettings;
+      console.log('[PromoBanner] queryFn executing - fetching banner settings...');
+      const response: any = await api.get('/api/settings/promo-banner');
+      console.log('[PromoBanner] API Response:', JSON.stringify(response));
+      return response.banner as BannerSettings;
     },
-    staleTime: 60000, // Refresh every minute
+    staleTime: 60000,
     refetchInterval: 60000,
   });
 
-  // Debug logging
+  // Debug logging on mount and state changes
   useEffect(() => {
-    console.log('[PromoBanner] bannerData:', bannerData);
-    console.log('[PromoBanner] error:', error);
-    console.log('[PromoBanner] isLoading:', isLoading);
-  }, [bannerData, error, isLoading]);
+    console.log('[PromoBanner] useEffect - Mount/Update');
+    console.log('[PromoBanner] State:', { bannerData, error: error?.message, isLoading, isFetching });
+  }, [bannerData, error, isLoading, isFetching]);
 
   const banner = bannerData || {
     enabled: false,
@@ -96,21 +101,20 @@ export default function PromoBanner() {
     }
   }, [banner.enabled, banner.effect, blinkAnim]);
 
-  // Debug: show loading state
-  if (isLoading) {
-    console.log('[PromoBanner] Still loading...');
-  }
-
-  if (error) {
-    console.log('[PromoBanner] Error:', error);
-  }
+  // Always log rendering decision
+  console.log('[PromoBanner] Render check:', {
+    isLoading,
+    hasError: !!error,
+    bannerEnabled: banner.enabled,
+    bannerMessage: banner.message,
+  });
 
   if (!banner.enabled || !banner.message) {
-    console.log('[PromoBanner] Banner disabled or no message. enabled:', banner.enabled, 'message:', banner.message);
+    console.log('[PromoBanner] Returning null - banner disabled or no message');
     return null;
   }
 
-  console.log('[PromoBanner] Rendering banner with:', banner);
+  console.log('[PromoBanner] Rendering visible banner:', banner);
 
   const fontStyle = FONT_FAMILIES[banner.fontFamily] || FONT_FAMILIES.default;
 
