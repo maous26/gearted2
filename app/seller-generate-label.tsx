@@ -110,16 +110,15 @@ export default function SellerGenerateLabelScreen() {
 
       console.log('[SellerLabel] Label generated successfully:', response);
 
-      Alert.alert(
-        'Étiquette générée ! 🎉',
-        `Numéro de suivi: ${response.label.trackingNumber}\n\nVous pouvez maintenant imprimer l'étiquette et déposer le colis.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => router.back(),
-          },
-        ]
-      );
+      // Redirect to shipping label screen to show QR code and PDF
+      router.replace({
+        pathname: '/shipping-label' as any,
+        params: {
+          trackingNumber: response.label.trackingNumber,
+          productTitle: productTitle,
+          carrier: response.label.carrier || 'Transporteur',
+        },
+      });
     } catch (error: any) {
       console.error('[SellerLabel] Failed to generate label:', error);
       Alert.alert('Erreur', error.message || 'Impossible de générer l\'étiquette');

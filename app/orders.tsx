@@ -445,8 +445,8 @@ export default function OrdersScreen() {
                 📍 Suivi: {order.trackingNumber}
               </Text>
 
-              {/* Button to view shipping label */}
-              {!isSale && (
+              {/* Button to view shipping label - ONLY FOR SELLER */}
+              {isSale && (
                 <TouchableOpacity
                   style={{
                     backgroundColor: t.primaryBtn,
