@@ -435,9 +435,19 @@ router.post('/rates/:transactionId', async (req: Request, res: Response): Promis
     }
 
     // Récupérer les dimensions : soit définies explicitement, soit depuis la catégorie d'expédition
-    let dimensions = transaction.product.parcelDimensions;
+    const parcelDims = transaction.product.parcelDimensions;
 
-    if (!dimensions) {
+    // Type unifié pour les dimensions (Prisma ou par défaut)
+    let dimensions: { length: number; width: number; height: number; weight: number } | null = null;
+
+    if (parcelDims) {
+      dimensions = {
+        length: parcelDims.length,
+        width: parcelDims.width,
+        height: parcelDims.height,
+        weight: parcelDims.weight
+      };
+    } else {
       // Utiliser les dimensions par défaut de la catégorie d'expédition
       const shippingCategory = (transaction.product as any).shippingCategory;
       if (shippingCategory) {
