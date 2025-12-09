@@ -129,7 +129,7 @@ export default function SellerSetDimensionsScreen() {
           <Ionicons name="information-circle" size={24} color={t.primaryBtn} style={{ marginRight: 12 }} />
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 14, color: t.heading, lineHeight: 20 }}>
-              Entrez les dimensions de votre colis. L'acheteur pourra ensuite choisir son mode de livraison et générer l'étiquette.
+              Entrez les dimensions de votre colis pour les articles volumineux. Ces dimensions seront utilisées pour calculer les frais d'expédition.
             </Text>
           </View>
         </View>
@@ -255,7 +255,7 @@ export default function SellerSetDimensionsScreen() {
         {/* Note */}
         <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
           <Text style={{ fontSize: 12, color: t.muted, textAlign: 'center', lineHeight: 18 }}>
-            Une fois les dimensions enregistrées, l'acheteur recevra une notification pour générer son étiquette.
+            Une fois les dimensions enregistrées, vous pourrez générer l'étiquette d'expédition après la vente.
           </Text>
         </View>
       </ScrollView>
