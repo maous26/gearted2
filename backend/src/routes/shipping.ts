@@ -560,7 +560,7 @@ router.post('/label/:transactionId', async (req: Request, res: Response): Promis
 
     console.log(`[Shipping/Label] Transaction found - sellerId: ${transaction.product.sellerId}, buyerId: ${transaction.buyerId}, currentTrackingNumber: ${transaction.trackingNumber}`);
 
-    // Vérifier que l'utilisateur est bien le VENDEUR (c'est lui qui envoie le colis)
+    // Seul le VENDEUR peut générer l'étiquette (c'est lui qui expédie le colis)
     if (transaction.product.sellerId !== req.user.userId) {
       console.log(`[Shipping/Label] FORBIDDEN - user ${req.user.userId} is not the seller ${transaction.product.sellerId}`);
       return res.status(403).json({
