@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { Router, Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import { NotificationController } from '../controllers/NotificationController';
+import { socketService } from '../services/socketService';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -130,6 +131,10 @@ router.delete('/products/cleanup', async (req, res) => {
     });
 
     const remainingProducts = await prisma.product.count();
+
+    // 🔌 Invalidate cache for all connected clients
+    socketService.broadcastCacheInvalidation(['products', 'transactions', 'home']);
+    console.log('[admin] Cache invalidation broadcast after cleanup');
 
     return res.json({
       success: true,
