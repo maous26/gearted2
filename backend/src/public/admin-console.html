@@ -234,7 +234,17 @@
       animation: spin 1s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    
+
+    /* Banner animations */
+    @keyframes scrollBanner {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-33.33%); }
+    }
+    @keyframes blinkBanner {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
     /* Hidden */
     .hidden { display: none !important; }
     
@@ -404,6 +414,7 @@
     <!-- Tabs -->
     <div class="tabs">
       <button class="tab active" onclick="showTab('dashboard')">📊 Dashboard</button>
+      <button class="tab" onclick="showTab('banner')">📢 Bandeau Promo</button>
       <button class="tab" onclick="showTab('expert')">🛡️ Gearted Expert</button>
       <button class="tab" onclick="showTab('settings')">⚙️ Paramètres</button>
       <button class="tab" onclick="showTab('users')">👥 Utilisateurs</button>
@@ -433,6 +444,84 @@
         </div>
       </div>
       <button class="btn btn-primary" onclick="loadDashboard()">🔄 Rafraîchir</button>
+    </div>
+
+    <!-- Banner Promo Panel -->
+    <div id="bannerPanel" class="panel">
+      <h2>📢 Bandeau Promo</h2>
+      <p style="color: #888; margin-bottom: 20px;">Configurez le bandeau d'information qui s'affiche en haut de la page d'accueil.</p>
+
+      <div id="bannerAlert" class="alert hidden"></div>
+
+      <!-- Preview -->
+      <div class="card" style="margin-bottom: 20px;">
+        <h3 style="margin-bottom: 12px;">Aperçu</h3>
+        <div id="bannerPreview" style="padding: 12px; text-align: center; border-radius: 8px; overflow: hidden;">
+          <span id="bannerPreviewText">Aucun message configuré</span>
+        </div>
+      </div>
+
+      <!-- Settings Form -->
+      <div class="card">
+        <h3 style="margin-bottom: 16px;">Configuration</h3>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="bannerEnabled" onchange="updateBannerPreview()" style="width: 20px; height: 20px;">
+            <span>Activer le bandeau</span>
+          </label>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="bannerMessage">Message</label>
+          <input type="text" id="bannerMessage" placeholder="Ex: -20% sur tout le site !" oninput="updateBannerPreview()" style="width: 100%; padding: 12px; background: #0f0f0f; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 16px;">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <div class="form-group">
+            <label for="bannerBgColor">Couleur de fond</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="color" id="bannerBgColor" value="#FFB800" onchange="updateBannerPreview()" style="width: 50px; height: 40px; border: none; border-radius: 8px; cursor: pointer;">
+              <input type="text" id="bannerBgColorText" value="#FFB800" onchange="document.getElementById('bannerBgColor').value = this.value; updateBannerPreview()" style="flex: 1; padding: 8px; background: #0f0f0f; border: 1px solid #333; border-radius: 8px; color: #fff;">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="bannerTextColor">Couleur du texte</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="color" id="bannerTextColor" value="#000000" onchange="updateBannerPreview()" style="width: 50px; height: 40px; border: none; border-radius: 8px; cursor: pointer;">
+              <input type="text" id="bannerTextColorText" value="#000000" onchange="document.getElementById('bannerTextColor').value = this.value; updateBannerPreview()" style="flex: 1; padding: 8px; background: #0f0f0f; border: 1px solid #333; border-radius: 8px; color: #fff;">
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <div class="form-group">
+            <label for="bannerFont">Police</label>
+            <select id="bannerFont" onchange="updateBannerPreview()" style="width: 100%; padding: 12px; background: #0f0f0f; border: 1px solid #333; border-radius: 8px; color: #fff;">
+              <option value="default">Par défaut</option>
+              <option value="stencil">Stencil (Militaire)</option>
+              <option value="impact">Impact (Bold)</option>
+              <option value="courier">Courier (Mono)</option>
+              <option value="arial-black">Arial Black</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="bannerEffect">Effet</label>
+            <select id="bannerEffect" onchange="updateBannerPreview()" style="width: 100%; padding: 12px; background: #0f0f0f; border: 1px solid #333; border-radius: 8px; color: #fff;">
+              <option value="none">Aucun</option>
+              <option value="scroll">Défilement horizontal</option>
+              <option value="blink">Clignotement</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px;">
+          <button class="btn btn-primary" onclick="saveBannerSettings()">💾 Enregistrer</button>
+          <button class="btn btn-secondary" onclick="loadBannerSettings()">🔄 Réinitialiser</button>
+        </div>
+      </div>
     </div>
 
     <!-- Expert Services Panel -->
@@ -628,8 +717,9 @@
     <!-- Products Panel -->
     <div id="productsPanel" class="panel">
       <h2>📦 Produits</h2>
-      <div style="margin-bottom: 16px;">
+      <div style="margin-bottom: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
         <button class="btn btn-danger btn-sm" onclick="cleanupSeededProducts()">🗑️ Supprimer données test</button>
+        <button class="btn btn-danger" onclick="resetAllData()" style="background: #8B0000;">☢️ RESET COMPLET (Production)</button>
       </div>
       <div id="productsList" class="table-container">
         <div class="loading"><div class="spinner"></div></div>
@@ -728,6 +818,7 @@
       // Load data for tab
       switch(tabName) {
         case 'dashboard': loadDashboard(); break;
+        case 'banner': loadBannerSettings(); break;
         case 'expert': loadExpertServices(); break;
         case 'settings': loadSettings(); break;
         case 'users': loadUsers(); break;
@@ -753,6 +844,156 @@
       } catch (err) {
         console.error('Dashboard error:', err);
       }
+    }
+
+    // ==========================================
+    // PROMO BANNER
+    // ==========================================
+
+    let bannerSettings = {
+      enabled: false,
+      message: '',
+      backgroundColor: '#FFB800',
+      textColor: '#000000',
+      fontFamily: 'default',
+      effect: 'none'
+    };
+
+    async function loadBannerSettings() {
+      try {
+        const result = await api('/api/admin/settings/promo-banner');
+        if (result.banner) {
+          bannerSettings = result.banner;
+
+          // Update form
+          document.getElementById('bannerEnabled').checked = bannerSettings.enabled;
+          document.getElementById('bannerMessage').value = bannerSettings.message || '';
+          document.getElementById('bannerBgColor').value = bannerSettings.backgroundColor || '#FFB800';
+          document.getElementById('bannerBgColorText').value = bannerSettings.backgroundColor || '#FFB800';
+          document.getElementById('bannerTextColor').value = bannerSettings.textColor || '#000000';
+          document.getElementById('bannerTextColorText').value = bannerSettings.textColor || '#000000';
+          document.getElementById('bannerFont').value = bannerSettings.fontFamily || 'default';
+          document.getElementById('bannerEffect').value = bannerSettings.effect || 'none';
+
+          updateBannerPreview();
+        }
+      } catch (err) {
+        console.error('Failed to load banner settings:', err);
+        showBannerAlert('Erreur lors du chargement', 'error');
+      }
+    }
+
+    function updateBannerPreview() {
+      const preview = document.getElementById('bannerPreview');
+      const previewText = document.getElementById('bannerPreviewText');
+
+      const message = document.getElementById('bannerMessage').value || 'Aucun message configuré';
+      const bgColor = document.getElementById('bannerBgColor').value;
+      const textColor = document.getElementById('bannerTextColor').value;
+      const fontFamily = document.getElementById('bannerFont').value;
+      const effect = document.getElementById('bannerEffect').value;
+      const enabled = document.getElementById('bannerEnabled').checked;
+
+      // Update color text inputs
+      document.getElementById('bannerBgColorText').value = bgColor;
+      document.getElementById('bannerTextColorText').value = textColor;
+
+      // Set styles
+      preview.style.backgroundColor = bgColor;
+      preview.style.color = textColor;
+      preview.style.opacity = enabled ? '1' : '0.5';
+
+      // Set font
+      switch(fontFamily) {
+        case 'stencil':
+          previewText.style.fontFamily = '"Stencil Std", "Army", "Impact", sans-serif';
+          previewText.style.letterSpacing = '3px';
+          previewText.style.fontWeight = 'bold';
+          break;
+        case 'impact':
+          previewText.style.fontFamily = 'Impact, Haettenschweiler, sans-serif';
+          previewText.style.letterSpacing = '1px';
+          previewText.style.fontWeight = 'normal';
+          break;
+        case 'courier':
+          previewText.style.fontFamily = '"Courier New", Courier, monospace';
+          previewText.style.letterSpacing = '0';
+          previewText.style.fontWeight = 'bold';
+          break;
+        case 'arial-black':
+          previewText.style.fontFamily = '"Arial Black", Gadget, sans-serif';
+          previewText.style.letterSpacing = '1px';
+          previewText.style.fontWeight = 'normal';
+          break;
+        default:
+          previewText.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          previewText.style.letterSpacing = '0';
+          previewText.style.fontWeight = '600';
+      }
+
+      // Set effect
+      previewText.style.animation = 'none';
+      preview.innerHTML = ''; // Clear
+
+      if (effect === 'scroll') {
+        preview.innerHTML = `
+          <div style="display: flex; animation: scrollBanner 10s linear infinite; white-space: nowrap;">
+            <span style="padding: 0 50px;">${message}</span>
+            <span style="padding: 0 50px;">${message}</span>
+            <span style="padding: 0 50px;">${message}</span>
+          </div>
+        `;
+        // Copy font styles to scrolling text
+        const spans = preview.querySelectorAll('span');
+        spans.forEach(span => {
+          span.style.fontFamily = previewText.style.fontFamily;
+          span.style.letterSpacing = previewText.style.letterSpacing;
+          span.style.fontWeight = previewText.style.fontWeight;
+        });
+      } else if (effect === 'blink') {
+        preview.innerHTML = `<span id="bannerPreviewText" style="animation: blinkBanner 1s ease-in-out infinite;">${message}</span>`;
+        const span = preview.querySelector('span');
+        span.style.fontFamily = previewText.style.fontFamily;
+        span.style.letterSpacing = previewText.style.letterSpacing;
+        span.style.fontWeight = previewText.style.fontWeight;
+      } else {
+        preview.innerHTML = `<span id="bannerPreviewText">${message}</span>`;
+        const span = preview.querySelector('span');
+        span.style.fontFamily = previewText.style.fontFamily;
+        span.style.letterSpacing = previewText.style.letterSpacing;
+        span.style.fontWeight = previewText.style.fontWeight;
+      }
+    }
+
+    async function saveBannerSettings() {
+      try {
+        const settings = {
+          enabled: document.getElementById('bannerEnabled').checked,
+          message: document.getElementById('bannerMessage').value,
+          backgroundColor: document.getElementById('bannerBgColor').value,
+          textColor: document.getElementById('bannerTextColor').value,
+          fontFamily: document.getElementById('bannerFont').value,
+          effect: document.getElementById('bannerEffect').value
+        };
+
+        const result = await api('/api/admin/settings/promo-banner', {
+          method: 'POST',
+          body: JSON.stringify(settings)
+        });
+
+        showBannerAlert(result.message || 'Bandeau mis à jour !', 'success');
+        bannerSettings = result.banner;
+      } catch (err) {
+        showBannerAlert('Erreur: ' + err.message, 'error');
+      }
+    }
+
+    function showBannerAlert(message, type) {
+      const alert = document.getElementById('bannerAlert');
+      alert.textContent = message;
+      alert.className = `alert alert-${type}`;
+      alert.classList.remove('hidden');
+      setTimeout(() => alert.classList.add('hidden'), 3000);
     }
 
     // Expert Services
@@ -1357,6 +1598,37 @@
         showAlert('productsList', '✅ Données de test supprimées avec succès !', 'success');
         loadProducts();
         loadDashboard(); // Rafraîchir aussi le dashboard
+      } catch (err) {
+        alert('Erreur: ' + err.message);
+      }
+    }
+
+    async function resetAllData() {
+      // Triple confirmation pour cette action TRÈS dangereuse
+      if (!confirm('☢️ ATTENTION - RESET COMPLET ☢️\n\nVous êtes sur le point de SUPPRIMER TOUTES LES DONNÉES :\n\n• Tous les utilisateurs (sauf admins)\n• Tous les produits\n• Toutes les transactions\n• Tous les messages\n• Toutes les notifications\n• Tous les avis\n\nLes paramètres de la plateforme seront conservés.\n\nCette action est IRRÉVERSIBLE !\n\nÊtes-vous ABSOLUMENT sûr ?')) return;
+
+      // Deuxième confirmation
+      if (!confirm('🚨 DERNIÈRE CHANCE 🚨\n\nCette action va effacer TOUTES les données utilisateurs.\n\nVoulez-vous vraiment continuer ?')) return;
+
+      // Troisième confirmation par texte
+      const confirmText = prompt('Pour confirmer le RESET COMPLET, tapez exactement :\n\nRESET_ALL_DATA');
+      if (confirmText !== 'RESET_ALL_DATA') {
+        alert('Reset annulé. Le texte de confirmation ne correspond pas.');
+        return;
+      }
+
+      try {
+        const result = await api('/api/admin/reset-all', {
+          method: 'DELETE',
+          body: JSON.stringify({ confirm: 'RESET_ALL_DATA' })
+        });
+
+        alert(`✅ RESET COMPLET EFFECTUÉ !\n\nDonnées supprimées :\n• ${result.deleted.users} utilisateurs\n• ${result.deleted.products} produits\n• ${result.deleted.transactions} transactions\n• ${result.deleted.messages} messages\n• ${result.deleted.conversations} conversations\n• ${result.deleted.notifications} notifications\n• ${result.deleted.favorites} favoris\n• ${result.deleted.images} images\n• ${result.deleted.boosts} boosts\n• ${result.deleted.shipments} expéditions\n• ${result.deleted.stripeAccounts} comptes Stripe\n• ${result.deleted.addresses} adresses\n\nL'application est prête pour la production.`);
+
+        loadProducts();
+        loadTransactions();
+        loadUsers();
+        loadDashboard();
       } catch (err) {
         alert('Erreur: ' + err.message);
       }

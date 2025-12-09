@@ -142,7 +142,14 @@ export function useSocket(): UseSocketReturn {
     socket.on('cache:invalidate', (event: CacheInvalidateEvent) => {
       console.log('[Socket.IO] Cache invalidation received:', event.keys);
       event.keys.forEach((key) => {
-        queryClient.invalidateQueries({ queryKey: [key] });
+        // Invalider toutes les queries qui commencent par cette clé
+        // Ex: 'products' invalide 'products', 'products-infinite', 'featured-products', etc.
+        queryClient.invalidateQueries({
+          predicate: (query) => {
+            const queryKey = query.queryKey[0];
+            return typeof queryKey === 'string' && queryKey.includes(key);
+          }
+        });
       });
     });
 

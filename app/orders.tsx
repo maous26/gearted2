@@ -420,15 +420,23 @@ export default function OrdersScreen() {
                   : 'N/A'} €
             </Text>
 
-            {/* Status badge */}
+            {/* Status badge - show relevant status based on shipping state */}
             <View style={{
-              backgroundColor: order.status === 'SUCCEEDED' ? '#10B981' : '#F59E0B',
+              backgroundColor: order.trackingNumber
+                ? '#2196F3' // Blue - shipped
+                : order.status === 'SUCCEEDED'
+                  ? '#10B981' // Green - paid
+                  : '#F59E0B', // Orange - pending
               paddingHorizontal: 10,
               paddingVertical: 4,
               borderRadius: 8,
             }}>
               <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '600' }}>
-                {order.status === 'SUCCEEDED' ? '✓ Payé' : '⏳ En attente'}
+                {order.trackingNumber
+                  ? '📦 Expédié'
+                  : order.status === 'SUCCEEDED'
+                    ? '✓ Payé'
+                    : '⏳ En attente'}
               </Text>
             </View>
           </View>
@@ -471,6 +479,37 @@ export default function OrdersScreen() {
                   <Ionicons name="print-outline" size={16} color="#FFF" style={{ marginRight: 6 }} />
                   <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 13 }}>
                     Voir l'étiquette
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Button to track package - ONLY FOR BUYER */}
+              {!isSale && (
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#4CAF50',
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    borderRadius: 8,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/track-package' as any,
+                      params: {
+                        trackingNumber: order.trackingNumber,
+                        productTitle: order.product?.title || 'Produit',
+                        carrier: order.trackingNumber?.split('-')[0] || 'Transporteur',
+                        sellerName: order.product?.seller?.username || 'Vendeur',
+                      },
+                    });
+                  }}
+                >
+                  <Ionicons name="location-outline" size={16} color="#FFF" style={{ marginRight: 6 }} />
+                  <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 13 }}>
+                    Suivre mon colis
                   </Text>
                 </TouchableOpacity>
               )}

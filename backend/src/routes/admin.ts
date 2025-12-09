@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { Router, Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import { NotificationController } from '../controllers/NotificationController';
+import { socketService } from '../services/socketService';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -131,6 +132,10 @@ router.delete('/products/cleanup', async (req, res) => {
 
     const remainingProducts = await prisma.product.count();
 
+    // 🔌 Invalidate cache for all connected clients
+    socketService.broadcastCacheInvalidation(['products', 'transactions', 'home']);
+    console.log('[admin] Cache invalidation broadcast after cleanup');
+
     return res.json({
       success: true,
       deleted: {
@@ -143,6 +148,112 @@ router.delete('/products/cleanup', async (req, res) => {
   } catch (error) {
     console.error('[admin] Failed to cleanup products', error);
     return res.status(500).json({ error: 'Failed to cleanup products' });
+  }
+});
+
+// DELETE /api/admin/reset-all - DANGER: Delete ALL data (for going to production clean)
+router.delete('/reset-all', async (req, res) => {
+  try {
+    const { confirm } = req.body;
+
+    // Require explicit confirmation
+    if (confirm !== 'RESET_ALL_DATA') {
+      return res.status(400).json({
+        error: 'Confirmation required',
+        message: 'Send { "confirm": "RESET_ALL_DATA" } to confirm this destructive action'
+      });
+    }
+
+    console.log('[admin] ⚠️ RESET ALL DATA requested');
+
+    // Delete in correct order (respect foreign keys)
+    // 1. Messages (depends on Conversation)
+    const deletedMessages = await prisma.message.deleteMany({});
+    console.log(`[admin] Deleted ${deletedMessages.count} messages`);
+
+    // 2. Conversations (depends on User, Product)
+    const deletedConversations = await prisma.conversation.deleteMany({});
+    console.log(`[admin] Deleted ${deletedConversations.count} conversations`);
+
+    // 3. Notifications (depends on User)
+    const deletedNotifications = await prisma.notification.deleteMany({});
+    console.log(`[admin] Deleted ${deletedNotifications.count} notifications`);
+
+    // 4. Expert services (depends on Transaction)
+    const deletedExpertServices = await prisma.expertService.deleteMany({});
+    console.log(`[admin] Deleted ${deletedExpertServices.count} expert services`);
+
+    // 5. Transaction protections (depends on Transaction)
+    const deletedProtections = await prisma.transactionProtection.deleteMany({});
+    console.log(`[admin] Deleted ${deletedProtections.count} transaction protections`);
+
+    // 6. Shipments (depends on Transaction)
+    const deletedShipments = await prisma.shipment.deleteMany({});
+    console.log(`[admin] Deleted ${deletedShipments.count} shipments`);
+
+    // 7. Transactions (depends on User, Product)
+    const deletedTransactions = await prisma.transaction.deleteMany({});
+    console.log(`[admin] Deleted ${deletedTransactions.count} transactions`);
+
+    // 8. Product boosts (depends on Product)
+    const deletedBoosts = await prisma.productBoost.deleteMany({});
+    console.log(`[admin] Deleted ${deletedBoosts.count} product boosts`);
+
+    // 9. Favorites (depends on User, Product)
+    const deletedFavorites = await prisma.favorite.deleteMany({});
+    console.log(`[admin] Deleted ${deletedFavorites.count} favorites`);
+
+    // 10. Product images (depends on Product)
+    const deletedImages = await prisma.productImage.deleteMany({});
+    console.log(`[admin] Deleted ${deletedImages.count} product images`);
+
+    // 11. Products (depends on User)
+    const deletedProducts = await prisma.product.deleteMany({});
+    console.log(`[admin] Deleted ${deletedProducts.count} products`);
+
+    // 12. Stripe accounts (depends on User)
+    const deletedStripeAccounts = await prisma.stripeAccount.deleteMany({});
+    console.log(`[admin] Deleted ${deletedStripeAccounts.count} stripe accounts`);
+
+    // 13. Shipping addresses (depends on User)
+    const deletedAddresses = await prisma.shippingAddress.deleteMany({});
+    console.log(`[admin] Deleted ${deletedAddresses.count} shipping addresses`);
+
+    // 14. Users (except admin)
+    const deletedUsers = await prisma.user.deleteMany({
+      where: {
+        role: { not: 'ADMIN' }
+      }
+    });
+    console.log(`[admin] Deleted ${deletedUsers.count} users (admins preserved)`);
+
+    // Broadcast cache invalidation
+    socketService.broadcastCacheInvalidation(['products', 'transactions', 'home', 'notifications', 'messages', 'user']);
+    console.log('[admin] ✅ RESET COMPLETE - All data deleted');
+
+    return res.json({
+      success: true,
+      message: 'All data has been deleted. App is ready for production.',
+      deleted: {
+        messages: deletedMessages.count,
+        conversations: deletedConversations.count,
+        notifications: deletedNotifications.count,
+        expertServices: deletedExpertServices.count,
+        protections: deletedProtections.count,
+        shipments: deletedShipments.count,
+        transactions: deletedTransactions.count,
+        boosts: deletedBoosts.count,
+        favorites: deletedFavorites.count,
+        images: deletedImages.count,
+        products: deletedProducts.count,
+        stripeAccounts: deletedStripeAccounts.count,
+        addresses: deletedAddresses.count,
+        users: deletedUsers.count
+      }
+    });
+  } catch (error: any) {
+    console.error('[admin] Failed to reset all data:', error);
+    return res.status(500).json({ error: 'Failed to reset data', details: error.message });
   }
 });
 
@@ -1413,6 +1524,75 @@ router.post('/settings/protection', async (req, res) => {
   } catch (error) {
     console.error('[admin] Failed to update protection settings:', error);
     return res.status(500).json({ error: 'Failed to update protection settings' });
+  }
+});
+
+// ==========================================
+// PROMO BANNER SETTINGS
+// ==========================================
+
+// GET /api/admin/settings/promo-banner - Get promo banner settings
+router.get('/settings/promo-banner', async (req, res) => {
+  try {
+    const settings = await (prisma as any).platformSettings.findFirst({
+      where: { key: 'promo_banner' }
+    });
+
+    const defaultBanner = {
+      enabled: false,
+      message: '',
+      backgroundColor: '#FFB800',
+      textColor: '#000000',
+      fontFamily: 'default',
+      effect: 'none'
+    };
+
+    return res.json({
+      success: true,
+      banner: settings?.value || defaultBanner
+    });
+  } catch (error) {
+    console.error('[admin] Failed to get promo banner settings:', error);
+    return res.status(500).json({ error: 'Failed to get promo banner settings' });
+  }
+});
+
+// POST /api/admin/settings/promo-banner - Update promo banner settings
+router.post('/settings/promo-banner', async (req, res) => {
+  try {
+    const { enabled, message, backgroundColor, textColor, fontFamily, effect } = req.body;
+
+    const currentSettings = await (prisma as any).platformSettings.findFirst({
+      where: { key: 'promo_banner' }
+    });
+
+    const currentValue = currentSettings?.value || {};
+
+    const newSettings = {
+      enabled: enabled !== undefined ? enabled : (currentValue.enabled ?? false),
+      message: message !== undefined ? message : (currentValue.message ?? ''),
+      backgroundColor: backgroundColor !== undefined ? backgroundColor : (currentValue.backgroundColor ?? '#FFB800'),
+      textColor: textColor !== undefined ? textColor : (currentValue.textColor ?? '#000000'),
+      fontFamily: fontFamily !== undefined ? fontFamily : (currentValue.fontFamily ?? 'default'),
+      effect: effect !== undefined ? effect : (currentValue.effect ?? 'none')
+    };
+
+    const settings = await (prisma as any).platformSettings.upsert({
+      where: { key: 'promo_banner' },
+      update: { value: newSettings },
+      create: { key: 'promo_banner', value: newSettings }
+    });
+
+    console.log(`[admin] Promo banner updated: ${newSettings.enabled ? 'enabled' : 'disabled'}`);
+
+    return res.json({
+      success: true,
+      message: `Bandeau promo ${newSettings.enabled ? 'active' : 'desactive'}`,
+      banner: settings.value
+    });
+  } catch (error) {
+    console.error('[admin] Failed to update promo banner settings:', error);
+    return res.status(500).json({ error: 'Failed to update promo banner settings' });
   }
 });
 
