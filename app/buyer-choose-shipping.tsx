@@ -77,13 +77,13 @@ export default function BuyerChooseShippingScreen() {
     }
   };
 
-  const generateLabel = async () => {
+  const selectShippingRate = async () => {
     if (!selectedRate) {
       Alert.alert('Erreur', 'Veuillez sélectionner un mode de livraison');
       return;
     }
 
-    console.log('[BuyerShipping] START generateLabel - transactionId:', transactionId, 'rateId:', selectedRate);
+    console.log('[BuyerShipping] START selectShippingRate - transactionId:', transactionId, 'rateId:', selectedRate);
 
     const isMondialRelayPointRelais = selectedRate === 'mondial-relay-standard';
 
@@ -95,32 +95,33 @@ export default function BuyerChooseShippingScreen() {
 
     try {
       setCreatingLabel(true);
-      console.log('[BuyerShipping] Calling API /api/shipping/label/' + transactionId);
+      console.log('[BuyerShipping] Calling API /api/shipping/select-rate/' + transactionId);
 
       const response = await api.post<{
         success: boolean;
-        label: any;
+        message: string;
         transaction: any;
-      }>(`/api/shipping/label/${transactionId}`, {
+      }>(`/api/shipping/select-rate/${transactionId}`, {
         rateId: selectedRate,
-        ...(selectedRelayPoint && { relayPointId: selectedRelayPoint.id }),
+        ...(selectedRelayPoint && {
+          relayPointId: selectedRelayPoint.id,
+          relayPointName: selectedRelayPoint.name,
+          relayPointAddress: selectedRelayPoint.address,
+          relayPointCity: selectedRelayPoint.city,
+          relayPointPostalCode: selectedRelayPoint.postalCode,
+        }),
       });
 
-      console.log('[BuyerShipping] Label created successfully:', response);
+      console.log('[BuyerShipping] Shipping rate selected successfully:', response);
 
-      // Envoyer notification Hugo au vendeur (LABEL_GENERATED)
-      // Note: Le vendeur verra cette notif quand il ouvrira ses ventes
-      // La notification sera envoyée par orders.tsx lors du chargement
-
-      // Notification pour l'acheteur: Shipping Ready
-      if (!hasHugoMessage(transactionId, 'SHIPPING_READY')) {
+      // Notification pour l'acheteur: Mode de livraison enregistré
+      if (!hasHugoMessage(transactionId, 'SHIPPING_SELECTED')) {
         const hugoMsg: HugoTransactionMessage = {
-          id: `hugo-SHIPPING_READY-${transactionId}`,
-          type: 'SHIPPING_READY',
+          id: `hugo-SHIPPING_SELECTED-${transactionId}`,
+          type: 'SHIPPING_SELECTED',
           transactionId,
           productTitle: productTitle || 'Produit',
           otherPartyName: sellerName || 'Vendeur',
-          trackingNumber: response.transaction?.trackingNumber || response.label?.tracking_number,
           createdAt: new Date().toISOString(),
           forRole: 'BUYER'
         };
@@ -128,8 +129,8 @@ export default function BuyerChooseShippingScreen() {
       }
 
       Alert.alert(
-        'Succès',
-        'Étiquette créée avec succès! Le vendeur peut maintenant expédier votre colis.',
+        'Mode de livraison enregistré',
+        'Le vendeur a été notifié et va générer l\'étiquette d\'expédition.',
         [
           {
             text: 'OK',
@@ -138,9 +139,9 @@ export default function BuyerChooseShippingScreen() {
         ]
       );
     } catch (error: any) {
-      console.error('[BuyerShipping] Failed to generate label:', error);
+      console.error('[BuyerShipping] Failed to select shipping rate:', error);
       console.error('[BuyerShipping] Error response:', error.response?.data);
-      Alert.alert('Erreur', error.message || 'Impossible de créer l\'étiquette');
+      Alert.alert('Erreur', error.message || 'Impossible d\'enregistrer le mode de livraison');
     } finally {
       setCreatingLabel(false);
     }
@@ -325,7 +326,7 @@ export default function BuyerChooseShippingScreen() {
             )}
 
             <TouchableOpacity
-              onPress={generateLabel}
+              onPress={selectShippingRate}
               disabled={!selectedRate || creatingLabel}
               style={{
                 backgroundColor: selectedRate ? t.primaryBtn : t.muted,
@@ -341,16 +342,16 @@ export default function BuyerChooseShippingScreen() {
                 <ActivityIndicator size="small" color="#FFF" />
               ) : (
                 <>
-                  <Ionicons 
-                    name={selectedRate === 'mondial-relay-standard' && !selectedRelayPoint ? 'map' : 'checkmark-circle'} 
-                    size={20} 
-                    color="#FFF" 
-                    style={{ marginRight: 8 }} 
+                  <Ionicons
+                    name={selectedRate === 'mondial-relay-standard' && !selectedRelayPoint ? 'map' : 'checkmark-circle'}
+                    size={20}
+                    color="#FFF"
+                    style={{ marginRight: 8 }}
                   />
                   <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 16 }}>
-                    {selectedRate === 'mondial-relay-standard' && !selectedRelayPoint 
-                      ? 'Choisir un point relais' 
-                      : 'Générer l\'étiquette'}
+                    {selectedRate === 'mondial-relay-standard' && !selectedRelayPoint
+                      ? 'Choisir un point relais'
+                      : 'Confirmer le mode de livraison'}
                   </Text>
                 </>
               )}
@@ -380,7 +381,7 @@ export default function BuyerChooseShippingScreen() {
         {/* Note */}
         <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
           <Text style={{ fontSize: 12, color: t.muted, textAlign: 'center', lineHeight: 18 }}>
-            Une fois l'étiquette générée, le vendeur recevra une notification pour expédier votre colis.
+            Une fois votre choix confirmé, le vendeur générera l'étiquette et préparera votre colis pour l'expédition.
           </Text>
         </View>
       </ScrollView>

@@ -191,10 +191,24 @@ export default function Settings() {
             // Clear data first
             await logout();
             console.log('[Settings] Logout complete, navigating to landing...');
-            // Navigate to landing page - replace clears the navigation state
+            // Navigate to landing page with retry mechanism
+            // Use longer delay for Discord accounts which have more complex auth state
             setTimeout(() => {
-              router.replace('/landing');
-            }, 300);
+              try {
+                // Use replace to clear navigation history
+                router.replace('/landing');
+              } catch (navError) {
+                console.warn('[Settings] Navigation error on first attempt:', navError);
+                // Retry with push as fallback
+                setTimeout(() => {
+                  try {
+                    router.push('/landing');
+                  } catch (retryError) {
+                    console.error('[Settings] Navigation retry failed:', retryError);
+                  }
+                }, 200);
+              }
+            }, 500);
           }
         }
       ]
