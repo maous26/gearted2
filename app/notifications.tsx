@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +19,15 @@ import { useSocket } from '../hooks/useSocket';
 import notificationService, { Notification } from '../services/notifications';
 import { THEMES } from '../themes';
 
+// Interface pour les notifications groupées par transaction
+interface GroupedNotification {
+  transactionId: string | null;
+  productTitle: string;
+  notifications: Notification[];
+  latestNotification: Notification;
+  unreadCount: number;
+}
+
 export default function NotificationsScreen() {
   const { theme } = useTheme();
   const t = THEMES[theme];
@@ -31,6 +40,61 @@ export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const pollingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const appState = useRef(AppState.currentState);
+
+  // Regrouper les notifications par transactionId
+  const groupedNotifications = useMemo((): GroupedNotification[] => {
+    const groups = new Map<string, Notification[]>();
+    const standaloneNotifs: Notification[] = [];
+
+    notifications.forEach((notif) => {
+      const transactionId = notif.data?.transactionId;
+      if (transactionId) {
+        const existing = groups.get(transactionId) || [];
+        existing.push(notif);
+        groups.set(transactionId, existing);
+      } else {
+        standaloneNotifs.push(notif);
+      }
+    });
+
+    const result: GroupedNotification[] = [];
+
+    // Ajouter les groupes de transactions
+    groups.forEach((notifs, transactionId) => {
+      // Trier par date décroissante
+      notifs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const latestNotif = notifs[0];
+      const unreadCount = notifs.filter((n) => !n.isRead).length;
+
+      result.push({
+        transactionId,
+        productTitle: latestNotif.data?.productTitle || 'Transaction',
+        notifications: notifs,
+        latestNotification: latestNotif,
+        unreadCount,
+      });
+    });
+
+    // Ajouter les notifications standalone (sans transactionId)
+    standaloneNotifs.forEach((notif) => {
+      result.push({
+        transactionId: null,
+        productTitle: notif.title,
+        notifications: [notif],
+        latestNotification: notif,
+        unreadCount: notif.isRead ? 0 : 1,
+      });
+    });
+
+    // Trier par la date de la dernière notification
+    result.sort(
+      (a, b) =>
+        new Date(b.latestNotification.createdAt).getTime() -
+        new Date(a.latestNotification.createdAt).getTime()
+    );
+
+    return result;
+  }, [notifications]);
 
   // Load notifications when screen becomes focused
   useFocusEffect(
@@ -125,10 +189,25 @@ export default function NotificationsScreen() {
 
   const handleNotificationPress = async (notification: Notification) => {
     try {
-      if (!notification.isRead) {
+      // Trouver le groupe de cette notification pour marquer toutes comme lues
+      const transactionId = notification.data?.transactionId;
+      if (transactionId) {
+        // Marquer toutes les notifications non lues de ce groupe comme lues
+        const unreadNotifs = notifications.filter(
+          (n) => n.data?.transactionId === transactionId && !n.isRead
+        );
+        for (const notif of unreadNotifs) {
+          await notificationService.markAsRead(notif.id);
+        }
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.data?.transactionId === transactionId ? { ...n, isRead: true } : n
+          )
+        );
+      } else if (!notification.isRead) {
         await notificationService.markAsRead(notification.id);
-        setNotifications(prev =>
-          prev.map(n => (n.id === notification.id ? { ...n, isRead: true } : n))
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
         );
       }
 
@@ -141,13 +220,13 @@ export default function NotificationsScreen() {
           // Navigate to Sales tab
           router.push({
             pathname: '/orders',
-            params: { tab: 'sales', transactionId: data.transactionId }
+            params: { tab: 'sales', transactionId: data.transactionId },
           });
         } else if (role === 'BUYER') {
           // Navigate to Purchases tab
           router.push({
             pathname: '/orders',
-            params: { tab: 'purchases', transactionId: data.transactionId }
+            params: { tab: 'purchases', transactionId: data.transactionId },
           });
         } else {
           // Default: just go to orders
@@ -209,70 +288,122 @@ export default function NotificationsScreen() {
     }
   };
 
-  const renderNotification = (notification: Notification) => (
-    <TouchableOpacity
-      key={notification.id}
-      onPress={() => handleNotificationPress(notification)}
-      style={{
-        backgroundColor: notification.isRead ? t.cardBg : t.sectionLight,
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: notification.isRead ? t.border : t.primaryBtn + '40',
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-      }}
-    >
-      <View
+  // Rendre un groupe de notifications (ou une notification standalone)
+  const renderGroupedNotification = (group: GroupedNotification) => {
+    const { latestNotification, notifications: groupNotifs, unreadCount, productTitle } = group;
+    const hasMultiple = groupNotifs.length > 1;
+    const hasUnread = unreadCount > 0;
+
+    return (
+      <TouchableOpacity
+        key={group.transactionId || latestNotification.id}
+        onPress={() => handleNotificationPress(latestNotification)}
         style={{
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-          backgroundColor: getNotificationColor(notification.type) + '20',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginRight: 12,
+          backgroundColor: hasUnread ? t.sectionLight : t.cardBg,
+          borderRadius: 12,
+          padding: 16,
+          marginBottom: 12,
+          borderWidth: 1,
+          borderColor: hasUnread ? t.primaryBtn + '40' : t.border,
+          flexDirection: 'row',
+          alignItems: 'flex-start',
         }}
       >
-        <Ionicons
-          name={getNotificationIcon(notification.type) as any}
-          size={22}
-          color={getNotificationColor(notification.type)}
-        />
-      </View>
-
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 15, fontWeight: '600', color: t.heading, marginBottom: 4 }}>
-          {notification.title}
-        </Text>
-        <Text style={{ fontSize: 14, color: t.heading, lineHeight: 20, marginBottom: 6 }}>
-          {notification.message}
-        </Text>
-        <Text style={{ fontSize: 12, color: t.muted }}>
-          {new Date(notification.createdAt).toLocaleString('fr-FR', {
-            day: 'numeric',
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </Text>
-      </View>
-
-      {!notification.isRead && (
         <View
           style={{
-            width: 8,
-            height: 8,
-            borderRadius: 4,
-            backgroundColor: t.primaryBtn,
-            marginLeft: 8,
-            marginTop: 8,
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: getNotificationColor(latestNotification.type) + '20',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: 12,
           }}
-        />
-      )}
-    </TouchableOpacity>
-  );
+        >
+          <Ionicons
+            name={getNotificationIcon(latestNotification.type) as any}
+            size={22}
+            color={getNotificationColor(latestNotification.type)}
+          />
+        </View>
+
+        <View style={{ flex: 1 }}>
+          {/* Titre du groupe (produit) si plusieurs notifications */}
+          {hasMultiple && group.transactionId && (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: 6,
+              }}
+            >
+              <Ionicons name="cube-outline" size={14} color={t.primaryBtn} style={{ marginRight: 4 }} />
+              <Text
+                style={{ fontSize: 13, fontWeight: '700', color: t.primaryBtn }}
+                numberOfLines={1}
+              >
+                {productTitle}
+              </Text>
+              <View
+                style={{
+                  backgroundColor: t.primaryBtn,
+                  borderRadius: 10,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  marginLeft: 8,
+                }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#fff' }}>
+                  {groupNotifs.length} màj
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Dernière notification */}
+          <Text style={{ fontSize: 15, fontWeight: '600', color: t.heading, marginBottom: 4 }}>
+            {latestNotification.title}
+          </Text>
+          <Text
+            style={{ fontSize: 14, color: t.heading, lineHeight: 20, marginBottom: 6 }}
+            numberOfLines={3}
+          >
+            {latestNotification.message}
+          </Text>
+          <Text style={{ fontSize: 12, color: t.muted }}>
+            {new Date(latestNotification.createdAt).toLocaleString('fr-FR', {
+              day: 'numeric',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </Text>
+        </View>
+
+        {/* Badge non lu */}
+        {hasUnread && (
+          <View
+            style={{
+              minWidth: 18,
+              height: 18,
+              borderRadius: 9,
+              backgroundColor: t.primaryBtn,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginLeft: 8,
+              paddingHorizontal: unreadCount > 1 ? 4 : 0,
+            }}
+          >
+            {unreadCount > 1 ? (
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#fff' }}>{unreadCount}</Text>
+            ) : (
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#fff' }} />
+            )}
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }} edges={['top']}>
@@ -320,8 +451,8 @@ export default function NotificationsScreen() {
               Chargement...
             </Text>
           </View>
-        ) : notifications.length > 0 ? (
-          notifications.map(renderNotification)
+        ) : groupedNotifications.length > 0 ? (
+          groupedNotifications.map(renderGroupedNotification)
         ) : (
           <View style={{ paddingTop: 60, alignItems: 'center' }}>
             <Ionicons name="notifications-off-outline" size={64} color={t.muted} />
