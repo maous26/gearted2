@@ -167,31 +167,59 @@ router.delete('/reset-all', async (req, res) => {
     console.log('[admin] ⚠️ RESET ALL DATA requested');
 
     // Delete in correct order (respect foreign keys)
-    // 1. Messages
+    // 1. Messages (depends on Conversation)
     const deletedMessages = await prisma.message.deleteMany({});
     console.log(`[admin] Deleted ${deletedMessages.count} messages`);
 
-    // 2. Conversations
+    // 2. Conversations (depends on User, Product)
     const deletedConversations = await prisma.conversation.deleteMany({});
     console.log(`[admin] Deleted ${deletedConversations.count} conversations`);
 
-    // 3. Notifications
+    // 3. Notifications (depends on User)
     const deletedNotifications = await prisma.notification.deleteMany({});
     console.log(`[admin] Deleted ${deletedNotifications.count} notifications`);
 
-    // 4. Transactions
+    // 4. Expert services (depends on Transaction)
+    const deletedExpertServices = await prisma.expertService.deleteMany({});
+    console.log(`[admin] Deleted ${deletedExpertServices.count} expert services`);
+
+    // 5. Transaction protections (depends on Transaction)
+    const deletedProtections = await prisma.transactionProtection.deleteMany({});
+    console.log(`[admin] Deleted ${deletedProtections.count} transaction protections`);
+
+    // 6. Shipments (depends on Transaction)
+    const deletedShipments = await prisma.shipment.deleteMany({});
+    console.log(`[admin] Deleted ${deletedShipments.count} shipments`);
+
+    // 7. Transactions (depends on User, Product)
     const deletedTransactions = await prisma.transaction.deleteMany({});
     console.log(`[admin] Deleted ${deletedTransactions.count} transactions`);
 
-    // 6. Product images
+    // 8. Product boosts (depends on Product)
+    const deletedBoosts = await prisma.productBoost.deleteMany({});
+    console.log(`[admin] Deleted ${deletedBoosts.count} product boosts`);
+
+    // 9. Favorites (depends on User, Product)
+    const deletedFavorites = await prisma.favorite.deleteMany({});
+    console.log(`[admin] Deleted ${deletedFavorites.count} favorites`);
+
+    // 10. Product images (depends on Product)
     const deletedImages = await prisma.productImage.deleteMany({});
     console.log(`[admin] Deleted ${deletedImages.count} product images`);
 
-    // 7. Products
+    // 11. Products (depends on User)
     const deletedProducts = await prisma.product.deleteMany({});
     console.log(`[admin] Deleted ${deletedProducts.count} products`);
 
-    // 8. Users (except admin)
+    // 12. Stripe accounts (depends on User)
+    const deletedStripeAccounts = await prisma.stripeAccount.deleteMany({});
+    console.log(`[admin] Deleted ${deletedStripeAccounts.count} stripe accounts`);
+
+    // 13. Shipping addresses (depends on User)
+    const deletedAddresses = await prisma.shippingAddress.deleteMany({});
+    console.log(`[admin] Deleted ${deletedAddresses.count} shipping addresses`);
+
+    // 14. Users (except admin)
     const deletedUsers = await prisma.user.deleteMany({
       where: {
         role: { not: 'ADMIN' }
@@ -210,9 +238,16 @@ router.delete('/reset-all', async (req, res) => {
         messages: deletedMessages.count,
         conversations: deletedConversations.count,
         notifications: deletedNotifications.count,
+        expertServices: deletedExpertServices.count,
+        protections: deletedProtections.count,
+        shipments: deletedShipments.count,
         transactions: deletedTransactions.count,
+        boosts: deletedBoosts.count,
+        favorites: deletedFavorites.count,
         images: deletedImages.count,
         products: deletedProducts.count,
+        stripeAccounts: deletedStripeAccounts.count,
+        addresses: deletedAddresses.count,
         users: deletedUsers.count
       }
     });
