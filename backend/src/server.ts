@@ -370,45 +370,9 @@ app.use('/api/settings', settingsRoutes);
 // Serve static files (uploads)
 app.use('/uploads', express.static('uploads'));
 
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.id}`);
-
-  // Join user to their personal room
-  socket.on('join-user-room', (userId: string) => {
-    socket.join(`user-${userId}`);
-    console.log(`User ${userId} joined their room`);
-  });
-
-  // Join conversation room
-  socket.on('join-conversation', (conversationId: string) => {
-    socket.join(`conversation-${conversationId}`);
-    console.log(`User joined conversation: ${conversationId}`);
-  });
-
-  // Handle new messages
-  socket.on('send-message', async (data) => {
-    try {
-      // Here you would typically save the message to database
-      // and emit to all users in the conversation
-      io.to(`conversation-${data.conversationId}`).emit('new-message', data);
-    } catch (error) {
-      socket.emit('error', { message: 'Failed to send message' });
-    }
-  });
-
-  // Handle typing indicators
-  socket.on('typing', (data) => {
-    socket.to(`conversation-${data.conversationId}`).emit('user-typing', {
-      userId: data.userId,
-      isTyping: data.isTyping
-    });
-  });
-
-  socket.on('disconnect', () => {
-    console.log(`User disconnected: ${socket.id}`);
-  });
-});
+// Socket.IO connection handling is done in socketService.ts
+// with proper JWT authentication and room management
+// Room naming convention: user:${userId}, conversation:${conversationId}, transaction:${transactionId}
 
 // AdminJS and 404/error handlers will be set up after async initialization
 // Start server
