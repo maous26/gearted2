@@ -427,13 +427,6 @@ router.post('/rates/:transactionId', async (req: Request, res: Response): Promis
       });
     }
 
-    // Vérifier que les dimensions sont définies
-    if (!transaction.product.parcelDimensions) {
-      return res.status(400).json({
-        error: 'Les dimensions du colis ne sont pas encore définies par le vendeur'
-      });
-    }
-
     // Vérifier que l'adresse de livraison est définie
     if (!transaction.shippingAddress) {
       return res.status(400).json({
@@ -441,9 +434,38 @@ router.post('/rates/:transactionId', async (req: Request, res: Response): Promis
       });
     }
 
+    // Récupérer les dimensions : soit définies explicitement, soit depuis la catégorie d'expédition
+    let dimensions = transaction.product.parcelDimensions;
+
+    if (!dimensions) {
+      // Utiliser les dimensions par défaut de la catégorie d'expédition
+      const shippingCategory = (transaction.product as any).shippingCategory;
+      if (shippingCategory) {
+        const categoryDefaults: Record<string, { length: number; width: number; height: number; weight: number }> = {
+          'CAT_1': { length: 30, width: 20, height: 10, weight: 0.8 },
+          'CAT_2': { length: 40, width: 25, height: 15, weight: 2 },
+          'CAT_3': { length: 90, width: 30, height: 12, weight: 3.5 },
+          'CAT_4': { length: 120, width: 30, height: 15, weight: 6 },
+          'CAT_5': { length: 100, width: 50, height: 40, weight: 12 },
+        };
+
+        const defaultDims = categoryDefaults[shippingCategory];
+        if (defaultDims) {
+          dimensions = defaultDims;
+          console.log(`[Shipping] Using default dimensions for category ${shippingCategory}:`, dimensions);
+        }
+      }
+    }
+
+    // Si toujours pas de dimensions (CAT_VOLUMINEUX sans dimensions custom)
+    if (!dimensions) {
+      return res.status(400).json({
+        error: 'Les dimensions du colis ne sont pas définies. Pour un colis volumineux, le vendeur doit renseigner les dimensions.'
+      });
+    }
+
     // Pour l'instant, retourner des tarifs factices
     // TODO: Intégrer avec un vrai service de livraison (Shippo, EasyPost, etc.)
-    const dimensions = transaction.product.parcelDimensions;
     const basePrice = Math.max(5, (dimensions.weight * 3) + ((dimensions.length + dimensions.width + dimensions.height) / 100));
 
     const rates = [
