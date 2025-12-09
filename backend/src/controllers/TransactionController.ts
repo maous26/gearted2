@@ -97,13 +97,21 @@ export class TransactionController {
             parcelDimensionsId: product.parcelDimensionsId,
             parcelDimensions: product.parcelDimensions,
             images: Array.isArray(product.images)
-              ? product.images.map((img: any) => typeof img === 'string' ? img : img.url)
+              ? product.images.map((img: any) => {
+                  if (typeof img === 'string') return img;
+                  if (img && typeof img === 'object' && img.url) return img.url;
+                  if (img && typeof img === 'object' && img.uri) return img.uri;
+                  return null;
+                }).filter(Boolean)
               : []
           } : undefined
         };
       });
 
       console.log('[Transactions] Transformed sales (first):', JSON.stringify(transformedSales[0], null, 2));
+      if (transformedSales.length > 0 && transformedSales[0].product) {
+        console.log('[Transactions] Images in first sale:', transformedSales[0].product.images);
+      }
       if (transformedSales.length > 0) {
         console.log('[Transactions] Type check - amount:', typeof transformedSales[0].amount, '=', transformedSales[0].amount);
         console.log('[Transactions] Type check - price:', typeof transformedSales[0].product?.price, '=', transformedSales[0].product?.price);
@@ -196,12 +204,22 @@ export class TransactionController {
             parcelDimensionsId: product.parcelDimensionsId,
             parcelDimensions: product.parcelDimensions,
             images: Array.isArray(product.images)
-              ? product.images.map((img: any) => typeof img === 'string' ? img : img.url)
+              ? product.images.map((img: any) => {
+                  if (typeof img === 'string') return img;
+                  if (img && typeof img === 'object' && img.url) return img.url;
+                  if (img && typeof img === 'object' && img.uri) return img.uri;
+                  return null;
+                }).filter(Boolean)
               : [],
             seller: product.seller
           } : undefined
         };
       });
+
+      console.log('[Transactions] Transformed purchases (first):', JSON.stringify(transformedPurchases[0], null, 2));
+      if (transformedPurchases.length > 0 && transformedPurchases[0].product) {
+        console.log('[Transactions] Images in first purchase:', transformedPurchases[0].product.images);
+      }
 
       return res.json({
         success: true,
