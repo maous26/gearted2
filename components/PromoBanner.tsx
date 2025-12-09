@@ -31,8 +31,10 @@ export default function PromoBanner() {
       const response: any = await api.get('/api/settings/promo-banner');
       return response.banner as BannerSettings;
     },
-    staleTime: 60000,
-    refetchInterval: 60000,
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 0, // Don't cache
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   const banner = bannerData || {
