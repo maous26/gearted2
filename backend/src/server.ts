@@ -9,7 +9,7 @@ import helmet from 'helmet';
 import { createServer } from 'http';
 import morgan from 'morgan';
 import path from 'path';
-import { Server } from 'socket.io';
+import { socketService } from './services/socketService';
 
 // BUILD VERSION: 2024-12-05-v3 - Fixed DATABASE_URL
 console.log('🚀 [SERVER] Build version: 2024-12-05-v3');
@@ -47,13 +47,8 @@ dotenv.config();
 const app = express();
 const server = createServer(app);
 
-// Socket.IO setup
-const io = new Server(server, {
-  cors: {
-    origin: process.env.SOCKET_CORS_ORIGIN || "*",
-    methods: ["GET", "POST"]
-  }
-});
+// Socket.IO setup - Using socketService for centralized management
+const io = socketService.initialize(server);
 
 // Trust proxy for accurate IP addresses in production
 app.set('trust proxy', 1);
@@ -66,8 +61,12 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'production',
-    version: '2024-12-05-admin-console',
-    buildTime: new Date().toISOString()
+    version: '2024-12-09-socketio',
+    buildTime: new Date().toISOString(),
+    socketIO: {
+      enabled: true,
+      onlineUsers: socketService.getOnlineUsersCount()
+    }
   });
 });
 

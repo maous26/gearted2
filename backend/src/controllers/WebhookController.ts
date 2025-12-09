@@ -5,6 +5,7 @@ import { NotificationController } from './NotificationController';
 import { BoostService } from '../services/BoostService';
 import { ProtectionService } from '../services/ProtectionService';
 import { ExpertService } from '../services/ExpertService';
+import { socketService } from '../services/socketService';
 
 const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
@@ -161,6 +162,27 @@ export class WebhookController {
       console.log(`[Webhook] ✅ Payment completed for product ${transaction.productId}`);
       console.log(`[Webhook] ✅ Product will be deleted on ${deletionScheduledAt.toISOString()}`);
       console.log(`[Webhook] ✅ Transaction ${transaction.id} marked as SUCCEEDED`);
+
+      // 🔌 SOCKET.IO: Envoyer événement de paiement réussi en temps réel
+      socketService.sendPaymentSuccess(
+        transaction.buyerId,
+        transaction.product.sellerId,
+        {
+          transactionId: transaction.id,
+          productTitle: transaction.product.title,
+          amount: Number(transaction.amount)
+        }
+      );
+
+      // 🔌 SOCKET.IO: Invalider le cache côté client pour les deux parties
+      socketService.invalidateCache(transaction.buyerId, ['transactions', 'products']);
+      socketService.invalidateCache(transaction.product.sellerId, ['transactions', 'products']);
+
+      // 🔌 SOCKET.IO: Notifier que le produit est vendu (pour ceux qui le regardent)
+      socketService.sendProductUpdate(transaction.productId, {
+        status: 'SOLD',
+        message: 'Ce produit a été vendu'
+      });
 
       // 🔔 NOTIFICATION ACHETEUR : Paiement confirmé
       // L'acheteur a déjà entré son adresse de livraison au moment de l'achat

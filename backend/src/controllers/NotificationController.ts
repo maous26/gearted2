@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
+import { socketService } from '../services/socketService';
 
 const prisma = new PrismaClient();
 
@@ -268,6 +269,16 @@ export class NotificationController {
       });
 
       console.log(`[NotificationController] Created message from Hugo for user ${data.userId} (${data.data?.role || 'unknown role'})`);
+
+      // 🔔 EMIT SOCKET.IO NOTIFICATION IN REAL-TIME
+      socketService.sendNotification(data.userId, {
+        id: notification.id,
+        title: notification.title,
+        message: notification.message,
+        type: notification.type,
+        data: notification.data,
+        createdAt: notification.createdAt.toISOString()
+      });
 
       return notification;
     } catch (error: any) {
