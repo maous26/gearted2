@@ -96,9 +96,21 @@ export default function PromoBanner() {
     }
   }, [banner.enabled, banner.effect, blinkAnim]);
 
+  // Debug: show loading state
+  if (isLoading) {
+    console.log('[PromoBanner] Still loading...');
+  }
+
+  if (error) {
+    console.log('[PromoBanner] Error:', error);
+  }
+
   if (!banner.enabled || !banner.message) {
+    console.log('[PromoBanner] Banner disabled or no message. enabled:', banner.enabled, 'message:', banner.message);
     return null;
   }
+
+  console.log('[PromoBanner] Rendering banner with:', banner);
 
   const fontStyle = FONT_FAMILIES[banner.fontFamily] || FONT_FAMILIES.default;
 
