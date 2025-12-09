@@ -1342,11 +1342,21 @@
     }
 
     async function cleanupSeededProducts() {
-      if (!confirm('Supprimer toutes les données de test ? Cette action est irréversible.')) return;
+      // Double confirmation pour éviter les accidents
+      if (!confirm('⚠️ ATTENTION ⚠️\n\nVous êtes sur le point de supprimer TOUTES les données de test.\n\nCette action est IRRÉVERSIBLE !\n\nÊtes-vous sûr de vouloir continuer ?')) return;
+
+      // Deuxième confirmation
+      const confirmText = prompt('Pour confirmer, tapez "SUPPRIMER" en majuscules :');
+      if (confirmText !== 'SUPPRIMER') {
+        alert('Suppression annulée. Le texte de confirmation ne correspond pas.');
+        return;
+      }
+
       try {
         await api('/api/admin/products/cleanup', { method: 'DELETE' });
-        showAlert('productsList', 'Données de test supprimées !', 'success');
+        showAlert('productsList', '✅ Données de test supprimées avec succès !', 'success');
         loadProducts();
+        loadDashboard(); // Rafraîchir aussi le dashboard
       } catch (err) {
         alert('Erreur: ' + err.message);
       }
