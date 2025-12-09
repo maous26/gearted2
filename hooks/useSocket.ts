@@ -39,6 +39,26 @@ interface CacheInvalidateEvent {
   keys: string[];
 }
 
+interface MessageEvent {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  content: string;
+  sentAt: string;
+  sender: {
+    id: string;
+    username: string;
+    avatar?: string | null;
+  };
+}
+
+interface TypingEvent {
+  conversationId: string;
+  userId: string;
+  username: string;
+  isTyping: boolean;
+}
+
 interface UseSocketReturn {
   isConnected: boolean;
   socket: Socket | null;
@@ -46,8 +66,14 @@ interface UseSocketReturn {
   onPaymentSuccess: (callback: (event: PaymentSuccessEvent) => void) => () => void;
   onTransactionUpdate: (callback: (event: TransactionUpdateEvent) => void) => () => void;
   onProductUpdate: (callback: (event: ProductUpdateEvent) => void) => () => void;
+  onMessage: (callback: (message: MessageEvent) => void) => () => void;
+  onTyping: (callback: (event: TypingEvent) => void) => () => void;
   joinTransaction: (transactionId: string) => void;
   leaveTransaction: (transactionId: string) => void;
+  joinConversation: (conversationId: string) => void;
+  leaveConversation: (conversationId: string) => void;
+  sendTypingStart: (conversationId: string) => void;
+  sendTypingStop: (conversationId: string) => void;
 }
 
 // URL du backend Socket.IO
@@ -227,6 +253,77 @@ export function useSocket(): UseSocketReturn {
     }
   }, []);
 
+  // Rejoindre une conversation pour les messages en temps réel
+  const joinConversation = useCallback((conversationId: string) => {
+    const socket = socketRef.current;
+    if (socket && socket.connected) {
+      socket.emit('join:conversation', conversationId);
+      console.log('[Socket.IO] Joined conversation room:', conversationId);
+    }
+  }, []);
+
+  // Quitter une conversation
+  const leaveConversation = useCallback((conversationId: string) => {
+    const socket = socketRef.current;
+    if (socket && socket.connected) {
+      socket.emit('leave:conversation', conversationId);
+      console.log('[Socket.IO] Left conversation room:', conversationId);
+    }
+  }, []);
+
+  // Callback pour les nouveaux messages
+  const onMessage = useCallback(
+    (callback: (message: MessageEvent) => void) => {
+      const socket = socketRef.current;
+      if (!socket) return () => {};
+
+      const handler = (message: MessageEvent) => {
+        console.log('[Socket.IO] Message received:', message.content.substring(0, 30));
+        callback(message);
+      };
+
+      socket.on('message:new', handler);
+      return () => {
+        socket.off('message:new', handler);
+      };
+    },
+    []
+  );
+
+  // Callback pour les événements de frappe
+  const onTyping = useCallback(
+    (callback: (event: TypingEvent) => void) => {
+      const socket = socketRef.current;
+      if (!socket) return () => {};
+
+      const handler = (event: TypingEvent) => {
+        callback(event);
+      };
+
+      socket.on('message:typing', handler);
+      return () => {
+        socket.off('message:typing', handler);
+      };
+    },
+    []
+  );
+
+  // Envoyer un événement "en train de taper"
+  const sendTypingStart = useCallback((conversationId: string) => {
+    const socket = socketRef.current;
+    if (socket && socket.connected) {
+      socket.emit('typing:start', conversationId);
+    }
+  }, []);
+
+  // Envoyer un événement "a arrêté de taper"
+  const sendTypingStop = useCallback((conversationId: string) => {
+    const socket = socketRef.current;
+    if (socket && socket.connected) {
+      socket.emit('typing:stop', conversationId);
+    }
+  }, []);
+
   return {
     isConnected,
     socket: socketRef.current,
@@ -234,8 +331,14 @@ export function useSocket(): UseSocketReturn {
     onPaymentSuccess,
     onTransactionUpdate,
     onProductUpdate,
+    onMessage,
+    onTyping,
     joinTransaction,
     leaveTransaction,
+    joinConversation,
+    leaveConversation,
+    sendTypingStart,
+    sendTypingStop,
   };
 }
 

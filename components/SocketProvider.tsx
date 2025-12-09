@@ -7,12 +7,24 @@ interface SocketContextType {
   isConnected: boolean;
   joinTransaction: (transactionId: string) => void;
   leaveTransaction: (transactionId: string) => void;
+  joinConversation: (conversationId: string) => void;
+  leaveConversation: (conversationId: string) => void;
+  onMessage: (callback: (message: any) => void) => () => void;
+  onTyping: (callback: (event: any) => void) => () => void;
+  sendTypingStart: (conversationId: string) => void;
+  sendTypingStop: (conversationId: string) => void;
 }
 
 const SocketContext = createContext<SocketContextType>({
   isConnected: false,
   joinTransaction: () => {},
   leaveTransaction: () => {},
+  joinConversation: () => {},
+  leaveConversation: () => {},
+  onMessage: () => () => {},
+  onTyping: () => () => {},
+  sendTypingStart: () => {},
+  sendTypingStop: () => {},
 });
 
 export const useSocketContext = () => useContext(SocketContext);
@@ -32,8 +44,14 @@ export function SocketProvider({ children }: SocketProviderProps) {
     onNotification,
     onPaymentSuccess,
     onProductUpdate,
+    onMessage,
+    onTyping,
     joinTransaction,
     leaveTransaction,
+    joinConversation,
+    leaveConversation,
+    sendTypingStart,
+    sendTypingStop,
   } = useSocket();
 
   // Écouter les nouvelles notifications
@@ -107,7 +125,17 @@ export function SocketProvider({ children }: SocketProviderProps) {
   }, [isConnected]);
 
   return (
-    <SocketContext.Provider value={{ isConnected, joinTransaction, leaveTransaction }}>
+    <SocketContext.Provider value={{
+      isConnected,
+      joinTransaction,
+      leaveTransaction,
+      joinConversation,
+      leaveConversation,
+      onMessage,
+      onTyping,
+      sendTypingStart,
+      sendTypingStop,
+    }}>
       {children}
     </SocketContext.Provider>
   );

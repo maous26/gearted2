@@ -85,6 +85,46 @@ class SocketService {
         }
       });
 
+      // Event: Client rejoint une conversation pour les messages en temps réel
+      socket.on('join:conversation', (conversationId: string) => {
+        if (conversationId) {
+          socket.join(`conversation:${conversationId}`);
+          console.log(`[Socket.IO] User ${socket.userId} joined conversation:${conversationId}`);
+        }
+      });
+
+      // Event: Client quitte une conversation
+      socket.on('leave:conversation', (conversationId: string) => {
+        if (conversationId) {
+          socket.leave(`conversation:${conversationId}`);
+          console.log(`[Socket.IO] User ${socket.userId} left conversation:${conversationId}`);
+        }
+      });
+
+      // Event: Utilisateur est en train de taper
+      socket.on('typing:start', (conversationId: string) => {
+        if (conversationId && socket.userId) {
+          socket.to(`conversation:${conversationId}`).emit('message:typing', {
+            conversationId,
+            userId: socket.userId,
+            username: socket.username,
+            isTyping: true
+          });
+        }
+      });
+
+      // Event: Utilisateur a arrêté de taper
+      socket.on('typing:stop', (conversationId: string) => {
+        if (conversationId && socket.userId) {
+          socket.to(`conversation:${conversationId}`).emit('message:typing', {
+            conversationId,
+            userId: socket.userId,
+            username: socket.username,
+            isTyping: false
+          });
+        }
+      });
+
       // Event: Ping pour garder la connexion active
       socket.on('ping', () => {
         socket.emit('pong', { timestamp: Date.now() });
@@ -279,6 +319,58 @@ class SocketService {
 
     this.io.emit('cache:invalidate', { keys: cacheKeys });
     console.log(`[Socket.IO] Global cache invalidation:`, cacheKeys);
+  }
+
+  // ==================== MESSAGING EVENTS ====================
+
+  /**
+   * Envoyer un nouveau message en temps réel
+   */
+  sendMessage(conversationId: string, message: {
+    id: string;
+    conversationId: string;
+    senderId: string;
+    content: string;
+    sentAt: string;
+    sender: {
+      id: string;
+      username: string;
+      avatar?: string | null;
+    };
+  }): void {
+    if (!this.io) return;
+
+    console.log(`[Socket.IO] Sending message to conversation ${conversationId}`);
+
+    // Envoyer à la room de la conversation
+    this.io.to(`conversation:${conversationId}`).emit('message:new', message);
+  }
+
+  /**
+   * Notifier qu'un utilisateur est en train de taper
+   */
+  sendTypingStatus(conversationId: string, userId: string, username: string, isTyping: boolean): void {
+    if (!this.io) return;
+
+    this.io.to(`conversation:${conversationId}`).emit('message:typing', {
+      conversationId,
+      userId,
+      username,
+      isTyping
+    });
+  }
+
+  /**
+   * Notifier que les messages ont été lus
+   */
+  sendMessagesRead(conversationId: string, userId: string, messageIds: string[]): void {
+    if (!this.io) return;
+
+    this.io.to(`conversation:${conversationId}`).emit('message:read', {
+      conversationId,
+      userId,
+      messageIds
+    });
   }
 }
 
