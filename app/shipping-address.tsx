@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,15 +15,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../components/ThemeProvider';
 import { THEMES } from '../themes';
 import shippingService, { ShippingAddress } from '../services/shipping';
+import { useUser } from '../components/UserProvider';
 
 export default function ShippingAddressScreen() {
   const { theme } = useTheme();
   const t = THEMES[theme];
   const router = useRouter();
   const { transactionId } = useLocalSearchParams();
+  const { user } = useUser();
 
   const [loading, setLoading] = useState(false);
+  const [loadingAddress, setLoadingAddress] = useState(true);
   const [gdprConsent, setGdprConsent] = useState(false);
+  const [saveAddressToProfile, setSaveAddressToProfile] = useState(false);
+  const [hasSavedAddress, setHasSavedAddress] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [address, setAddress] = useState<ShippingAddress>({
     name: '',
@@ -36,6 +41,43 @@ export default function ShippingAddressScreen() {
     phone: '',
     email: '',
   });
+
+  // Charger l'adresse par défaut si elle existe
+  useEffect(() => {
+    const loadDefaultAddress = async () => {
+      try {
+        const defaultAddress = await shippingService.getDefaultAddress();
+        if (defaultAddress) {
+          setAddress({
+            name: defaultAddress.name || '',
+            street1: defaultAddress.street1 || '',
+            street2: defaultAddress.street2 || '',
+            city: defaultAddress.city || '',
+            state: defaultAddress.state || '',
+            zip: defaultAddress.zip || '',
+            country: defaultAddress.country || 'FR',
+            phone: defaultAddress.phone || '',
+            email: defaultAddress.email || user?.email || '',
+          });
+          setHasSavedAddress(true);
+          // Pré-cocher le consentement RGPD si l'utilisateur a déjà une adresse
+          setGdprConsent(true);
+        } else if (user?.email) {
+          // Pré-remplir l'email si pas d'adresse sauvegardée
+          setAddress(prev => ({ ...prev, email: user.email }));
+        }
+      } catch (error) {
+        console.log('[ShippingAddress] No saved address found');
+        if (user?.email) {
+          setAddress(prev => ({ ...prev, email: user.email }));
+        }
+      } finally {
+        setLoadingAddress(false);
+      }
+    };
+
+    loadDefaultAddress();
+  }, [user]);
 
   // Validation functions
   const validateName = (name: string): string | null => {
@@ -146,11 +188,21 @@ export default function ShippingAddressScreen() {
 
     setLoading(true);
     try {
-      await shippingService.addShippingAddress(transactionId as string, address);
+      // Envoyer l'adresse avec l'option de sauvegarde
+      await shippingService.addShippingAddress(transactionId as string, {
+        ...address,
+        saveAddress: saveAddressToProfile && !hasSavedAddress // Ne sauvegarder que si demandé et pas déjà sauvegardée
+      } as any);
+
+      const successMessage = hasSavedAddress
+        ? 'Votre adresse de livraison a été confirmée.'
+        : saveAddressToProfile
+          ? 'Adresse enregistrée et sauvegardée dans votre profil pour vos prochains achats.'
+          : 'Le vendeur va préparer votre colis et vous recevrez le numéro de suivi par email.';
 
       Alert.alert(
         'Adresse enregistrée !',
-        'Le vendeur va préparer votre colis et vous recevrez le numéro de suivi par email.',
+        successMessage,
         [
           {
             text: 'OK',
@@ -164,6 +216,16 @@ export default function ShippingAddressScreen() {
       setLoading(false);
     }
   };
+
+  // Afficher un loader pendant le chargement de l'adresse
+  if (loadingAddress) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg, justifyContent: 'center', alignItems: 'center' }} edges={['top']}>
+        <ActivityIndicator size="large" color={t.primaryBtn} />
+        <Text style={{ marginTop: 16, color: t.mutedText }}>Chargement de votre adresse...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.rootBg }} edges={['top']}>
@@ -181,8 +243,28 @@ export default function ShippingAddressScreen() {
       <Text style={{ fontSize: 24, fontWeight: 'bold', color: t.text, marginBottom: 10 }}>
         📦 Adresse de livraison
       </Text>
-      <Text style={{ fontSize: 14, color: t.mutedText, marginBottom: 30 }}>
-        Veuillez entrer votre adresse pour recevoir votre achat
+
+      {/* Message si adresse pré-remplie */}
+      {hasSavedAddress && (
+        <View style={{
+          backgroundColor: t.primaryBtn + '20',
+          borderRadius: 8,
+          padding: 12,
+          marginBottom: 20,
+          borderLeftWidth: 4,
+          borderLeftColor: t.primaryBtn
+        }}>
+          <Text style={{ color: t.primaryBtn, fontWeight: '600', marginBottom: 4 }}>
+            ✓ Adresse pré-remplie
+          </Text>
+          <Text style={{ color: t.text, fontSize: 13 }}>
+            Nous avons utilisé votre adresse sauvegardée. Vous pouvez la modifier si nécessaire.
+          </Text>
+        </View>
+      )}
+
+      <Text style={{ fontSize: 14, color: t.mutedText, marginBottom: 20 }}>
+        {hasSavedAddress ? 'Vérifiez et confirmez votre adresse de livraison' : 'Veuillez entrer votre adresse pour recevoir votre achat'}
       </Text>
 
       {/* Nom complet */}
@@ -398,7 +480,7 @@ export default function ShippingAddressScreen() {
         backgroundColor: t.cardBg,
         borderRadius: 12,
         padding: 16,
-        marginBottom: 20,
+        marginBottom: 12,
         borderWidth: 1,
         borderColor: t.border
       }}>
@@ -434,6 +516,48 @@ export default function ShippingAddressScreen() {
           </View>
         </TouchableOpacity>
       </View>
+
+      {/* Option pour sauvegarder l'adresse dans le profil */}
+      {!hasSavedAddress && (
+        <View style={{
+          backgroundColor: t.cardBg,
+          borderRadius: 12,
+          padding: 16,
+          marginBottom: 20,
+          borderWidth: 1,
+          borderColor: t.border
+        }}>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'flex-start' }}
+            onPress={() => setSaveAddressToProfile(!saveAddressToProfile)}
+          >
+            <View style={{
+              width: 24,
+              height: 24,
+              borderRadius: 6,
+              borderWidth: 2,
+              borderColor: saveAddressToProfile ? t.primaryBtn : t.border,
+              backgroundColor: saveAddressToProfile ? t.primaryBtn : 'transparent',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 12,
+              marginTop: 2
+            }}>
+              {saveAddressToProfile && (
+                <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>✓</Text>
+              )}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: t.text, fontSize: 14, fontWeight: '600', marginBottom: 4 }}>
+                💾 Sauvegarder cette adresse pour mes prochains achats
+              </Text>
+              <Text style={{ color: t.mutedText, fontSize: 13, lineHeight: 18 }}>
+                Votre adresse sera enregistrée de manière sécurisée dans votre profil. Vous pourrez la modifier ou la supprimer à tout moment depuis les paramètres.
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Bouton de soumission */}
       <TouchableOpacity

@@ -625,6 +625,54 @@ export default function Settings() {
           )}
         </View>
 
+        {/* Adresse de livraison */}
+        <View style={{ marginTop: 24 }}>
+          <Text style={{
+            fontSize: 18,
+            fontWeight: '700',
+            color: t.heading,
+            marginBottom: 12
+          }}>
+            Livraison
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/shipping-settings" as any)}
+            style={{
+              backgroundColor: t.cardBg,
+              borderRadius: 12,
+              padding: 16,
+              borderWidth: 1,
+              borderColor: t.border,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              <View style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: t.primaryBtn + '20',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 12
+              }}>
+                <Ionicons name="location" size={20} color={t.primaryBtn} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: t.heading }}>
+                  Adresse de livraison
+                </Text>
+                <Text style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>
+                  Gérer votre adresse pour vos achats
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={t.muted} />
+          </TouchableOpacity>
+        </View>
+
         {/* Theme Selector */}
         <ThemeSelector />
 

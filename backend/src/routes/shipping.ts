@@ -998,6 +998,127 @@ router.post('/address/:transactionId', async (req: Request, res: Response): Prom
 });
 
 /**
+ * Créer une nouvelle adresse sauvegardée
+ * POST /api/shipping/addresses
+ */
+router.post('/addresses', async (req: Request, res: Response): Promise<any> => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const { name, street1, street2, city, state, zip, country, phone, email, isDefault } = req.body;
+
+  // Validation
+  if (!name || !street1 || !city || !zip || !country || !phone || !email) {
+    return res.status(400).json({
+      error: 'Tous les champs requis doivent être remplis (nom, adresse, ville, code postal, pays, téléphone, email)'
+    });
+  }
+
+  try {
+    // Si isDefault est true, retirer le statut par défaut des autres adresses
+    if (isDefault) {
+      await prisma.shippingAddress.updateMany({
+        where: {
+          userId: req.user.userId,
+          isDefault: true
+        },
+        data: { isDefault: false }
+      });
+    }
+
+    // Vérifier si c'est la première adresse
+    const existingAddresses = await prisma.shippingAddress.count({
+      where: { userId: req.user.userId }
+    });
+
+    const address = await prisma.shippingAddress.create({
+      data: {
+        userId: req.user.userId,
+        name,
+        street1,
+        street2: street2 || '',
+        city,
+        state: state || '',
+        zip,
+        country,
+        phone,
+        email,
+        isDefault: isDefault || existingAddresses === 0 // Première adresse = défaut
+      }
+    });
+
+    console.log(`[Shipping/Addresses] Created new address for user ${req.user.userId}`);
+
+    return res.json({
+      success: true,
+      address
+    });
+
+  } catch (error) {
+    console.error('[Shipping/Addresses] Error creating address:', error);
+    return res.status(500).json({
+      error: 'Erreur lors de la création de l\'adresse'
+    });
+  }
+});
+
+/**
+ * Mettre à jour une adresse sauvegardée
+ * PUT /api/shipping/addresses/:addressId
+ */
+router.put('/addresses/:addressId', async (req: Request, res: Response): Promise<any> => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const { addressId } = req.params;
+  const { name, street1, street2, city, state, zip, country, phone, email } = req.body;
+
+  try {
+    // Vérifier que l'adresse appartient à l'utilisateur
+    const existingAddress = await prisma.shippingAddress.findFirst({
+      where: {
+        id: addressId,
+        userId: req.user.userId
+      }
+    });
+
+    if (!existingAddress) {
+      return res.status(404).json({ error: 'Adresse non trouvée' });
+    }
+
+    const updatedAddress = await prisma.shippingAddress.update({
+      where: { id: addressId },
+      data: {
+        ...(name && { name }),
+        ...(street1 && { street1 }),
+        ...(street2 !== undefined && { street2 }),
+        ...(city && { city }),
+        ...(state !== undefined && { state }),
+        ...(zip && { zip }),
+        ...(country && { country }),
+        ...(phone && { phone }),
+        ...(email && { email })
+      }
+    });
+
+    console.log(`[Shipping/Addresses] Updated address ${addressId}`);
+
+    return res.json({
+      success: true,
+      address: updatedAddress
+    });
+
+  } catch (error) {
+    console.error('[Shipping/Addresses] Error updating address:', error);
+    return res.status(500).json({
+      error: 'Erreur lors de la mise à jour de l\'adresse'
+    });
+  }
+});
+
+/**
  * Récupérer les adresses sauvegardées de l'utilisateur
  * GET /api/shipping/addresses
  */
