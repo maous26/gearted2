@@ -191,11 +191,8 @@ export default function Settings() {
             // Clear data first
             await logout();
             console.log('[Settings] Logout complete, navigating to landing...');
-            // Navigate to landing page outside of (tabs) group
-            // Use dismissTo to completely exit the tabs navigator
+            // Navigate to landing page - replace clears the navigation state
             setTimeout(() => {
-              // First dismiss all screens in the stack, then navigate
-              router.dismissAll();
               router.replace('/landing');
             }, 300);
           }
