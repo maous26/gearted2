@@ -138,6 +138,31 @@ class UserService {
       throw new Error(errorMessage);
     }
   }
+
+  /**
+   * Supprimer le compte de l'utilisateur connecté
+   */
+  async deleteAccount(): Promise<void> {
+    try {
+      console.log('[UserService] Deleting account...');
+      await api.delete('/api/users/me');
+      console.log('[UserService] Account deleted successfully');
+    } catch (error: any) {
+      console.error('[UserService] Delete account error:', error);
+
+      let errorMessage = 'Erreur lors de la suppression du compte';
+
+      if (error.response?.data?.error?.message) {
+        errorMessage = error.response.data.error.message;
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Session expirée. Veuillez vous reconnecter.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Vous ne pouvez pas supprimer ce compte';
+      }
+
+      throw new Error(errorMessage);
+    }
+  }
 }
 
 export default new UserService();

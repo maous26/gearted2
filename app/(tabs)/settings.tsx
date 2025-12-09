@@ -168,6 +168,7 @@ export default function Settings() {
   };
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const handleLogout = () => {
     if (isLoggingOut) return; // Prevent double-tap
@@ -209,6 +210,68 @@ export default function Settings() {
                 }, 200);
               }
             }, 500);
+          }
+        }
+      ]
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    if (isDeletingAccount) return;
+
+    Alert.alert(
+      "Supprimer le compte",
+      "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible et supprimera toutes vos données (annonces, messages, transactions).",
+      [
+        {
+          text: "Annuler",
+          style: "cancel"
+        },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: () => {
+            // Double confirmation
+            Alert.alert(
+              "Confirmation finale",
+              "Tapez SUPPRIMER pour confirmer la suppression définitive de votre compte.",
+              [
+                {
+                  text: "Annuler",
+                  style: "cancel"
+                },
+                {
+                  text: "Je confirme",
+                  style: "destructive",
+                  onPress: async () => {
+                    if (isDeletingAccount) return;
+                    setIsDeletingAccount(true);
+
+                    try {
+                      console.log('[Settings] Deleting account...');
+                      await userService.deleteAccount();
+                      console.log('[Settings] Account deleted, logging out...');
+                      await logout();
+
+                      Alert.alert(
+                        "Compte supprimé",
+                        "Votre compte a été supprimé avec succès.",
+                        [
+                          {
+                            text: "OK",
+                            onPress: () => router.replace('/landing')
+                          }
+                        ]
+                      );
+                    } catch (error: any) {
+                      console.error('[Settings] Error deleting account:', error);
+                      Alert.alert("Erreur", error.message || "Impossible de supprimer le compte");
+                      setIsDeletingAccount(false);
+                    }
+                  }
+                }
+              ]
+            );
           }
         }
       ]
@@ -622,11 +685,10 @@ export default function Settings() {
         )}
 
         {/* Logout */}
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={handleLogout}
           style={{
           marginTop: 32,
-          marginBottom: 32,
           paddingVertical: 16,
           paddingHorizontal: 16,
           backgroundColor: '#ff4757',
@@ -637,6 +699,53 @@ export default function Settings() {
             Se déconnecter
           </Text>
         </TouchableOpacity>
+
+        {/* Zone dangereuse - Suppression de compte */}
+        <View style={{ marginTop: 40, marginBottom: 40 }}>
+          <Text style={{
+            fontSize: 14,
+            fontWeight: '600',
+            color: '#ff4757',
+            marginBottom: 12,
+            textTransform: 'uppercase',
+            letterSpacing: 1
+          }}>
+            Zone dangereuse
+          </Text>
+          <TouchableOpacity
+            onPress={handleDeleteAccount}
+            disabled={isDeletingAccount}
+            style={{
+              paddingVertical: 16,
+              paddingHorizontal: 16,
+              backgroundColor: t.cardBg,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#ff4757',
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              opacity: isDeletingAccount ? 0.6 : 1
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="trash-outline" size={20} color="#ff4757" style={{ marginRight: 8 }} />
+                <Text style={{ fontSize: 16, fontWeight: '600', color: '#ff4757' }}>
+                  Supprimer mon compte
+                </Text>
+              </View>
+              <Text style={{ fontSize: 13, color: t.muted, marginTop: 4 }}>
+                Cette action est irréversible
+              </Text>
+            </View>
+            {isDeletingAccount ? (
+              <ActivityIndicator size="small" color="#ff4757" />
+            ) : (
+              <Ionicons name="chevron-forward" size={20} color="#ff4757" />
+            )}
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

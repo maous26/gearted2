@@ -134,4 +134,95 @@ export class UserController {
       });
     }
   }
+
+  /**
+   * Supprimer le compte de l'utilisateur connecté
+   */
+  static async deleteAccount(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: { message: 'Utilisateur non authentifié' }
+        });
+      }
+
+      // Vérifier que l'utilisateur existe
+      const user = await prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: { message: 'Utilisateur non trouvé' }
+        });
+      }
+
+      // Empêcher la suppression des comptes admin
+      if (user.role === 'ADMIN') {
+        return res.status(403).json({
+          success: false,
+          error: { message: 'Les comptes administrateur ne peuvent pas être supprimés' }
+        });
+      }
+
+      console.log(`[UserController] Deleting account for user ${userId} (${user.username})`);
+
+      // Supprimer les données associées dans l'ordre (respect des contraintes FK)
+      // 1. Notifications
+      await prisma.notification.deleteMany({ where: { userId } });
+
+      // 2. Messages
+      await prisma.message.deleteMany({ where: { senderId: userId } });
+
+      // 3. Conversations où l'utilisateur est participant
+      const userConversations = await prisma.conversation.findMany({
+        where: { participants: { some: { id: userId } } },
+        select: { id: true }
+      });
+      for (const conv of userConversations) {
+        await prisma.message.deleteMany({ where: { conversationId: conv.id } });
+        await prisma.conversation.delete({ where: { id: conv.id } });
+      }
+
+      // 4. Favoris
+      await prisma.favorite.deleteMany({ where: { userId } });
+
+      // 5. Transactions (en tant qu'acheteur)
+      await prisma.transaction.deleteMany({ where: { buyerId: userId } });
+
+      // 6. Adresses de livraison
+      await prisma.shippingAddress.deleteMany({ where: { userId } });
+
+      // 7. Produits de l'utilisateur (et leurs transactions associées)
+      const userProducts = await prisma.product.findMany({
+        where: { sellerId: userId },
+        select: { id: true }
+      });
+      for (const product of userProducts) {
+        await prisma.transaction.deleteMany({ where: { productId: product.id } });
+        await prisma.favorite.deleteMany({ where: { productId: product.id } });
+      }
+      await prisma.product.deleteMany({ where: { sellerId: userId } });
+
+      // 8. Enfin, supprimer l'utilisateur
+      await prisma.user.delete({ where: { id: userId } });
+
+      console.log(`[UserController] Account deleted successfully for user ${userId}`);
+
+      return res.json({
+        success: true,
+        message: 'Compte supprimé avec succès'
+      });
+    } catch (error) {
+      console.error('Error deleting user account:', error);
+      return res.status(500).json({
+        success: false,
+        error: { message: 'Erreur lors de la suppression du compte' }
+      });
+    }
+  }
 }
