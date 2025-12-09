@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import authService, { LoginCredentials, RegisterData } from '../services/auth';
+import { useMessagesStore } from './messagesStore';
 
 interface User {
   id: string;
@@ -72,6 +73,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ isLoading: true });
     try {
       await authService.logout();
+      // Clear all local message/notification cache
+      await useMessagesStore.getState().resetAllNotifications();
       set({
         user: null,
         isAuthenticated: false,
@@ -80,7 +83,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       });
     } catch (error: any) {
       console.error('Logout error:', error);
-      // Force logout même en cas d'erreur
+      // Force logout même en cas d'erreur - still clear cache
+      try {
+        await useMessagesStore.getState().resetAllNotifications();
+      } catch (e) {
+        console.error('Failed to clear messages cache:', e);
+      }
       set({
         user: null,
         isAuthenticated: false,
