@@ -247,3 +247,44 @@ export const usePublicSettings = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
+
+// Hook pour les publicités/bandeaux d'annonce
+export interface Advertisement {
+  id: string;
+  title: string;
+  description?: string;
+  imageUrl: string;
+  link?: string;
+  placement: 'home' | 'landing' | 'sidebar' | 'banner';
+  isActive: boolean;
+  startDate: string;
+  endDate?: string;
+  impressions: number;
+  clicks: number;
+}
+
+interface AdvertisementsResponse {
+  success: boolean;
+  advertisements: Advertisement[];
+}
+
+export const useAdvertisements = (placement?: string) => {
+  return useQuery({
+    queryKey: ['advertisements', placement],
+    queryFn: async () => {
+      const params = placement ? { placement } : {};
+      const response = await api.get<AdvertisementsResponse>('/api/settings/advertisements', params);
+      return response.advertisements;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+// Hook pour tracker un clic sur une publicité
+export const useTrackAdClick = () => {
+  return useMutation({
+    mutationFn: async (adId: string) => {
+      await api.post(`/api/settings/advertisements/${adId}/click`);
+    },
+  });
+};

@@ -167,7 +167,11 @@ export default function Settings() {
     }
   };
 
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   const handleLogout = () => {
+    if (isLoggingOut) return; // Prevent double-tap
+
     Alert.alert(
       "Déconnexion",
       "Êtes-vous sûr de vouloir vous déconnecter ?",
@@ -180,15 +184,31 @@ export default function Settings() {
           text: "Déconnexion",
           style: "destructive",
           onPress: async () => {
+            if (isLoggingOut) return; // Double-check
+            setIsLoggingOut(true);
+
             console.log('[Settings] Starting logout...');
             // Clear data first
             await logout();
             console.log('[Settings] Logout complete, navigating to landing...');
-            // Navigate to root landing page (not /login) to avoid double-click issue
-            // Use setTimeout to ensure state is cleared before navigation
+            // Navigate to landing page with retry mechanism
+            // Use longer delay for Discord accounts which have more complex auth state
             setTimeout(() => {
-              router.replace('/');
-            }, 100);
+              try {
+                // Use replace to clear navigation history
+                router.replace('/landing');
+              } catch (navError) {
+                console.warn('[Settings] Navigation error on first attempt:', navError);
+                // Retry with push as fallback
+                setTimeout(() => {
+                  try {
+                    router.push('/landing');
+                  } catch (retryError) {
+                    console.error('[Settings] Navigation retry failed:', retryError);
+                  }
+                }, 200);
+              }
+            }, 500);
           }
         }
       ]

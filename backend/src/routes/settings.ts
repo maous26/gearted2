@@ -80,6 +80,52 @@ router.get('/commissions', async (_req, res) => {
   }
 });
 
+// Public promo banner settings - for home page banner
+router.get('/promo-banner', async (_req, res) => {
+  try {
+    const settings = await (prisma as any).platformSettings?.findFirst({
+      where: { key: 'promo_banner' }
+    });
+
+    const banner = settings?.value || {
+      enabled: false,
+      message: '',
+      backgroundColor: '#FFB800',
+      textColor: '#000000',
+      fontFamily: 'default',
+      fontSize: 'medium',
+      effect: 'none'
+    };
+
+    res.json({
+      success: true,
+      banner: {
+        enabled: banner.enabled ?? false,
+        message: banner.message ?? '',
+        backgroundColor: banner.backgroundColor ?? '#FFB800',
+        textColor: banner.textColor ?? '#000000',
+        fontFamily: banner.fontFamily ?? 'default',
+        fontSize: banner.fontSize ?? 'medium',
+        effect: banner.effect ?? 'none'
+      }
+    });
+  } catch (error) {
+    console.error('[settings] Failed to get promo banner settings', error);
+    res.json({
+      success: true,
+      banner: {
+        enabled: false,
+        message: '',
+        backgroundColor: '#FFB800',
+        textColor: '#000000',
+        fontFamily: 'default',
+        fontSize: 'medium',
+        effect: 'none'
+      }
+    });
+  }
+});
+
 // Public protection/insurance settings - needed by frontend to show/hide option
 router.get('/protection', async (_req, res) => {
   try {

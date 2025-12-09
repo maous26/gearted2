@@ -14,8 +14,11 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '../components/ThemeProvider';
-import transactionService, { Transaction } from '../services/transactions';
+import { useSocketContext } from '../components/SocketProvider';
+import { useCancelTransaction, useMyPurchases, useMySales, transactionKeys } from '../hooks/useTransactions';
+import { Transaction } from '../services/transactions';
 import { HugoMessageType, HugoTransactionMessage, useMessagesStore } from '../stores/messagesStore';
 import { THEMES } from '../themes';
 import { getFirstValidImage } from '../utils/imageUtils';
@@ -28,18 +31,38 @@ export default function OrdersScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ tab?: string; transactionId?: string }>();
   const { addHugoMessage, hasHugoMessage, loadFromStorage } = useMessagesStore();
-  
+  const { isConnected } = useSocketContext();
+  const queryClient = useQueryClient();
+
   // Ref pour éviter les notifications multiples
   const notificationsProcessed = useRef<Set<string>>(new Set());
 
   const [activeTab, setActiveTab] = useState<'sales' | 'purchases'>('sales');
   const [statusFilter, setStatusFilter] = useState<'ongoing' | 'completed'>('ongoing');
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
-  const [sales, setSales] = useState<Transaction[]>([]);
-  const [purchases, setPurchases] = useState<Transaction[]>([]);
   const [storeLoaded, setStoreLoaded] = useState(false);
+
+  // React Query hooks pour les transactions (avec cache automatique)
+  const {
+    data: sales = [],
+    isLoading: salesLoading,
+    refetch: refetchSales,
+    isRefetching: salesRefetching
+  } = useMySales();
+
+  const {
+    data: purchases = [],
+    isLoading: purchasesLoading,
+    refetch: refetchPurchases,
+    isRefetching: purchasesRefetching
+  } = useMyPurchases();
+
+  // Hook pour l'annulation avec invalidation automatique du cache
+  const cancelMutation = useCancelTransaction();
+
+  // État de chargement basé sur l'onglet actif
+  const loading = activeTab === 'sales' ? salesLoading : purchasesLoading;
+  const refreshing = activeTab === 'sales' ? salesRefetching : purchasesRefetching;
 
   // Handle navigation params (from notifications)
   useEffect(() => {
@@ -55,20 +78,41 @@ export default function OrdersScreen() {
     loadFromStorage().then(() => setStoreLoaded(true));
   }, []);
 
+  // Traiter les notifications quand les données sont chargées
   useEffect(() => {
-    if (storeLoaded) {
-      loadOrders();
+    if (storeLoaded && sales.length > 0) {
+      processTransactionNotifications(sales, 'SELLER');
     }
-  }, [activeTab, statusFilter, storeLoaded]);
+  }, [storeLoaded, sales]);
+
+  useEffect(() => {
+    if (storeLoaded && purchases.length > 0) {
+      processTransactionNotifications(purchases, 'BUYER');
+    }
+  }, [storeLoaded, purchases]);
 
   // Recharger automatiquement quand on revient sur l'écran
   useFocusEffect(
     React.useCallback(() => {
       if (storeLoaded) {
-        loadOrders();
+        // React Query va automatiquement refetch si les données sont stale
+        if (activeTab === 'sales') {
+          refetchSales();
+        } else {
+          refetchPurchases();
+        }
       }
-    }, [activeTab, statusFilter, storeLoaded])
+    }, [activeTab, storeLoaded, refetchSales, refetchPurchases])
   );
+
+  // 🔌 Socket.IO: Écouter les événements de paiement pour rafraîchir immédiatement
+  useEffect(() => {
+    if (!isConnected) return;
+
+    // Le SocketProvider gère déjà l'invalidation du cache via 'payment:success'
+    // Mais on ajoute un log pour le debug
+    console.log('[Orders] Socket.IO connected, listening for real-time updates');
+  }, [isConnected]);
 
   // Envoyer une notification Hugo pour une transaction
   const sendHugoNotification = async (
@@ -146,45 +190,19 @@ export default function OrdersScreen() {
     }
   };
 
-  const loadOrders = async () => {
-    try {
-      setLoading(true);
-
-      if (activeTab === 'sales') {
-        const salesData = await transactionService.getMySales();
-        console.log('[Orders] Sales data received:', JSON.stringify(salesData, null, 2));
-        setSales(salesData);
-        
-        // Traiter les notifications pour les ventes
-        processTransactionNotifications(salesData, 'SELLER');
-      } else {
-        const purchasesData = await transactionService.getMyPurchases();
-        console.log('[Orders] Purchases data received:', JSON.stringify(purchasesData, null, 2));
-        setPurchases(purchasesData);
-        
-        // Traiter les notifications pour les achats
-        processTransactionNotifications(purchasesData, 'BUYER');
-      }
-
-      setLoading(false);
-    } catch (error: any) {
-      console.error('Failed to load orders:', error);
-      Alert.alert('Erreur', error.message || 'Impossible de charger les transactions');
-      setLoading(false);
-    }
-  };
-
   const onRefresh = async () => {
-    setRefreshing(true);
-    await loadOrders();
-    setRefreshing(false);
+    if (activeTab === 'sales') {
+      await refetchSales();
+    } else {
+      await refetchPurchases();
+    }
   };
 
   // Annuler une transaction
   const handleCancelTransaction = (order: Transaction, isSale: boolean) => {
     const roleText = isSale ? 'vente' : 'achat';
     const actionText = isSale ? 'annuler cette vente' : 'annuler cet achat';
-    
+
     Alert.alert(
       `Annuler la ${roleText}`,
       `Êtes-vous sûr de vouloir ${actionText} ?\n\n` +
@@ -201,13 +219,17 @@ export default function OrdersScreen() {
               setCancelling(order.id);
 
               const reason = isSale ? 'seller_request' : 'buyer_request';
-              const data = await transactionService.cancelTransaction(order.id, reason);
+              const data = await cancelMutation.mutateAsync({
+                transactionId: order.id,
+                reason
+              });
 
               Alert.alert(
                 'Transaction annulée',
                 data.message || 'Transaction annulée avec succès',
-                [{ text: 'OK', onPress: () => loadOrders() }]
+                [{ text: 'OK' }]
               );
+              // Le cache est automatiquement invalidé par le mutation hook
             } catch (error: any) {
               console.error('[Cancel] Error:', error);
               Alert.alert('Erreur', error.message || 'Impossible d\'annuler la transaction');
@@ -382,7 +404,7 @@ export default function OrdersScreen() {
             color: t.muted,
             marginBottom: 8,
           }}>
-            {isSale ? `Acheteur: ${order.buyer?.username || 'Inconnu'}` : `Vendeur: ${order.seller?.username || 'Inconnu'}`}
+            {isSale ? `Acheteur: ${order.buyer?.username || 'Inconnu'}` : `Vendeur: ${order.product?.seller?.username || 'Inconnu'}`}
           </Text>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -398,15 +420,23 @@ export default function OrdersScreen() {
                   : 'N/A'} €
             </Text>
 
-            {/* Status badge */}
+            {/* Status badge - show relevant status based on shipping state */}
             <View style={{
-              backgroundColor: order.status === 'SUCCEEDED' ? '#10B981' : '#F59E0B',
+              backgroundColor: order.trackingNumber
+                ? '#2196F3' // Blue - shipped
+                : order.status === 'SUCCEEDED'
+                  ? '#10B981' // Green - paid
+                  : '#F59E0B', // Orange - pending
               paddingHorizontal: 10,
               paddingVertical: 4,
               borderRadius: 8,
             }}>
               <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '600' }}>
-                {order.status === 'SUCCEEDED' ? '✓ Payé' : '⏳ En attente'}
+                {order.trackingNumber
+                  ? '📦 Expédié'
+                  : order.status === 'SUCCEEDED'
+                    ? '✓ Payé'
+                    : '⏳ En attente'}
               </Text>
             </View>
           </View>
@@ -423,8 +453,8 @@ export default function OrdersScreen() {
                 📍 Suivi: {order.trackingNumber}
               </Text>
 
-              {/* Button to view shipping label */}
-              {!isSale && (
+              {/* Button to view shipping label - ONLY FOR SELLER */}
+              {isSale && (
                 <TouchableOpacity
                   style={{
                     backgroundColor: t.primaryBtn,
@@ -452,37 +482,73 @@ export default function OrdersScreen() {
                   </Text>
                 </TouchableOpacity>
               )}
+
+              {/* Button to track package - ONLY FOR BUYER */}
+              {!isSale && (
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#4CAF50',
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    borderRadius: 8,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/track-package' as any,
+                      params: {
+                        trackingNumber: order.trackingNumber,
+                        productTitle: order.product?.title || 'Produit',
+                        carrier: order.trackingNumber?.split('-')[0] || 'Transporteur',
+                        sellerName: order.product?.seller?.username || 'Vendeur',
+                      },
+                    });
+                  }}
+                >
+                  <Ionicons name="location-outline" size={16} color="#FFF" style={{ marginRight: 6 }} />
+                  <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 13 }}>
+                    Suivre mon colis
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
-          {/* Shipping category info for sellers */}
-          {isSale && order.product?.shippingCategory && !order.trackingNumber && (
-            <View
+          {/* Action button for sellers - generate label */}
+          {isSale && !order.trackingNumber && order.status === 'SUCCEEDED' && (
+            <TouchableOpacity
               style={{
                 marginTop: 12,
-                backgroundColor: '#4CAF50' + '20',
+                backgroundColor: t.primaryBtn,
                 paddingVertical: 10,
                 paddingHorizontal: 16,
                 borderRadius: 10,
                 alignItems: 'center',
-                borderWidth: 1,
-                borderColor: '#4CAF50',
+              }}
+              onPress={() => {
+                console.log('[Orders] Seller generating label for transaction:', order.id);
+                router.push({
+                  pathname: '/seller-generate-label' as any,
+                  params: {
+                    transactionId: order.id,
+                    productTitle: order.product?.title || 'Produit',
+                    buyerName: order.buyer?.username || 'Acheteur',
+                    shippingRateId: order.shippingRateId || order.selectedShippingRate || '',
+                  },
+                });
               }}
             >
-              <Text style={{ color: '#4CAF50', fontWeight: '600', fontSize: 14 }}>
-                📦 Catégorie: {order.product.shippingCategory}
+              <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>
+                📮 Générer l'étiquette et expédier
               </Text>
-              <Text style={{ color: t.muted, fontSize: 11, marginTop: 4 }}>
-                L'acheteur peut générer son étiquette
-              </Text>
-            </View>
+            </TouchableOpacity>
           )}
 
-          {/* Action buttons for buyers - choose shipping */}
-          {!isSale && !order.trackingNumber && (() => {
-            const hasShippingCategory = !!order.product?.shippingCategory;
+          {/* Status for buyers - waiting for seller to ship */}
+          {!isSale && !order.trackingNumber && order.status === 'SUCCEEDED' && (() => {
             const hasAddress = !!order.shippingAddress;
-            console.log(`[Orders/Button] Transaction ${order.id}: hasShippingCategory = ${hasShippingCategory}, hasAddress = ${hasAddress}`);
 
             // Si pas d'adresse, demander d'abord l'adresse
             if (!hasAddress) {
@@ -515,56 +581,27 @@ export default function OrdersScreen() {
               );
             }
 
-            // Si pas de catégorie d'expédition (ancien produit)
-            if (!hasShippingCategory) {
-              return (
-                <View
-                  style={{
-                    marginTop: 12,
-                    backgroundColor: t.muted + '40',
-                    paddingVertical: 10,
-                    paddingHorizontal: 16,
-                    borderRadius: 10,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Text style={{ color: t.muted, fontWeight: '600', fontSize: 14 }}>
-                    ⚠️ Catégorie d'expédition manquante
-                  </Text>
-                  <Text style={{ color: t.muted, fontSize: 11, marginTop: 4 }}>
-                    Contactez le vendeur
-                  </Text>
-                </View>
-              );
-            }
-
-            // Si tout est OK, permettre de générer l'étiquette
+            // Adresse renseignée - En attente d'expédition par le vendeur
             return (
-              <TouchableOpacity
+              <View
                 style={{
                   marginTop: 12,
-                  backgroundColor: t.primaryBtn,
+                  backgroundColor: '#2196F3' + '20',
                   paddingVertical: 10,
                   paddingHorizontal: 16,
                   borderRadius: 10,
                   alignItems: 'center',
-                }}
-                onPress={() => {
-                  console.log('[Orders] Opening shipping choice for transaction:', order.id);
-                  router.push({
-                    pathname: '/buyer-choose-shipping' as any,
-                    params: {
-                      transactionId: order.id,
-                      productTitle: order.product?.title || 'Produit',
-                      sellerName: order.seller?.username || 'Inconnu',
-                    },
-                  });
+                  borderWidth: 1,
+                  borderColor: '#2196F3',
                 }}
               >
-                <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>
-                  📮 Générer l'étiquette d'expédition
+                <Text style={{ color: '#2196F3', fontWeight: '600', fontSize: 14 }}>
+                  ⏳ En attente d'expédition
                 </Text>
-              </TouchableOpacity>
+                <Text style={{ color: t.muted, fontSize: 11, marginTop: 4 }}>
+                  Le vendeur va préparer et expédier votre colis
+                </Text>
+              </View>
             );
           })()}
 

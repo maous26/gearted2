@@ -8,6 +8,7 @@ import RatingModal from "../../components/RatingModal";
 import { useTheme } from "../../components/ThemeProvider";
 import { useUser } from "../../components/UserProvider";
 import { useDeleteProduct, useProduct } from "../../hooks/useProducts";
+import { usePurchaseFlow } from "../../hooks/usePurchaseFlow";
 import api from "../../services/api";
 import stripeService from "../../services/stripe";
 import { THEMES } from "../../themes";
@@ -37,6 +38,7 @@ export default function ProductDetailScreen() {
   const canEditOrDelete = isOwnProduct && product?.status !== 'SOLD';
 
   const deleteProductMutation = useDeleteProduct();
+  const purchaseFlow = usePurchaseFlow();
   const [isDeleting, setIsDeleting] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -59,12 +61,17 @@ export default function ProductDetailScreen() {
   const [protectionEnabled, setProtectionEnabled] = useState(true);
   const [protectionPrice, setProtectionPrice] = useState(4.99);
 
+  // Commission settings from backend
+  const [buyerFeeEnabled, setBuyerFeeEnabled] = useState(true);
+  const [buyerFeePercent, setBuyerFeePercent] = useState(5);
+
   const EXPERTISE_PRICE = 19.90;
   const INSURANCE_PRICE = protectionPrice;
 
-  // Charger les settings de protection au montage
+  // Charger les settings de protection et commissions au montage
   useEffect(() => {
-    const loadProtectionSettings = async () => {
+    const loadSettings = async () => {
+      // Protection settings
       try {
         const response = await api.get<{ success: boolean; settings?: { enabled: boolean; price: number } }>('/api/settings/protection');
         if (response.success && response.settings) {
@@ -74,8 +81,19 @@ export default function ProductDetailScreen() {
       } catch (error) {
         console.error('[Product] Failed to load protection settings:', error);
       }
+
+      // Commission settings
+      try {
+        const response = await api.get<{ success: boolean; settings?: { buyerEnabled: boolean; buyerFeePercent: number } }>('/api/settings/commissions');
+        if (response.success && response.settings) {
+          setBuyerFeeEnabled(response.settings.buyerEnabled !== false);
+          setBuyerFeePercent(response.settings.buyerFeePercent || 5);
+        }
+      } catch (error) {
+        console.error('[Product] Failed to load commission settings:', error);
+      }
     };
-    loadProtectionSettings();
+    loadSettings();
   }, []);
 
   // Charger les tarifs de livraison quand le modal s'ouvre
@@ -124,19 +142,26 @@ export default function ProductDetailScreen() {
 
   const purchaseSummary = useMemo(() => {
     if (!product) return null;
-    const baseSummary = stripeService.calculateTotalWithFees(product.price);
+    const productPrice = product.price;
+    // Calculer les frais acheteur selon les settings admin
+    const buyerFee = buyerFeeEnabled ? parseFloat((productPrice * (buyerFeePercent / 100)).toFixed(2)) : 0;
+    const total = productPrice + buyerFee;
+
     const expertiseCost = wantExpertise ? EXPERTISE_PRICE : 0;
     const insuranceCost = wantInsurance ? INSURANCE_PRICE : 0;
     const optionsTotal = expertiseCost + insuranceCost;
     return {
-      ...baseSummary,
+      productPrice,
+      buyerFee,
+      buyerFeeEnabled,
+      total,
       expertiseCost,
       insuranceCost,
       optionsTotal,
       shippingCost,
-      grandTotal: baseSummary.total + optionsTotal + shippingCost
+      grandTotal: total + optionsTotal + shippingCost
     };
-  }, [product, wantExpertise, wantInsurance, shippingCost]);
+  }, [product, wantExpertise, wantInsurance, shippingCost, buyerFeeEnabled, buyerFeePercent]);
 
   const images = useMemo(() => {
     const arr = product?.images || [];
@@ -237,21 +262,50 @@ export default function ProductDetailScreen() {
         return;
       }
 
-      // 4. Paiement réussi !
+      // 4. Paiement réussi côté Stripe!
       setHasPurchased(true);
 
-      Alert.alert(
-        'Achat confirmé ! 🎉',
-        `Votre achat de "${product.title}" a été confirmé.\n\nVous avez payé ${paymentData.totalCharge.toFixed(2)} €.\n\nVeuillez maintenant entrer votre adresse de livraison.`,
-        [
-          {
-            text: 'Entrer mon adresse',
-            onPress: () => router.push({
-              pathname: '/shipping-address',
-              params: { transactionId: paymentData.paymentIntentId }
-            }),
-          },
-        ]
+      // 5. Démarrer le polling pour attendre la confirmation du webhook
+      // Cela résout le problème de race condition entre le frontend et le webhook
+      purchaseFlow.startPolling(
+        paymentData.paymentIntentId,
+        product.id,
+        // onConfirmed - callback quand la transaction est confirmée
+        (transactionId) => {
+          console.log('[Purchase] Transaction confirmed:', transactionId);
+          Alert.alert(
+            'Achat confirmé ! 🎉',
+            `Votre achat de "${product.title}" a été confirmé.\n\nVous avez payé ${paymentData.totalCharge.toFixed(2)} €.\n\nVeuillez maintenant entrer votre adresse de livraison.`,
+            [
+              {
+                text: 'Entrer mon adresse',
+                onPress: () => router.push({
+                  pathname: '/shipping-address',
+                  params: { transactionId: transactionId }
+                }),
+              },
+            ]
+          );
+        },
+        // onTimeout - callback si le polling expire
+        () => {
+          console.log('[Purchase] Polling timeout, proceeding anyway');
+          // Même en cas de timeout, on navigue vers l'adresse
+          // Le webhook finira par mettre à jour la transaction
+          Alert.alert(
+            'Achat en cours de confirmation',
+            `Votre paiement a été reçu. La confirmation peut prendre quelques instants.\n\nVeuillez entrer votre adresse de livraison.`,
+            [
+              {
+                text: 'Entrer mon adresse',
+                onPress: () => router.push({
+                  pathname: '/shipping-address',
+                  params: { transactionId: paymentData.paymentIntentId }
+                }),
+              },
+            ]
+          );
+        }
       );
     } catch (error: any) {
       Alert.alert('Erreur', error.message || 'Une erreur est survenue lors du paiement');
@@ -795,10 +849,12 @@ export default function ProductDetailScreen() {
                 <Text style={{ fontSize: 16, color: t.muted }}>Produit</Text>
                 <Text style={{ fontSize: 16, color: t.heading, fontWeight: '600' }}>{purchaseSummary.productPrice.toFixed(2)} €</Text>
               </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: 16, color: t.muted }}>Protection acheteur & Frais</Text>
-                <Text style={{ fontSize: 16, color: t.heading, fontWeight: '600' }}>{purchaseSummary.buyerFee.toFixed(2)} €</Text>
-              </View>
+              {purchaseSummary.buyerFeeEnabled && purchaseSummary.buyerFee > 0 && (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={{ fontSize: 16, color: t.muted }}>Frais de service</Text>
+                  <Text style={{ fontSize: 16, color: t.heading, fontWeight: '600' }}>{purchaseSummary.buyerFee.toFixed(2)} €</Text>
+                </View>
+              )}
 
               {/* Section Livraison */}
               {!product?.handDelivery && (

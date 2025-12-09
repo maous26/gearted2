@@ -1,3 +1,0 @@
-FORCE REDEPLOY - DATABASE_URL FIX
-Fri Dec 5 08:43:02 CET 2025
-DATABASE_URL variable added - need rebuild for Prisma

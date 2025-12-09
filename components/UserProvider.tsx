@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { authEvents } from '../services/api';
 import TokenManager from '../services/storage';
 import { queryClient } from './QueryProvider';
 
@@ -42,6 +44,35 @@ export function UserProvider({ children }: { children: ReactNode }) {
   // Load user profile from AsyncStorage on mount
   useEffect(() => {
     loadUserProfile();
+  }, []);
+
+  // Listen for session expiry events from API service
+  useEffect(() => {
+    const handleSessionExpired = async () => {
+      console.log('[UserProvider] Session expired event received, logging out...');
+      // Clear all auth data
+      try {
+        queryClient.clear();
+        await AsyncStorage.removeItem('authToken');
+        await AsyncStorage.removeItem('userData');
+        await AsyncStorage.removeItem(USER_STORAGE_KEY);
+      } catch (error) {
+        console.error('[UserProvider] Error clearing data on session expiry:', error);
+      }
+      // Clear state
+      setIsOnboarded(false);
+      setUser(null);
+      // Navigate to landing page
+      setTimeout(() => {
+        router.replace('/landing');
+      }, 100);
+    };
+
+    // Subscribe to session expiry events
+    const unsubscribe = authEvents.onSessionExpired(handleSessionExpired);
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const loadUserProfile = async () => {
@@ -115,7 +146,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    // Déconnexion : supprimer les tokens et vider le profil
+    // Déconnexion : supprimer les tokens et vider le profil et le store d'auth
     console.log('[UserProvider] Starting logout process...');
 
     try {
@@ -139,12 +170,24 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // 5. Clear state AFTER storage is cleared
       setIsOnboarded(false);
       setUser(null);
+      // 6. Reset authStore (Zustand)
+      try {
+        const { useAuthStore } = require('../stores/authStore');
+        useAuthStore.getState().logout();
+        console.log('[UserProvider] authStore reset');
+      } catch (storeError) {
+        console.warn('[UserProvider] Could not reset authStore:', storeError);
+      }
       console.log('[UserProvider] State cleared - logout complete');
     } catch (error) {
       console.error('[UserProvider] Error during logout:', error);
       // Still clear state even if storage operations fail
       setIsOnboarded(false);
       setUser(null);
+      try {
+        const { useAuthStore } = require('../stores/authStore');
+        useAuthStore.getState().logout();
+      } catch (storeError) {}
     }
   };
 

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { Request, Response, Router } from 'express';
 import { NotificationController } from '../controllers/NotificationController';
 import { authenticate } from '../middleware/auth';
@@ -427,13 +427,6 @@ router.post('/rates/:transactionId', async (req: Request, res: Response): Promis
       });
     }
 
-    // Vérifier que les dimensions sont définies
-    if (!transaction.product.parcelDimensions) {
-      return res.status(400).json({
-        error: 'Les dimensions du colis ne sont pas encore définies par le vendeur'
-      });
-    }
-
     // Vérifier que l'adresse de livraison est définie
     if (!transaction.shippingAddress) {
       return res.status(400).json({
@@ -441,9 +434,48 @@ router.post('/rates/:transactionId', async (req: Request, res: Response): Promis
       });
     }
 
+    // Récupérer les dimensions : soit définies explicitement, soit depuis la catégorie d'expédition
+    const parcelDims = transaction.product.parcelDimensions;
+
+    // Type unifié pour les dimensions (Prisma ou par défaut)
+    let dimensions: { length: number; width: number; height: number; weight: number } | null = null;
+
+    if (parcelDims) {
+      dimensions = {
+        length: parcelDims.length,
+        width: parcelDims.width,
+        height: parcelDims.height,
+        weight: parcelDims.weight
+      };
+    } else {
+      // Utiliser les dimensions par défaut de la catégorie d'expédition
+      const shippingCategory = (transaction.product as any).shippingCategory;
+      if (shippingCategory) {
+        const categoryDefaults: Record<string, { length: number; width: number; height: number; weight: number }> = {
+          'CAT_1': { length: 30, width: 20, height: 10, weight: 0.8 },
+          'CAT_2': { length: 40, width: 25, height: 15, weight: 2 },
+          'CAT_3': { length: 90, width: 30, height: 12, weight: 3.5 },
+          'CAT_4': { length: 120, width: 30, height: 15, weight: 6 },
+          'CAT_5': { length: 100, width: 50, height: 40, weight: 12 },
+        };
+
+        const defaultDims = categoryDefaults[shippingCategory];
+        if (defaultDims) {
+          dimensions = defaultDims;
+          console.log(`[Shipping] Using default dimensions for category ${shippingCategory}:`, dimensions);
+        }
+      }
+    }
+
+    // Si toujours pas de dimensions (CAT_VOLUMINEUX sans dimensions custom)
+    if (!dimensions) {
+      return res.status(400).json({
+        error: 'Les dimensions du colis ne sont pas définies. Pour un colis volumineux, le vendeur doit renseigner les dimensions.'
+      });
+    }
+
     // Pour l'instant, retourner des tarifs factices
     // TODO: Intégrer avec un vrai service de livraison (Shippo, EasyPost, etc.)
-    const dimensions = transaction.product.parcelDimensions;
     const basePrice = Math.max(5, (dimensions.weight * 3) + ((dimensions.length + dimensions.width + dimensions.height) / 100));
 
     const rates = [
@@ -483,6 +515,117 @@ router.post('/rates/:transactionId', async (req: Request, res: Response): Promis
     console.error('[Shipping] Error getting rates:', error);
     return res.status(500).json({
       error: 'Erreur lors de la récupération des tarifs'
+    });
+  }
+});
+
+/**
+ * Acheteur sélectionne son mode de livraison préféré (sans générer l'étiquette)
+ * POST /api/shipping/select-rate/:transactionId
+ *
+ * L'acheteur choisit le mode de livraison et optionnellement un point relais.
+ * Le vendeur génèrera ensuite l'étiquette avec /api/shipping/label/:transactionId
+ */
+router.post('/select-rate/:transactionId', async (req: Request, res: Response): Promise<any> => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const { transactionId } = req.params;
+  const { rateId, relayPointId, relayPointName, relayPointAddress, relayPointCity, relayPointPostalCode } = req.body;
+
+  console.log(`[Shipping/SelectRate] START - transactionId: ${transactionId}, user: ${req.user.userId}, rateId: ${rateId}`);
+
+  if (!rateId) {
+    return res.status(400).json({ error: 'Le mode de livraison est requis' });
+  }
+
+  try {
+    // Récupérer la transaction
+    const transaction = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+      include: {
+        product: {
+          include: {
+            seller: true
+          }
+        },
+        buyer: true
+      }
+    });
+
+    if (!transaction) {
+      return res.status(404).json({ error: 'Transaction non trouvée' });
+    }
+
+    // Vérifier que l'utilisateur est l'ACHETEUR
+    if (transaction.buyerId !== req.user.userId) {
+      return res.status(403).json({
+        error: 'Seul l\'acheteur peut sélectionner le mode de livraison'
+      });
+    }
+
+    // Construire les données du point relais si fourni
+    const relayPointData = relayPointId ? {
+      id: relayPointId,
+      name: relayPointName,
+      address: relayPointAddress,
+      city: relayPointCity,
+      postalCode: relayPointPostalCode
+    } : undefined;
+
+    // Mettre à jour la transaction avec la préférence de livraison
+    const updatedTransaction = await prisma.transaction.update({
+      where: { id: transactionId },
+      data: {
+        selectedShippingRate: rateId,
+        selectedRelayPoint: relayPointData ?? Prisma.JsonNull
+      },
+      include: {
+        product: { include: { seller: true } },
+        buyer: true
+      }
+    });
+
+    console.log(`[Shipping/SelectRate] Transaction updated - selectedShippingRate: ${rateId}`);
+
+    // 🔔 NOTIFICATION VENDEUR : L'acheteur a choisi son mode de livraison
+    try {
+      const relayInfo = relayPointData
+        ? `\n\n📍 Point Relais sélectionné: ${relayPointData.name}, ${relayPointData.address}, ${relayPointData.postalCode} ${relayPointData.city}`
+        : '';
+
+      await NotificationController.createNotification({
+        userId: transaction.product.sellerId,
+        title: '📦 Mode de livraison choisi !',
+        message: `${transaction.buyer?.username || 'L\'acheteur'} a choisi son mode de livraison pour "${transaction.product.title}".\n\nMode: ${rateId}${relayInfo}\n\n👉 Vous pouvez maintenant générer l'étiquette et expédier le colis.`,
+        type: 'SHIPPING_UPDATE',
+        data: {
+          transactionId: updatedTransaction.id,
+          productId: updatedTransaction.productId,
+          productTitle: transaction.product.title,
+          role: 'SELLER',
+          step: 'SHIPPING_RATE_SELECTED',
+          selectedRate: rateId,
+          relayPoint: relayPointData ?? null,
+          buyerName: transaction.buyer?.username
+        }
+      });
+      console.log(`[Shipping/SelectRate] Notification sent to seller ${transaction.product.sellerId}`);
+    } catch (notifError) {
+      console.error('[Shipping/SelectRate] Failed to send notification:', notifError);
+    }
+
+    return res.json({
+      success: true,
+      message: 'Mode de livraison enregistré. Le vendeur va générer l\'étiquette.',
+      transaction: updatedTransaction
+    });
+
+  } catch (error) {
+    console.error('[Shipping/SelectRate] Error:', error);
+    return res.status(500).json({
+      error: 'Erreur lors de l\'enregistrement du mode de livraison'
     });
   }
 });
@@ -528,7 +671,7 @@ router.post('/label/:transactionId', async (req: Request, res: Response): Promis
 
     console.log(`[Shipping/Label] Transaction found - sellerId: ${transaction.product.sellerId}, buyerId: ${transaction.buyerId}, currentTrackingNumber: ${transaction.trackingNumber}`);
 
-    // Vérifier que l'utilisateur est bien le VENDEUR (c'est lui qui envoie le colis)
+    // Seul le VENDEUR peut générer l'étiquette (c'est lui qui expédie le colis)
     if (transaction.product.sellerId !== req.user.userId) {
       console.log(`[Shipping/Label] FORBIDDEN - user ${req.user.userId} is not the seller ${transaction.product.sellerId}`);
       return res.status(403).json({

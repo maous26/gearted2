@@ -12,6 +12,15 @@ export interface Transaction {
   status: string;
   trackingNumber?: string;
   shippingAddress?: any;
+  shippingRateId?: string;
+  selectedShippingRate?: string;
+  selectedRelayPoint?: {
+    id: string;
+    name: string;
+    address: string;
+    city: string;
+    postalCode: string;
+  };
   metadata?: any;
   createdAt: string;
   updatedAt: string;
@@ -20,6 +29,8 @@ export interface Transaction {
     title: string;
     images: string[];
     price: number;
+    status?: string;
+    shippingCategory?: string; // Catégorie d'expédition (CAT_1, CAT_2, etc.)
     parcelDimensionsId?: string; // Lien vers dimensions du colis
     parcelDimensions?: {
       id: string;

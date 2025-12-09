@@ -9,7 +9,7 @@ import helmet from 'helmet';
 import { createServer } from 'http';
 import morgan from 'morgan';
 import path from 'path';
-import { Server } from 'socket.io';
+import { socketService } from './services/socketService';
 
 // BUILD VERSION: 2024-12-05-v3 - Fixed DATABASE_URL
 console.log('🚀 [SERVER] Build version: 2024-12-05-v3');
@@ -47,13 +47,8 @@ dotenv.config();
 const app = express();
 const server = createServer(app);
 
-// Socket.IO setup
-const io = new Server(server, {
-  cors: {
-    origin: process.env.SOCKET_CORS_ORIGIN || "*",
-    methods: ["GET", "POST"]
-  }
-});
+// Socket.IO setup - Using socketService for centralized management
+const io = socketService.initialize(server);
 
 // Trust proxy for accurate IP addresses in production
 app.set('trust proxy', 1);
@@ -66,8 +61,12 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'production',
-    version: '2024-12-05-admin-console',
-    buildTime: new Date().toISOString()
+    version: '2024-12-09-socketio',
+    buildTime: new Date().toISOString(),
+    socketIO: {
+      enabled: true,
+      onlineUsers: socketService.getOnlineUsersCount()
+    }
   });
 });
 
@@ -371,45 +370,9 @@ app.use('/api/settings', settingsRoutes);
 // Serve static files (uploads)
 app.use('/uploads', express.static('uploads'));
 
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.id}`);
-
-  // Join user to their personal room
-  socket.on('join-user-room', (userId: string) => {
-    socket.join(`user-${userId}`);
-    console.log(`User ${userId} joined their room`);
-  });
-
-  // Join conversation room
-  socket.on('join-conversation', (conversationId: string) => {
-    socket.join(`conversation-${conversationId}`);
-    console.log(`User joined conversation: ${conversationId}`);
-  });
-
-  // Handle new messages
-  socket.on('send-message', async (data) => {
-    try {
-      // Here you would typically save the message to database
-      // and emit to all users in the conversation
-      io.to(`conversation-${data.conversationId}`).emit('new-message', data);
-    } catch (error) {
-      socket.emit('error', { message: 'Failed to send message' });
-    }
-  });
-
-  // Handle typing indicators
-  socket.on('typing', (data) => {
-    socket.to(`conversation-${data.conversationId}`).emit('user-typing', {
-      userId: data.userId,
-      isTyping: data.isTyping
-    });
-  });
-
-  socket.on('disconnect', () => {
-    console.log(`User disconnected: ${socket.id}`);
-  });
-});
+// Socket.IO connection handling is done in socketService.ts
+// with proper JWT authentication and room management
+// Room naming convention: user:${userId}, conversation:${conversationId}, transaction:${transactionId}
 
 // AdminJS and 404/error handlers will be set up after async initialization
 // Start server

@@ -57,6 +57,7 @@ export class TransactionController {
               images: true,
               price: true,
               status: true,
+              shippingCategory: true,
               parcelDimensionsId: true,
               parcelDimensions: true
             }
@@ -92,16 +93,25 @@ export class TransactionController {
             title: product.title,
             price: Number(product.price),
             status: product.status,
+            shippingCategory: product.shippingCategory,
             parcelDimensionsId: product.parcelDimensionsId,
             parcelDimensions: product.parcelDimensions,
             images: Array.isArray(product.images)
-              ? product.images.map((img: any) => typeof img === 'string' ? img : img.url)
+              ? product.images.map((img: any) => {
+                  if (typeof img === 'string') return img;
+                  if (img && typeof img === 'object' && img.url) return img.url;
+                  if (img && typeof img === 'object' && img.uri) return img.uri;
+                  return null;
+                }).filter(Boolean)
               : []
           } : undefined
         };
       });
 
       console.log('[Transactions] Transformed sales (first):', JSON.stringify(transformedSales[0], null, 2));
+      if (transformedSales.length > 0 && transformedSales[0].product) {
+        console.log('[Transactions] Images in first sale:', transformedSales[0].product.images);
+      }
       if (transformedSales.length > 0) {
         console.log('[Transactions] Type check - amount:', typeof transformedSales[0].amount, '=', transformedSales[0].amount);
         console.log('[Transactions] Type check - price:', typeof transformedSales[0].product?.price, '=', transformedSales[0].product?.price);
@@ -154,6 +164,7 @@ export class TransactionController {
               images: true,
               price: true,
               status: true,
+              shippingCategory: true,
               parcelDimensionsId: true,
               parcelDimensions: true,
               seller: {
@@ -189,15 +200,26 @@ export class TransactionController {
             title: product.title,
             price: Number(product.price),
             status: product.status,
+            shippingCategory: product.shippingCategory,
             parcelDimensionsId: product.parcelDimensionsId,
             parcelDimensions: product.parcelDimensions,
             images: Array.isArray(product.images)
-              ? product.images.map((img: any) => typeof img === 'string' ? img : img.url)
+              ? product.images.map((img: any) => {
+                  if (typeof img === 'string') return img;
+                  if (img && typeof img === 'object' && img.url) return img.url;
+                  if (img && typeof img === 'object' && img.uri) return img.uri;
+                  return null;
+                }).filter(Boolean)
               : [],
             seller: product.seller
           } : undefined
         };
       });
+
+      console.log('[Transactions] Transformed purchases (first):', JSON.stringify(transformedPurchases[0], null, 2));
+      if (transformedPurchases.length > 0 && transformedPurchases[0].product) {
+        console.log('[Transactions] Images in first purchase:', transformedPurchases[0].product.images);
+      }
 
       return res.json({
         success: true,
@@ -205,6 +227,87 @@ export class TransactionController {
       });
     } catch (error: any) {
       console.error('[Transactions] Get my purchases error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Récupérer une transaction par son paymentIntentId
+   * GET /api/transactions/by-payment-intent/:paymentIntentId
+   * Utilisé pour le polling après un paiement réussi
+   */
+  static async getByPaymentIntent(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { paymentIntentId } = req.params;
+
+      if (!paymentIntentId) {
+        return res.status(400).json({ error: 'Payment intent ID required' });
+      }
+
+      console.log(`[Transactions] Looking up transaction by paymentIntentId: ${paymentIntentId}`);
+
+      const transaction = await prisma.transaction.findFirst({
+        where: { paymentIntentId },
+        select: {
+          id: true,
+          status: true,
+          paymentIntentId: true,
+          productId: true,
+          buyerId: true,
+          amount: true,
+          createdAt: true,
+          updatedAt: true,
+          product: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              sellerId: true,
+            }
+          }
+        }
+      });
+
+      if (!transaction) {
+        console.log(`[Transactions] No transaction found for paymentIntentId: ${paymentIntentId}`);
+        return res.status(404).json({
+          success: false,
+          error: 'Transaction not found'
+        });
+      }
+
+      // Vérifier que l'utilisateur est soit l'acheteur soit le vendeur
+      if (transaction.buyerId !== userId && transaction.product.sellerId !== userId) {
+        return res.status(403).json({
+          success: false,
+          error: 'Unauthorized'
+        });
+      }
+
+      console.log(`[Transactions] Found transaction ${transaction.id} with status: ${transaction.status}`);
+
+      return res.json({
+        success: true,
+        transaction: {
+          id: transaction.id,
+          status: transaction.status,
+          paymentIntentId: transaction.paymentIntentId,
+          productId: transaction.productId,
+          amount: Number(transaction.amount),
+          createdAt: transaction.createdAt,
+          updatedAt: transaction.updatedAt,
+        }
+      });
+    } catch (error: any) {
+      console.error('[Transactions] Get by payment intent error:', error);
       return res.status(500).json({
         success: false,
         error: error.message

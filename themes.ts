@@ -3,7 +3,6 @@ export type ThemeKey = "ranger" | "desert" | "night";
 export const THEMES: Record<
   ThemeKey,
   {
-    // Couleurs principales converties pour React Native
     rootBg: string;
     navBg: string;
     sectionLight: string;
@@ -19,6 +18,11 @@ export const THEMES: Record<
     extraMuted: string;
     white: string;
     gradientColors: readonly [string, string, ...string[]];
+    text: string;
+    mutedText: string;
+    accentBg: string;
+    accentBtn: string;
+    secondaryBtn: string;
   }
 > = {
   ranger: {
@@ -37,6 +41,11 @@ export const THEMES: Record<
     extraMuted: "#808080",
     white: "#ffffff",
     gradientColors: ["#4B5D3A", "#6B7A57"],
+    text: "#1a1a1a",
+    mutedText: "#666666",
+    accentBg: "#E9E1C8",
+    accentBtn: "#6B7A57",
+    secondaryBtn: "#D8CEB1",
   },
   desert: {
     rootBg: "#f6f3f0",
@@ -54,6 +63,11 @@ export const THEMES: Record<
     extraMuted: "#6B6B6B",
     white: "#ffffff",
     gradientColors: ["#7B5E3B", "#A17F5B"],
+    text: "#2B2B2B",
+    mutedText: "#4A4A4A",
+    accentBg: "#EDDFBF",
+    accentBtn: "#A17F5B",
+    secondaryBtn: "#E0D3B2",
   },
   night: {
     rootBg: "#0f141a",
@@ -71,5 +85,10 @@ export const THEMES: Record<
     extraMuted: "#A3B2A0",
     white: "#ffffff",
     gradientColors: ["#1F3D2B", "#2F5A3F"],
+    text: "#EAF2E8",
+    mutedText: "#A3B2A0",
+    accentBg: "#1A231C",
+    accentBtn: "#2F5A3F",
+    secondaryBtn: "#253227",
   },
 };

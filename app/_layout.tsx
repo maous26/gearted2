@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { View } from "react-native";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { QueryProvider } from "../components/QueryProvider";
+import { SocketProvider } from "../components/SocketProvider";
 import SplashScreen from "../components/SplashScreen";
 import { ThemeProvider, useTheme } from "../components/ThemeProvider";
 import { UserProvider } from "../components/UserProvider";
@@ -66,7 +67,9 @@ export default function RootLayout() {
       <QueryProvider>
         <ThemeProvider>
           <UserProvider>
-            <RootInner />
+            <SocketProvider>
+              <RootInner />
+            </SocketProvider>
           </UserProvider>
         </ThemeProvider>
       </QueryProvider>

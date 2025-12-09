@@ -348,13 +348,20 @@ export default function SellScreen() {
         handDelivery: Boolean(data.handDelivery),
         featured: false, // Le boost sera activé après paiement
         // Catégorie d'expédition (obligatoire si pas de remise en main propre)
-        shippingCategory: data.shippingCategory || null,
+        shippingCategory: data.shippingCategory || undefined,
         // Dimensions personnalisées (uniquement pour CAT_VOLUMINEUX)
         customParcelLength: data.customParcelLength ? Number(data.customParcelLength) : null,
         customParcelWidth: data.customParcelWidth ? Number(data.customParcelWidth) : null,
         customParcelHeight: data.customParcelHeight ? Number(data.customParcelHeight) : null,
         customParcelWeight: data.customParcelWeight ? Number(data.customParcelWeight) : null,
       };
+
+      console.log('[Sell] Creating product with payload:', JSON.stringify({
+        ...payload,
+        images: `[${payload.images.length} images]`
+      }, null, 2));
+      console.log('[Sell] shippingCategory value:', data.shippingCategory, '| Type:', typeof data.shippingCategory);
+
       const created = await api.post<{ id: string }>("/api/products", {
         ...payload,
         seller: user?.username,

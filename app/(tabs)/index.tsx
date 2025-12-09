@@ -3,7 +3,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Dimensions,
   Pressable,
   ScrollView,
   StatusBar,
@@ -12,24 +11,18 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { CompatDrawer } from "../../components/CompatDrawer";
 import LegalFooter from "../../components/LegalFooter";
+import PromoBanner from "../../components/PromoBanner";
 import { useTheme } from "../../components/ThemeProvider";
 import { CATEGORIES } from "../../data";
 import { useCategoryStats, useFeaturedProducts, useProducts, usePublicSettings } from "../../hooks/useProducts";
 import { THEMES } from "../../themes";
 import { getFirstValidImage } from "../../utils/imageUtils";
 
-const { width } = Dimensions.get('window');
-
 export default function AuthenticatedHome() {
   const router = useRouter();
   const { theme } = useTheme();
   const [searchText, setSearchText] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [isCompatDrawerOpen, setIsCompatDrawerOpen] = useState(false);
-  const [selectedManufacturer, setSelectedManufacturer] = useState("");
-  const [selectedWeaponType, setSelectedWeaponType] = useState("");
 
   const t = THEMES[theme];
 
@@ -63,6 +56,9 @@ export default function AuthenticatedHome() {
       <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
 
       <ScrollView style={{ flex: 1 }}>
+        {/* Promo Banner */}
+        <PromoBanner />
+
         {/* Search Bar */}
         <LinearGradient
           colors={[t.heroGradStart + 'CC', t.heroGradEnd + '66']}
@@ -503,14 +499,6 @@ export default function AuthenticatedHome() {
         {/* Footer juridique */}
         <LegalFooter />
       </ScrollView>
-
-      <CompatDrawer
-        isVisible={isCompatDrawerOpen}
-        onClose={() => setIsCompatDrawerOpen(false)}
-        theme={theme}
-        manufacturer={selectedManufacturer}
-        weaponType={selectedWeaponType}
-      />
     </SafeAreaView>
   );
 }

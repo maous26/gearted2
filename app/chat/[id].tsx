@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../components/ThemeProvider";
 import { useUser } from "../../components/UserProvider";
+import { useSocketContext } from "../../components/SocketProvider";
 import api from "../../services/api";
 import notificationService from "../../services/notifications";
 import { THEMES } from "../../themes";
@@ -66,12 +67,15 @@ export default function ChatScreen() {
   const t = THEMES[theme];
   const params = useLocalSearchParams();
   const { user } = useUser();
+  const { joinConversation, leaveConversation, onMessage, onTyping, sendTypingStart, sendTypingStop, isConnected } = useSocketContext();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const [otherUser, setOtherUser] = useState<{ username: string; avatar: string } | null>(null);
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const conversationId = params.id as string;
   const isHugoChat = conversationId === 'gearted-welcome' || conversationId.startsWith('hugo-');
@@ -198,6 +202,93 @@ export default function ChatScreen() {
     fetchMessages();
     markNotificationsAsRead();
   }, [conversationId, user?.id, isHugoChat]);
+
+  // 🔌 Socket.IO: Rejoindre la room de conversation pour les messages temps réel
+  useEffect(() => {
+    if (isHugoChat || !conversationId) return;
+
+    // Rejoindre la conversation
+    joinConversation(conversationId);
+    console.log('[Chat] Joined conversation room:', conversationId);
+
+    return () => {
+      // Quitter la conversation au démontage
+      leaveConversation(conversationId);
+      console.log('[Chat] Left conversation room:', conversationId);
+    };
+  }, [conversationId, isHugoChat, joinConversation, leaveConversation]);
+
+  // 🔌 Socket.IO: Écouter les nouveaux messages
+  useEffect(() => {
+    if (isHugoChat || !user?.id) return;
+
+    const unsubscribe = onMessage((socketMessage) => {
+      // Vérifier que le message est pour cette conversation
+      if (socketMessage.conversationId !== conversationId) return;
+
+      // Ne pas ajouter si c'est notre propre message (déjà ajouté localement)
+      if (socketMessage.senderId === user.id) return;
+
+      console.log('[Chat] Received message via Socket.IO:', socketMessage.content.substring(0, 30));
+
+      const newMessage: Message = {
+        id: socketMessage.id,
+        text: socketMessage.content,
+        senderId: socketMessage.senderId,
+        timestamp: new Date(socketMessage.sentAt),
+        isMine: false,
+      };
+
+      setMessages((prev) => {
+        // Éviter les doublons
+        if (prev.some(m => m.id === newMessage.id)) return prev;
+        return [...prev, newMessage];
+      });
+
+      // Scroll vers le bas
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+
+    return unsubscribe;
+  }, [conversationId, user?.id, isHugoChat, onMessage]);
+
+  // 🔌 Socket.IO: Écouter les indicateurs de frappe
+  useEffect(() => {
+    if (isHugoChat || !user?.id) return;
+
+    const unsubscribe = onTyping((event) => {
+      if (event.conversationId !== conversationId) return;
+      if (event.userId === user.id) return; // Ignorer nos propres événements
+
+      setIsOtherTyping(event.isTyping);
+
+      // Auto-reset après 3 secondes si pas de stop
+      if (event.isTyping) {
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => {
+          setIsOtherTyping(false);
+        }, 3000);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    };
+  }, [conversationId, user?.id, isHugoChat, onTyping]);
+
+  // Gérer l'événement de frappe lors de la saisie
+  const handleTextChange = (text: string) => {
+    setInputText(text);
+
+    if (!isHugoChat && text.length > 0) {
+      sendTypingStart(conversationId);
+    } else if (!isHugoChat && text.length === 0) {
+      sendTypingStop(conversationId);
+    }
+  };
 
   const sendMessage = async () => {
     if (inputText.trim() === "") return;
@@ -509,6 +600,21 @@ export default function ChatScreen() {
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
       />
 
+      {/* Indicateur de frappe */}
+      {isOtherTyping && (
+        <View style={{
+          paddingHorizontal: 16,
+          paddingVertical: 8,
+          backgroundColor: t.navBg,
+          borderTopWidth: 1,
+          borderTopColor: t.border,
+        }}>
+          <Text style={{ fontSize: 13, color: t.muted, fontStyle: 'italic' }}>
+            {sellerName} est en train d'écrire...
+          </Text>
+        </View>
+      )}
+
       {/* Input */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -516,7 +622,7 @@ export default function ChatScreen() {
       >
         <View style={{
           backgroundColor: t.navBg,
-          borderTopWidth: 1,
+          borderTopWidth: isOtherTyping ? 0 : 1,
           borderTopColor: t.border,
           paddingHorizontal: 16,
           paddingVertical: 10,
@@ -539,7 +645,7 @@ export default function ChatScreen() {
             }}
             placeholder="Écrire un message..."
             value={inputText}
-            onChangeText={setInputText}
+            onChangeText={handleTextChange}
             placeholderTextColor={t.muted}
             multiline
             maxLength={500}

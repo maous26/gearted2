@@ -467,6 +467,10 @@ model Transaction {
   shippingCost     Decimal? // Coût de livraison payé par l'acheteur
   shippingProvider String?  // Transporteur (Mondial Relay, Colissimo, etc.)
 
+  // Buyer's shipping preference (set by buyer, used by seller to generate label)
+  selectedShippingRate String? // Rate ID selected by buyer (before label generation)
+  selectedRelayPoint   Json?   // Relay point details if Point Relais selected
+
   // Premium services liés
   hasProtection    Boolean @default(false) // Gearted Protect
   hasExpert        Boolean @default(false) // Gearted Expert

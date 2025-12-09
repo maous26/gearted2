@@ -3,6 +3,7 @@ import { Router, Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import { sanitizeFields } from '../middleware/sanitize';
 import { NotificationController } from '../controllers/NotificationController';
+import { socketService } from '../services/socketService';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -256,6 +257,20 @@ router.post(
       include: { sender: true }
     });
 
+    // 🔌 SOCKET.IO: Envoyer le message en temps réel
+    socketService.sendMessage(conversationId, {
+      id: message.id,
+      conversationId: message.conversationId,
+      senderId: message.senderId,
+      content: message.content,
+      sentAt: message.sentAt.toISOString(),
+      sender: {
+        id: message.sender.id,
+        username: message.sender.username,
+        avatar: message.sender.avatar
+      }
+    });
+
     // Create notifications for other participants
     const conversationWithParticipants = await prisma.conversation.findUnique({
       where: { id: conversationId },
@@ -358,6 +373,20 @@ router.post(
           content: content.trim(),
         },
         include: { sender: true },
+      });
+
+      // 🔌 SOCKET.IO: Envoyer le message en temps réel
+      socketService.sendMessage(conversation.id, {
+        id: message.id,
+        conversationId: message.conversationId,
+        senderId: message.senderId,
+        content: message.content,
+        sentAt: message.sentAt.toISOString(),
+        sender: {
+          id: message.sender.id,
+          username: message.sender.username,
+          avatar: message.sender.avatar
+        }
       });
 
       // Create notification for recipient

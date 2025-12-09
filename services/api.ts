@@ -1,6 +1,26 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 import TokenManager from './storage';
 
+// Simple auth event system (React Native compatible - no Node.js events module)
+type SessionExpiredCallback = () => void;
+const sessionExpiredCallbacks: SessionExpiredCallback[] = [];
+
+export const authEvents = {
+  onSessionExpired: (callback: SessionExpiredCallback) => {
+    sessionExpiredCallbacks.push(callback);
+    // Return unsubscribe function
+    return () => {
+      const index = sessionExpiredCallbacks.indexOf(callback);
+      if (index > -1) {
+        sessionExpiredCallbacks.splice(index, 1);
+      }
+    };
+  },
+  emitSessionExpired: () => {
+    sessionExpiredCallbacks.forEach(callback => callback());
+  }
+};
+
 // Configuration de l'API
 // Toggle between local and production
 const USE_LOCAL = false; // Set to false to use Railway (for Discord OAuth)
@@ -127,6 +147,8 @@ class ApiService {
             await TokenManager.clearTokens();
             this.isRefreshing = false;
             this.processQueue(new Error('Session expired'), null);
+            // Emit session expired event for global logout
+            authEvents.emitSessionExpired();
             return Promise.reject(new Error('Session expired'));
           }
 
@@ -166,6 +188,8 @@ class ApiService {
             await TokenManager.clearTokens();
             this.isRefreshing = false;
             this.processQueue(new Error('Session expired - please log in again'), null);
+            // Emit session expired event for global logout
+            authEvents.emitSessionExpired();
             return Promise.reject(new Error('Session expired - please log in again'));
           }
 
