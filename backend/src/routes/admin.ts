@@ -151,6 +151,82 @@ router.delete('/products/cleanup', async (req, res) => {
   }
 });
 
+// DELETE /api/admin/reset-all - DANGER: Delete ALL data (for going to production clean)
+router.delete('/reset-all', async (req, res) => {
+  try {
+    const { confirm } = req.body;
+
+    // Require explicit confirmation
+    if (confirm !== 'RESET_ALL_DATA') {
+      return res.status(400).json({
+        error: 'Confirmation required',
+        message: 'Send { "confirm": "RESET_ALL_DATA" } to confirm this destructive action'
+      });
+    }
+
+    console.log('[admin] ⚠️ RESET ALL DATA requested');
+
+    // Delete in correct order (respect foreign keys)
+    // 1. Messages
+    const deletedMessages = await prisma.message.deleteMany({});
+    console.log(`[admin] Deleted ${deletedMessages.count} messages`);
+
+    // 2. Conversations
+    const deletedConversations = await prisma.conversation.deleteMany({});
+    console.log(`[admin] Deleted ${deletedConversations.count} conversations`);
+
+    // 3. Notifications
+    const deletedNotifications = await prisma.notification.deleteMany({});
+    console.log(`[admin] Deleted ${deletedNotifications.count} notifications`);
+
+    // 4. Reviews
+    const deletedReviews = await prisma.review.deleteMany({});
+    console.log(`[admin] Deleted ${deletedReviews.count} reviews`);
+
+    // 5. Transactions
+    const deletedTransactions = await prisma.transaction.deleteMany({});
+    console.log(`[admin] Deleted ${deletedTransactions.count} transactions`);
+
+    // 6. Product images
+    const deletedImages = await prisma.productImage.deleteMany({});
+    console.log(`[admin] Deleted ${deletedImages.count} product images`);
+
+    // 7. Products
+    const deletedProducts = await prisma.product.deleteMany({});
+    console.log(`[admin] Deleted ${deletedProducts.count} products`);
+
+    // 8. Users (except admin)
+    const deletedUsers = await prisma.user.deleteMany({
+      where: {
+        role: { not: 'ADMIN' }
+      }
+    });
+    console.log(`[admin] Deleted ${deletedUsers.count} users (admins preserved)`);
+
+    // Broadcast cache invalidation
+    socketService.broadcastCacheInvalidation(['products', 'transactions', 'home', 'notifications', 'messages', 'user']);
+    console.log('[admin] ✅ RESET COMPLETE - All data deleted');
+
+    return res.json({
+      success: true,
+      message: 'All data has been deleted. App is ready for production.',
+      deleted: {
+        messages: deletedMessages.count,
+        conversations: deletedConversations.count,
+        notifications: deletedNotifications.count,
+        reviews: deletedReviews.count,
+        transactions: deletedTransactions.count,
+        images: deletedImages.count,
+        products: deletedProducts.count,
+        users: deletedUsers.count
+      }
+    });
+  } catch (error: any) {
+    console.error('[admin] Failed to reset all data:', error);
+    return res.status(500).json({ error: 'Failed to reset data', details: error.message });
+  }
+});
+
 // ==========================================
 // GESTION DES COMMISSIONS
 // ==========================================
