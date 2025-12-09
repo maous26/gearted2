@@ -207,68 +207,8 @@ export class NotificationController {
         },
       });
 
-      // 💬 ALSO CREATE A MESSAGE FROM "Hugo de Gearted"
-      // Find or create "Hugo de Gearted" system user
-      let hugoUser = await prisma.user.findFirst({
-        where: { username: 'hugo-gearted' }
-      });
-
-      if (!hugoUser) {
-        // Create Hugo de Gearted system user if doesn't exist
-        hugoUser = await prisma.user.create({
-          data: {
-            username: 'hugo-gearted',
-            email: 'hugo@gearted.com',
-            password: '', // No password - system account
-            firstName: 'Hugo',
-            lastName: 'de Gearted',
-            role: 'ADMIN',
-            isActive: true,
-            isEmailVerified: true,
-            badges: ['admin', 'verified']
-          }
-        });
-        console.log('[NotificationController] Created Hugo de Gearted system user');
-      }
-
-      // Find or create conversation between Hugo and the user
-      let conversation = await prisma.conversation.findFirst({
-        where: {
-          AND: [
-            { participants: { some: { id: hugoUser.id } } },
-            { participants: { some: { id: data.userId } } }
-          ]
-        }
-      });
-
-      if (!conversation) {
-        conversation = await prisma.conversation.create({
-          data: {
-            participants: {
-              connect: [
-                { id: hugoUser.id },
-                { id: data.userId }
-              ]
-            }
-          }
-        });
-        console.log(`[NotificationController] Created conversation between Hugo and user ${data.userId}`);
-      }
-
-      // Create message in the conversation with transaction info embedded in content
-      const messageContent = data.data?.transactionId 
-        ? `${data.title}\n\n${data.message}\n\n---\n📋 Transaction: ${data.data.transactionId}\n${data.data?.role === 'SELLER' ? '💼 Voir mes ventes' : '🛒 Voir mes achats'}`
-        : `${data.title}\n\n${data.message}`;
-
-      await prisma.message.create({
-        data: {
-          conversationId: conversation.id,
-          senderId: hugoUser.id,
-          content: messageContent
-        }
-      });
-
-      console.log(`[NotificationController] Created message from Hugo for user ${data.userId} (${data.data?.role || 'unknown role'})`);
+      // NOTE: Les notifications sont suffisantes, pas besoin de créer des messages dupliqués
+      // Les utilisateurs verront les notifications dans l'onglet "Suivi de transaction"
 
       // 🔔 EMIT SOCKET.IO NOTIFICATION IN REAL-TIME
       socketService.sendNotification(data.userId, {
