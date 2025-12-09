@@ -495,7 +495,7 @@
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
           <div class="form-group">
             <label for="bannerFont">Police</label>
             <select id="bannerFont" onchange="updateBannerPreview()" style="width: 100%; padding: 12px; background: #0f0f0f; border: 1px solid #333; border-radius: 8px; color: #fff;">
@@ -510,6 +510,16 @@
               <option value="elegant">Élégant (Fin)</option>
               <option value="compact">Compact (Serré)</option>
               <option value="wide">Wide (Très espacé)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="bannerFontSize">Taille</label>
+            <select id="bannerFontSize" onchange="updateBannerPreview()" style="width: 100%; padding: 12px; background: #0f0f0f; border: 1px solid #333; border-radius: 8px; color: #fff;">
+              <option value="small">Petit (12px)</option>
+              <option value="medium" selected>Moyen (14px)</option>
+              <option value="large">Grand (18px)</option>
+              <option value="xlarge">Très grand (22px)</option>
             </select>
           </div>
 
@@ -862,6 +872,7 @@
       backgroundColor: '#FFB800',
       textColor: '#000000',
       fontFamily: 'default',
+      fontSize: 'medium',
       effect: 'none'
     };
 
@@ -879,6 +890,7 @@
           document.getElementById('bannerTextColor').value = bannerSettings.textColor || '#000000';
           document.getElementById('bannerTextColorText').value = bannerSettings.textColor || '#000000';
           document.getElementById('bannerFont').value = bannerSettings.fontFamily || 'default';
+          document.getElementById('bannerFontSize').value = bannerSettings.fontSize || 'medium';
           document.getElementById('bannerEffect').value = bannerSettings.effect || 'none';
 
           updateBannerPreview();
@@ -897,8 +909,13 @@
       const bgColor = document.getElementById('bannerBgColor').value;
       const textColor = document.getElementById('bannerTextColor').value;
       const fontFamily = document.getElementById('bannerFont').value;
+      const fontSize = document.getElementById('bannerFontSize').value;
       const effect = document.getElementById('bannerEffect').value;
       const enabled = document.getElementById('bannerEnabled').checked;
+
+      // Font size mapping
+      const fontSizes = { small: '12px', medium: '14px', large: '18px', xlarge: '22px' };
+      const selectedFontSize = fontSizes[fontSize] || '14px';
 
       // Update color text inputs
       document.getElementById('bannerBgColorText').value = bgColor;
@@ -928,6 +945,7 @@
       previewText.style.letterSpacing = style.spacing;
       previewText.style.fontWeight = style.weight;
       previewText.style.textTransform = style.transform;
+      previewText.style.fontSize = selectedFontSize;
 
       // Set effect
       previewText.style.animation = 'none';
@@ -971,6 +989,7 @@
           backgroundColor: document.getElementById('bannerBgColor').value,
           textColor: document.getElementById('bannerTextColor').value,
           fontFamily: document.getElementById('bannerFont').value,
+          fontSize: document.getElementById('bannerFontSize').value,
           effect: document.getElementById('bannerEffect').value
         };
 

@@ -9,8 +9,16 @@ interface BannerSettings {
   backgroundColor: string;
   textColor: string;
   fontFamily: string;
+  fontSize: 'small' | 'medium' | 'large' | 'xlarge';
   effect: 'none' | 'scroll' | 'blink';
 }
+
+const FONT_SIZES: Record<string, number> = {
+  small: 12,
+  medium: 14,
+  large: 18,
+  xlarge: 22,
+};
 
 const FONT_FAMILIES: Record<string, { fontFamily?: string; letterSpacing?: number; fontWeight?: '400' | '600' | '700' | 'bold'; textTransform?: 'uppercase' | 'lowercase' | 'capitalize' | 'none' }> = {
   default: { fontWeight: '600', letterSpacing: 0 },
@@ -49,6 +57,7 @@ export default function PromoBanner() {
     backgroundColor: '#FFB800',
     textColor: '#000000',
     fontFamily: 'default',
+    fontSize: 'medium',
     effect: 'none',
   };
 
@@ -100,10 +109,11 @@ export default function PromoBanner() {
   }
 
   const fontStyle = FONT_FAMILIES[banner.fontFamily] || FONT_FAMILIES.default;
+  const fontSize = FONT_SIZES[banner.fontSize] || FONT_SIZES.medium;
 
   const textStyle = {
     color: banner.textColor,
-    fontSize: 14,
+    fontSize: fontSize,
     ...fontStyle,
   };
 

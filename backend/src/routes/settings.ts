@@ -93,6 +93,7 @@ router.get('/promo-banner', async (_req, res) => {
       backgroundColor: '#FFB800',
       textColor: '#000000',
       fontFamily: 'default',
+      fontSize: 'medium',
       effect: 'none'
     };
 
@@ -104,6 +105,7 @@ router.get('/promo-banner', async (_req, res) => {
         backgroundColor: banner.backgroundColor ?? '#FFB800',
         textColor: banner.textColor ?? '#000000',
         fontFamily: banner.fontFamily ?? 'default',
+        fontSize: banner.fontSize ?? 'medium',
         effect: banner.effect ?? 'none'
       }
     });
@@ -117,6 +119,7 @@ router.get('/promo-banner', async (_req, res) => {
         backgroundColor: '#FFB800',
         textColor: '#000000',
         fontFamily: 'default',
+        fontSize: 'medium',
         effect: 'none'
       }
     });

@@ -1560,7 +1560,7 @@ router.get('/settings/promo-banner', async (req, res) => {
 // POST /api/admin/settings/promo-banner - Update promo banner settings
 router.post('/settings/promo-banner', async (req, res) => {
   try {
-    const { enabled, message, backgroundColor, textColor, fontFamily, effect } = req.body;
+    const { enabled, message, backgroundColor, textColor, fontFamily, fontSize, effect } = req.body;
 
     const currentSettings = await (prisma as any).platformSettings.findFirst({
       where: { key: 'promo_banner' }
@@ -1574,6 +1574,7 @@ router.post('/settings/promo-banner', async (req, res) => {
       backgroundColor: backgroundColor !== undefined ? backgroundColor : (currentValue.backgroundColor ?? '#FFB800'),
       textColor: textColor !== undefined ? textColor : (currentValue.textColor ?? '#000000'),
       fontFamily: fontFamily !== undefined ? fontFamily : (currentValue.fontFamily ?? 'default'),
+      fontSize: fontSize !== undefined ? fontSize : (currentValue.fontSize ?? 'medium'),
       effect: effect !== undefined ? effect : (currentValue.effect ?? 'none')
     };
 
