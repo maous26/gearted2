@@ -98,6 +98,7 @@ export default function GeartedLanding() {
 
         <View style={styles.overlay}>
           <View style={styles.titleSection}>
+            <Text style={styles.brandName}>GEARTED</Text>
             <Text style={styles.title}>
               Ton équipement,{'\n'}ta communauté.
             </Text>
@@ -196,6 +197,17 @@ const styles = StyleSheet.create({
   },
   titleSection: {
     marginBottom: 20,
+  },
+  brandName: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#00D4AA',
+    textAlign: 'center',
+    letterSpacing: 4,
+    marginBottom: 8,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   title: {
     fontSize: 28,
