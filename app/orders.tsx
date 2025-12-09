@@ -420,15 +420,23 @@ export default function OrdersScreen() {
                   : 'N/A'} €
             </Text>
 
-            {/* Status badge */}
+            {/* Status badge - show relevant status based on shipping state */}
             <View style={{
-              backgroundColor: order.status === 'SUCCEEDED' ? '#10B981' : '#F59E0B',
+              backgroundColor: order.trackingNumber
+                ? '#2196F3' // Blue - shipped
+                : order.status === 'SUCCEEDED'
+                  ? '#10B981' // Green - paid
+                  : '#F59E0B', // Orange - pending
               paddingHorizontal: 10,
               paddingVertical: 4,
               borderRadius: 8,
             }}>
               <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '600' }}>
-                {order.status === 'SUCCEEDED' ? '✓ Payé' : '⏳ En attente'}
+                {order.trackingNumber
+                  ? '📦 Expédié'
+                  : order.status === 'SUCCEEDED'
+                    ? '✓ Payé'
+                    : '⏳ En attente'}
               </Text>
             </View>
           </View>
