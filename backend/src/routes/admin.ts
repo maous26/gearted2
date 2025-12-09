@@ -179,11 +179,7 @@ router.delete('/reset-all', async (req, res) => {
     const deletedNotifications = await prisma.notification.deleteMany({});
     console.log(`[admin] Deleted ${deletedNotifications.count} notifications`);
 
-    // 4. Reviews
-    const deletedReviews = await prisma.review.deleteMany({});
-    console.log(`[admin] Deleted ${deletedReviews.count} reviews`);
-
-    // 5. Transactions
+    // 4. Transactions
     const deletedTransactions = await prisma.transaction.deleteMany({});
     console.log(`[admin] Deleted ${deletedTransactions.count} transactions`);
 
@@ -214,7 +210,6 @@ router.delete('/reset-all', async (req, res) => {
         messages: deletedMessages.count,
         conversations: deletedConversations.count,
         notifications: deletedNotifications.count,
-        reviews: deletedReviews.count,
         transactions: deletedTransactions.count,
         images: deletedImages.count,
         products: deletedProducts.count,
