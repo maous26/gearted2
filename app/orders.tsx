@@ -474,6 +474,37 @@ export default function OrdersScreen() {
                   </Text>
                 </TouchableOpacity>
               )}
+
+              {/* Button to track package - ONLY FOR BUYER */}
+              {!isSale && (
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#4CAF50',
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    borderRadius: 8,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/track-package' as any,
+                      params: {
+                        trackingNumber: order.trackingNumber,
+                        productTitle: order.product?.title || 'Produit',
+                        carrier: order.trackingNumber?.split('-')[0] || 'Transporteur',
+                        sellerName: order.product?.seller?.username || 'Vendeur',
+                      },
+                    });
+                  }}
+                >
+                  <Ionicons name="location-outline" size={16} color="#FFF" style={{ marginRight: 6 }} />
+                  <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 13 }}>
+                    Suivre mon colis
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
