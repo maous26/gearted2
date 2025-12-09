@@ -11,7 +11,6 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import PromoBanner from "../../components/PromoBanner";
 import LegalFooter from "../../components/LegalFooter";
 import PromoBanner from "../../components/PromoBanner";
 import { useTheme } from "../../components/ThemeProvider";
@@ -103,9 +102,6 @@ export default function AuthenticatedHome() {
             </Pressable>
           </View>
         </LinearGradient>
-
-        {/* Promo Banner */}
-        <PromoBanner />
 
         {/* Featured Listings */}
         <View style={{
