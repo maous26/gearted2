@@ -25,15 +25,24 @@ export default function PromoBanner() {
   const blinkAnim = useRef(new Animated.Value(1)).current;
   const [textWidth, setTextWidth] = useState(0);
 
-  const { data: bannerData } = useQuery({
+  const { data: bannerData, error, isLoading } = useQuery({
     queryKey: ['promo-banner'],
     queryFn: async () => {
+      console.log('[PromoBanner] Fetching banner settings...');
       const response = await api.get('/api/settings/promo-banner');
+      console.log('[PromoBanner] Response:', JSON.stringify(response.data));
       return response.data.banner as BannerSettings;
     },
     staleTime: 60000, // Refresh every minute
     refetchInterval: 60000,
   });
+
+  // Debug logging
+  useEffect(() => {
+    console.log('[PromoBanner] bannerData:', bannerData);
+    console.log('[PromoBanner] error:', error);
+    console.log('[PromoBanner] isLoading:', isLoading);
+  }, [bannerData, error, isLoading]);
 
   const banner = bannerData || {
     enabled: false,
