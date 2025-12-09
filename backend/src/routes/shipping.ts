@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { Request, Response, Router } from 'express';
 import { NotificationController } from '../controllers/NotificationController';
 import { authenticate } from '../middleware/auth';
@@ -572,14 +572,14 @@ router.post('/select-rate/:transactionId', async (req: Request, res: Response): 
       address: relayPointAddress,
       city: relayPointCity,
       postalCode: relayPointPostalCode
-    } : null;
+    } : undefined;
 
     // Mettre à jour la transaction avec la préférence de livraison
     const updatedTransaction = await prisma.transaction.update({
       where: { id: transactionId },
       data: {
         selectedShippingRate: rateId,
-        selectedRelayPoint: relayPointData
+        selectedRelayPoint: relayPointData ?? Prisma.JsonNull
       },
       include: {
         product: { include: { seller: true } },
@@ -598,17 +598,17 @@ router.post('/select-rate/:transactionId', async (req: Request, res: Response): 
       await NotificationController.createNotification({
         userId: transaction.product.sellerId,
         title: '📦 Mode de livraison choisi !',
-        message: `${updatedTransaction.buyer?.username || 'L\'acheteur'} a choisi son mode de livraison pour "${updatedTransaction.product.title}".\n\nMode: ${rateId}${relayInfo}\n\n👉 Vous pouvez maintenant générer l'étiquette et expédier le colis.`,
+        message: `${transaction.buyer?.username || 'L\'acheteur'} a choisi son mode de livraison pour "${transaction.product.title}".\n\nMode: ${rateId}${relayInfo}\n\n👉 Vous pouvez maintenant générer l'étiquette et expédier le colis.`,
         type: 'SHIPPING_UPDATE',
         data: {
           transactionId: updatedTransaction.id,
           productId: updatedTransaction.productId,
-          productTitle: updatedTransaction.product.title,
+          productTitle: transaction.product.title,
           role: 'SELLER',
           step: 'SHIPPING_RATE_SELECTED',
           selectedRate: rateId,
-          relayPoint: relayPointData,
-          buyerName: updatedTransaction.buyer?.username
+          relayPoint: relayPointData ?? null,
+          buyerName: transaction.buyer?.username
         }
       });
       console.log(`[Shipping/SelectRate] Notification sent to seller ${transaction.product.sellerId}`);
