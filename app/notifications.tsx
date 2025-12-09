@@ -33,10 +33,10 @@ export default function NotificationsScreen() {
     useCallback(() => {
       loadNotifications();
 
-      // Start polling every 30 seconds for new notifications
+      // Start polling every 5 seconds for new notifications (was 30s - too slow)
       pollingInterval.current = setInterval(() => {
         loadNotificationsQuiet();
-      }, 30000);
+      }, 5000);
 
       return () => {
         // Stop polling when screen loses focus
