@@ -628,8 +628,9 @@
     <!-- Products Panel -->
     <div id="productsPanel" class="panel">
       <h2>📦 Produits</h2>
-      <div style="margin-bottom: 16px;">
+      <div style="margin-bottom: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
         <button class="btn btn-danger btn-sm" onclick="cleanupSeededProducts()">🗑️ Supprimer données test</button>
+        <button class="btn btn-danger" onclick="resetAllData()" style="background: #8B0000;">☢️ RESET COMPLET (Production)</button>
       </div>
       <div id="productsList" class="table-container">
         <div class="loading"><div class="spinner"></div></div>
@@ -1357,6 +1358,37 @@
         showAlert('productsList', '✅ Données de test supprimées avec succès !', 'success');
         loadProducts();
         loadDashboard(); // Rafraîchir aussi le dashboard
+      } catch (err) {
+        alert('Erreur: ' + err.message);
+      }
+    }
+
+    async function resetAllData() {
+      // Triple confirmation pour cette action TRÈS dangereuse
+      if (!confirm('☢️ ATTENTION - RESET COMPLET ☢️\n\nVous êtes sur le point de SUPPRIMER TOUTES LES DONNÉES :\n\n• Tous les utilisateurs (sauf admins)\n• Tous les produits\n• Toutes les transactions\n• Tous les messages\n• Toutes les notifications\n• Tous les avis\n\nLes paramètres de la plateforme seront conservés.\n\nCette action est IRRÉVERSIBLE !\n\nÊtes-vous ABSOLUMENT sûr ?')) return;
+
+      // Deuxième confirmation
+      if (!confirm('🚨 DERNIÈRE CHANCE 🚨\n\nCette action va effacer TOUTES les données utilisateurs.\n\nVoulez-vous vraiment continuer ?')) return;
+
+      // Troisième confirmation par texte
+      const confirmText = prompt('Pour confirmer le RESET COMPLET, tapez exactement :\n\nRESET_ALL_DATA');
+      if (confirmText !== 'RESET_ALL_DATA') {
+        alert('Reset annulé. Le texte de confirmation ne correspond pas.');
+        return;
+      }
+
+      try {
+        const result = await api('/api/admin/reset-all', {
+          method: 'DELETE',
+          body: JSON.stringify({ confirm: 'RESET_ALL_DATA' })
+        });
+
+        alert(`✅ RESET COMPLET EFFECTUÉ !\n\nDonnées supprimées :\n• ${result.deleted.users} utilisateurs\n• ${result.deleted.products} produits\n• ${result.deleted.transactions} transactions\n• ${result.deleted.messages} messages\n• ${result.deleted.notifications} notifications\n• ${result.deleted.reviews} avis\n• ${result.deleted.images} images\n• ${result.deleted.conversations} conversations\n\nL'application est prête pour la production.`);
+
+        loadProducts();
+        loadTransactions();
+        loadUsers();
+        loadDashboard();
       } catch (err) {
         alert('Erreur: ' + err.message);
       }
