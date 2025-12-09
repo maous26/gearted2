@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import LegalFooter from "../../components/LegalFooter";
+import PromoBanner from "../../components/PromoBanner";
 import { useTheme } from "../../components/ThemeProvider";
 import { CATEGORIES } from "../../data";
 import { useCategoryStats, useFeaturedProducts, useProducts, usePublicSettings } from "../../hooks/useProducts";
@@ -55,6 +56,9 @@ export default function AuthenticatedHome() {
       <StatusBar barStyle={theme === 'night' ? 'light-content' : 'dark-content'} />
 
       <ScrollView style={{ flex: 1 }}>
+        {/* Promo Banner */}
+        <PromoBanner />
+
         {/* Search Bar */}
         <LinearGradient
           colors={[t.heroGradStart + 'CC', t.heroGradEnd + '66']}

@@ -1528,6 +1528,75 @@ router.post('/settings/protection', async (req, res) => {
 });
 
 // ==========================================
+// PROMO BANNER SETTINGS
+// ==========================================
+
+// GET /api/admin/settings/promo-banner - Get promo banner settings
+router.get('/settings/promo-banner', async (req, res) => {
+  try {
+    const settings = await (prisma as any).platformSettings.findFirst({
+      where: { key: 'promo_banner' }
+    });
+
+    const defaultBanner = {
+      enabled: false,
+      message: '',
+      backgroundColor: '#FFB800',
+      textColor: '#000000',
+      fontFamily: 'default',
+      effect: 'none'
+    };
+
+    return res.json({
+      success: true,
+      banner: settings?.value || defaultBanner
+    });
+  } catch (error) {
+    console.error('[admin] Failed to get promo banner settings:', error);
+    return res.status(500).json({ error: 'Failed to get promo banner settings' });
+  }
+});
+
+// POST /api/admin/settings/promo-banner - Update promo banner settings
+router.post('/settings/promo-banner', async (req, res) => {
+  try {
+    const { enabled, message, backgroundColor, textColor, fontFamily, effect } = req.body;
+
+    const currentSettings = await (prisma as any).platformSettings.findFirst({
+      where: { key: 'promo_banner' }
+    });
+
+    const currentValue = currentSettings?.value || {};
+
+    const newSettings = {
+      enabled: enabled !== undefined ? enabled : (currentValue.enabled ?? false),
+      message: message !== undefined ? message : (currentValue.message ?? ''),
+      backgroundColor: backgroundColor !== undefined ? backgroundColor : (currentValue.backgroundColor ?? '#FFB800'),
+      textColor: textColor !== undefined ? textColor : (currentValue.textColor ?? '#000000'),
+      fontFamily: fontFamily !== undefined ? fontFamily : (currentValue.fontFamily ?? 'default'),
+      effect: effect !== undefined ? effect : (currentValue.effect ?? 'none')
+    };
+
+    const settings = await (prisma as any).platformSettings.upsert({
+      where: { key: 'promo_banner' },
+      update: { value: newSettings },
+      create: { key: 'promo_banner', value: newSettings }
+    });
+
+    console.log(`[admin] Promo banner updated: ${newSettings.enabled ? 'enabled' : 'disabled'}`);
+
+    return res.json({
+      success: true,
+      message: `Bandeau promo ${newSettings.enabled ? 'active' : 'desactive'}`,
+      banner: settings.value
+    });
+  } catch (error) {
+    console.error('[admin] Failed to update promo banner settings:', error);
+    return res.status(500).json({ error: 'Failed to update promo banner settings' });
+  }
+});
+
+// ==========================================
 // FIX STUCK TRANSACTIONS (Manual webhook processing)
 // ==========================================
 
