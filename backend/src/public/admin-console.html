@@ -501,9 +501,15 @@
             <select id="bannerFont" onchange="updateBannerPreview()" style="width: 100%; padding: 12px; background: #0f0f0f; border: 1px solid #333; border-radius: 8px; color: #fff;">
               <option value="default">Par défaut</option>
               <option value="stencil">Stencil (Militaire)</option>
+              <option value="military">Military (Espacé)</option>
+              <option value="tactical">Tactical (Majuscules)</option>
               <option value="impact">Impact (Bold)</option>
+              <option value="bold">Gras</option>
               <option value="courier">Courier (Mono)</option>
               <option value="arial-black">Arial Black</option>
+              <option value="elegant">Élégant (Fin)</option>
+              <option value="compact">Compact (Serré)</option>
+              <option value="wide">Wide (Très espacé)</option>
             </select>
           </div>
 
@@ -904,32 +910,24 @@
       preview.style.opacity = enabled ? '1' : '0.5';
 
       // Set font
-      switch(fontFamily) {
-        case 'stencil':
-          previewText.style.fontFamily = '"Stencil Std", "Army", "Impact", sans-serif';
-          previewText.style.letterSpacing = '3px';
-          previewText.style.fontWeight = 'bold';
-          break;
-        case 'impact':
-          previewText.style.fontFamily = 'Impact, Haettenschweiler, sans-serif';
-          previewText.style.letterSpacing = '1px';
-          previewText.style.fontWeight = 'normal';
-          break;
-        case 'courier':
-          previewText.style.fontFamily = '"Courier New", Courier, monospace';
-          previewText.style.letterSpacing = '0';
-          previewText.style.fontWeight = 'bold';
-          break;
-        case 'arial-black':
-          previewText.style.fontFamily = '"Arial Black", Gadget, sans-serif';
-          previewText.style.letterSpacing = '1px';
-          previewText.style.fontWeight = 'normal';
-          break;
-        default:
-          previewText.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-          previewText.style.letterSpacing = '0';
-          previewText.style.fontWeight = '600';
-      }
+      const fontStyles = {
+        'default': { family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', spacing: '0', weight: '600', transform: 'none' },
+        'stencil': { family: '"Stencil Std", "Army", "Impact", sans-serif', spacing: '4px', weight: 'bold', transform: 'uppercase' },
+        'military': { family: '-apple-system, BlinkMacSystemFont, sans-serif', spacing: '6px', weight: 'bold', transform: 'uppercase' },
+        'tactical': { family: '-apple-system, BlinkMacSystemFont, sans-serif', spacing: '3px', weight: 'bold', transform: 'uppercase' },
+        'impact': { family: 'Impact, Haettenschweiler, sans-serif', spacing: '1px', weight: 'normal', transform: 'none' },
+        'bold': { family: '-apple-system, BlinkMacSystemFont, sans-serif', spacing: '0', weight: 'bold', transform: 'none' },
+        'courier': { family: '"Courier New", Courier, monospace', spacing: '0', weight: 'bold', transform: 'none' },
+        'arial-black': { family: '"Arial Black", Gadget, sans-serif', spacing: '1px', weight: 'normal', transform: 'none' },
+        'elegant': { family: 'Georgia, "Times New Roman", serif', spacing: '2px', weight: '400', transform: 'none' },
+        'compact': { family: '-apple-system, BlinkMacSystemFont, sans-serif', spacing: '-0.5px', weight: 'bold', transform: 'none' },
+        'wide': { family: '-apple-system, BlinkMacSystemFont, sans-serif', spacing: '8px', weight: '600', transform: 'uppercase' }
+      };
+      const style = fontStyles[fontFamily] || fontStyles['default'];
+      previewText.style.fontFamily = style.family;
+      previewText.style.letterSpacing = style.spacing;
+      previewText.style.fontWeight = style.weight;
+      previewText.style.textTransform = style.transform;
 
       // Set effect
       previewText.style.animation = 'none';

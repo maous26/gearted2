@@ -12,12 +12,18 @@ interface BannerSettings {
   effect: 'none' | 'scroll' | 'blink';
 }
 
-const FONT_FAMILIES: Record<string, { fontFamily?: string; letterSpacing?: number; fontWeight?: '600' | '700' | 'bold' }> = {
+const FONT_FAMILIES: Record<string, { fontFamily?: string; letterSpacing?: number; fontWeight?: '400' | '600' | '700' | 'bold'; textTransform?: 'uppercase' | 'lowercase' | 'capitalize' | 'none' }> = {
   default: { fontWeight: '600', letterSpacing: 0 },
-  stencil: { fontWeight: '700', letterSpacing: 3 },
+  stencil: { fontWeight: '700', letterSpacing: 4, textTransform: 'uppercase' },
   impact: { fontWeight: '700', letterSpacing: 1 },
   courier: { fontFamily: 'Courier', fontWeight: '700', letterSpacing: 0 },
-  'arial-black': { fontWeight: '700', letterSpacing: 1 },
+  'arial-black': { fontWeight: 'bold', letterSpacing: 1 },
+  military: { fontWeight: '700', letterSpacing: 6, textTransform: 'uppercase' },
+  elegant: { fontWeight: '400', letterSpacing: 2 },
+  bold: { fontWeight: 'bold', letterSpacing: 0 },
+  compact: { fontWeight: '700', letterSpacing: -0.5 },
+  wide: { fontWeight: '600', letterSpacing: 8, textTransform: 'uppercase' },
+  tactical: { fontWeight: '700', letterSpacing: 3, textTransform: 'uppercase' },
 };
 
 export default function PromoBanner() {
