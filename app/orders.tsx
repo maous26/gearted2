@@ -14,8 +14,10 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '../components/ThemeProvider';
-import { useCancelTransaction, useMyPurchases, useMySales } from '../hooks/useTransactions';
+import { useSocketContext } from '../components/SocketProvider';
+import { useCancelTransaction, useMyPurchases, useMySales, transactionKeys } from '../hooks/useTransactions';
 import { Transaction } from '../services/transactions';
 import { HugoMessageType, HugoTransactionMessage, useMessagesStore } from '../stores/messagesStore';
 import { THEMES } from '../themes';
@@ -29,7 +31,9 @@ export default function OrdersScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ tab?: string; transactionId?: string }>();
   const { addHugoMessage, hasHugoMessage, loadFromStorage } = useMessagesStore();
-  
+  const { isConnected } = useSocketContext();
+  const queryClient = useQueryClient();
+
   // Ref pour éviter les notifications multiples
   const notificationsProcessed = useRef<Set<string>>(new Set());
 
@@ -100,6 +104,15 @@ export default function OrdersScreen() {
       }
     }, [activeTab, storeLoaded, refetchSales, refetchPurchases])
   );
+
+  // 🔌 Socket.IO: Écouter les événements de paiement pour rafraîchir immédiatement
+  useEffect(() => {
+    if (!isConnected) return;
+
+    // Le SocketProvider gère déjà l'invalidation du cache via 'payment:success'
+    // Mais on ajoute un log pour le debug
+    console.log('[Orders] Socket.IO connected, listening for real-time updates');
+  }, [isConnected]);
 
   // Envoyer une notification Hugo pour une transaction
   const sendHugoNotification = async (

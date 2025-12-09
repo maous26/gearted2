@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../components/ThemeProvider';
+import { useSocketContext } from '../components/SocketProvider';
+import { useSocket } from '../hooks/useSocket';
 import notificationService, { Notification } from '../services/notifications';
 import { THEMES } from '../themes';
 
@@ -21,6 +23,8 @@ export default function NotificationsScreen() {
   const { theme } = useTheme();
   const t = THEMES[theme];
   const router = useRouter();
+  const { isConnected } = useSocketContext();
+  const { onNotification } = useSocket();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -33,10 +37,13 @@ export default function NotificationsScreen() {
     useCallback(() => {
       loadNotifications();
 
-      // Start polling every 5 seconds for new notifications (was 30s - too slow)
+      // Polling réduit à 30s car Socket.IO gère le temps réel
+      // Le polling sert de fallback si Socket.IO est déconnecté
       pollingInterval.current = setInterval(() => {
-        loadNotificationsQuiet();
-      }, 5000);
+        if (!isConnected) {
+          loadNotificationsQuiet();
+        }
+      }, 30000);
 
       return () => {
         // Stop polling when screen loses focus
@@ -45,8 +52,34 @@ export default function NotificationsScreen() {
           pollingInterval.current = null;
         }
       };
-    }, [])
+    }, [isConnected])
   );
+
+  // 🔌 Socket.IO: Écouter les nouvelles notifications en temps réel
+  useEffect(() => {
+    const unsubscribe = onNotification((socketNotif) => {
+      console.log('[Notifications] Received via Socket.IO:', socketNotif.title);
+
+      // Ajouter la nouvelle notification en haut de la liste
+      const newNotif: Notification = {
+        id: socketNotif.id,
+        title: socketNotif.title,
+        message: socketNotif.message,
+        type: socketNotif.type as any,
+        isRead: false,
+        createdAt: socketNotif.createdAt,
+        data: socketNotif.data,
+      };
+
+      setNotifications((prev) => {
+        // Éviter les doublons
+        if (prev.some(n => n.id === newNotif.id)) return prev;
+        return [newNotif, ...prev];
+      });
+    });
+
+    return unsubscribe;
+  }, [onNotification]);
 
   // Reload when app comes back to foreground
   useEffect(() => {
