@@ -26,6 +26,9 @@ import {
   getHugoMessageContent
 } from '../../stores/messagesStore';
 
+// Flag pour contrôler l'affichage du message de bienvenue
+// Le message n'est affiché que si hasSeenWelcomeBackend === false
+
 type User = {
   id: string;
   username: string;
@@ -93,7 +96,10 @@ export default function MessagesScreen() {
     deletedMessageIds,
     readMessageIds,
     unreadCount,
+    hasSeenWelcomeBackend,
     loadFromStorage,
+    fetchWelcomeStatus,
+    markWelcomeSeenBackend,
     markAsRead,
     deleteConversation: deleteFromStore,
     deleteTransactionThread,
@@ -117,11 +123,20 @@ export default function MessagesScreen() {
     const init = async () => {
       await loadFromStorage();
       await cleanDuplicates();
-      // Le message de bienvenue n'est plus restauré automatiquement
-      // pour éviter que le badge réapparaisse après lecture
+      // Récupérer le statut du message de bienvenue depuis le backend
+      if (user?.id) {
+        await fetchWelcomeStatus();
+      }
     };
     init();
-  }, []);
+  }, [user?.id]);
+
+  // Recharger les conversations quand le statut de bienvenue backend change
+  useEffect(() => {
+    if (hasSeenWelcomeBackend !== null) {
+      loadConversations(false);
+    }
+  }, [hasSeenWelcomeBackend]);
 
   // Rafraîchir quand l'app revient au premier plan
   useEffect(() => {
@@ -185,8 +200,12 @@ export default function MessagesScreen() {
 
   // Fonction pour charger les conversations
   const loadConversations = useCallback(async (showLoading = true) => {
+    // Déterminer si on doit afficher le message de bienvenue
+    // On l'affiche SEULEMENT si hasSeenWelcomeBackend === false (nouvel utilisateur)
+    const shouldShowWelcome = hasSeenWelcomeBackend === false;
+
     if (!user?.id) {
-      setConversations([WELCOME_MESSAGE]);
+      setConversations(shouldShowWelcome ? [WELCOME_MESSAGE] : []);
       setLoading(false);
       return;
     }
@@ -200,7 +219,12 @@ export default function MessagesScreen() {
         const dateB = b.messages?.[0]?.sentAt ? new Date(b.messages[0].sentAt).getTime() : 0;
         return dateB - dateA;
       });
-      setConversations([WELCOME_MESSAGE, ...groupedConversations]);
+      // N'inclure le message de bienvenue que pour les nouveaux utilisateurs
+      if (shouldShowWelcome) {
+        setConversations([WELCOME_MESSAGE, ...groupedConversations]);
+      } else {
+        setConversations(groupedConversations);
+      }
       setError('');
     } catch (err) {
       console.warn('[MessagesScreen] Failed to load conversations:', err);
@@ -209,11 +233,11 @@ export default function MessagesScreen() {
       } else {
         setError("Impossible de charger les conversations.");
       }
-      setConversations([WELCOME_MESSAGE]);
+      setConversations(shouldShowWelcome ? [WELCOME_MESSAGE] : []);
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, hasSeenWelcomeBackend]);
 
   // Charger les conversations au focus de l'écran + polling
   useFocusEffect(
@@ -403,7 +427,8 @@ export default function MessagesScreen() {
 
       // Naviguer vers la page appropriée
       if (conversation.isSystemMessage && conversation.id === 'gearted-welcome') {
-        // Message de bienvenue - ouvrir la page dédiée
+        // Message de bienvenue - marquer comme vu côté backend et ouvrir la page
+        await markWelcomeSeenBackend();
         router.push('/welcome-message' as any);
       } else if (!conversation.isSystemMessage) {
         // Conversation normale

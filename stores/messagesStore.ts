@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
+import api from '../services/api';
 
 const UNREAD_MESSAGES_KEY = '@gearted_unread_messages';
 const DELETED_MESSAGES_KEY = '@gearted_deleted_messages';
@@ -138,9 +139,12 @@ interface MessagesStore {
   deletedMessageIds: string[];
   hugoMessages: HugoTransactionMessage[];
   unreadCount: number;
+  hasSeenWelcomeBackend: boolean | null; // null = not loaded yet, true/false = backend status
 
   // Actions
   loadFromStorage: () => Promise<void>;
+  fetchWelcomeStatus: () => Promise<boolean>;
+  markWelcomeSeenBackend: () => Promise<void>;
   markAsRead: (conversationId: string) => Promise<void>;
   markTransactionThreadAsRead: (transactionId: string) => Promise<void>;
   deleteConversation: (conversationId: string) => Promise<void>;
@@ -162,6 +166,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
   deletedMessageIds: [],
   hugoMessages: [],
   unreadCount: 0,
+  hasSeenWelcomeBackend: null,
 
   loadFromStorage: async () => {
     try {
@@ -215,6 +220,30 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
       });
     } catch (e) {
       console.warn('Failed to load messages from storage', e);
+    }
+  },
+
+  fetchWelcomeStatus: async () => {
+    try {
+      const response = await api.get<{ hasSeenWelcome: boolean }>('/api/users/welcome-status');
+      const hasSeenWelcome = response.hasSeenWelcome;
+      console.log(`[MessagesStore] Backend welcome status: hasSeenWelcome=${hasSeenWelcome}`);
+      set({ hasSeenWelcomeBackend: hasSeenWelcome });
+      return hasSeenWelcome;
+    } catch (e) {
+      console.warn('[MessagesStore] Failed to fetch welcome status from backend', e);
+      // En cas d'erreur, on considère que l'utilisateur n'a pas vu (pour les nouveaux)
+      return false;
+    }
+  },
+
+  markWelcomeSeenBackend: async () => {
+    try {
+      await api.post('/api/users/welcome-seen');
+      set({ hasSeenWelcomeBackend: true });
+      console.log('[MessagesStore] Marked welcome as seen in backend');
+    } catch (e) {
+      console.warn('[MessagesStore] Failed to mark welcome as seen in backend', e);
     }
   },
 

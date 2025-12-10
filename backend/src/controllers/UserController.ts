@@ -136,6 +136,77 @@ export class UserController {
   }
 
   /**
+   * Vérifier si l'utilisateur a vu le message de bienvenue
+   */
+  static async getWelcomeStatus(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: { message: 'Utilisateur non authentifié' }
+        });
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { hasSeenWelcome: true }
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: { message: 'Utilisateur non trouvé' }
+        });
+      }
+
+      return res.json({
+        success: true,
+        data: { hasSeenWelcome: user.hasSeenWelcome }
+      });
+    } catch (error) {
+      console.error('Error fetching welcome status:', error);
+      return res.status(500).json({
+        success: false,
+        error: { message: 'Erreur lors de la récupération du statut' }
+      });
+    }
+  }
+
+  /**
+   * Marquer le message de bienvenue comme vu
+   */
+  static async markWelcomeSeen(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: { message: 'Utilisateur non authentifié' }
+        });
+      }
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: { hasSeenWelcome: true }
+      });
+
+      return res.json({
+        success: true,
+        data: { hasSeenWelcome: true }
+      });
+    } catch (error) {
+      console.error('Error marking welcome as seen:', error);
+      return res.status(500).json({
+        success: false,
+        error: { message: 'Erreur lors de la mise à jour du statut' }
+      });
+    }
+  }
+
+  /**
    * Supprimer le compte de l'utilisateur connecté
    */
   static async deleteAccount(req: Request, res: Response) {

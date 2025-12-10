@@ -39,6 +39,9 @@ model User {
   // Security
   refreshToken String?
 
+  // Onboarding
+  hasSeenWelcome Boolean @default(false)
+
   // Admin features
   exemptFromCommissions Boolean? @default(false)
   isPremium            Boolean? @default(false)
