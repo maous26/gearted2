@@ -76,105 +76,16 @@ async function getCommissionSettings(): Promise<CommissionSettings> {
   };
 }
 
+/**
+ * MODÈLE C2C - Gearted Marketplace
+ *
+ * Tous les paiements sont collectés sur le compte Stripe de Gearted.
+ * Les vendeurs reçoivent leurs paiements via virement IBAN.
+ *
+ * Les méthodes Stripe Connect (createConnectedAccount, createOnboardingLink, getAccountStatus)
+ * ont été supprimées car les vendeurs n'ont pas besoin de compte Stripe.
+ */
 export class StripeService {
-  /**
-   * Créer un compte Stripe Connect pour un vendeur
-   */
-  static async createConnectedAccount(userId: string, email: string, country: string = 'FR') {
-    try {
-      // Vérifier si l'utilisateur a déjà un compte Stripe
-      const existingAccount = await prisma.stripeAccount.findUnique({
-        where: { userId }
-      });
-
-      if (existingAccount) {
-        return {
-          success: true,
-          accountId: existingAccount.stripeAccountId,
-          onboardingUrl: await this.createOnboardingLink(existingAccount.stripeAccountId)
-        };
-      }
-
-      // Créer un nouveau compte Stripe Connect (Express)
-      const account = await stripe.accounts.create({
-        type: 'express',
-        country,
-        email,
-        capabilities: {
-          card_payments: { requested: true },
-          transfers: { requested: true },
-        },
-        business_type: 'individual',
-      });
-
-      // Sauvegarder dans la base de données
-      await prisma.stripeAccount.create({
-        data: {
-          userId,
-          stripeAccountId: account.id,
-          accountType: 'express',
-          country,
-          currency: 'eur',
-        }
-      });
-
-      // Créer un lien d'onboarding
-      const onboardingUrl = await this.createOnboardingLink(account.id);
-
-      return {
-        success: true,
-        accountId: account.id,
-        onboardingUrl
-      };
-    } catch (error: any) {
-      console.error('[Stripe] Failed to create connected account:', error);
-      throw new Error(`Failed to create Stripe account: ${error.message}`);
-    }
-  }
-
-  /**
-   * Créer un lien d'onboarding Stripe Connect
-   */
-  static async createOnboardingLink(accountId: string): Promise<string> {
-    const accountLink = await stripe.accountLinks.create({
-      account: accountId,
-      refresh_url: `${process.env.FRONTEND_URL}/seller/onboarding/refresh`,
-      return_url: `${process.env.FRONTEND_URL}/seller/onboarding/complete`,
-      type: 'account_onboarding',
-    });
-
-    return accountLink.url;
-  }
-
-  /**
-   * Vérifier le statut d'un compte Stripe Connect
-   */
-  static async getAccountStatus(accountId: string) {
-    try {
-      const account = await stripe.accounts.retrieve(accountId);
-
-      // Mettre à jour dans la DB
-      await prisma.stripeAccount.update({
-        where: { stripeAccountId: accountId },
-        data: {
-          chargesEnabled: account.charges_enabled,
-          payoutsEnabled: account.payouts_enabled,
-          detailsSubmitted: account.details_submitted,
-          onboardingComplete: account.charges_enabled && account.payouts_enabled,
-        }
-      });
-
-      return {
-        chargesEnabled: account.charges_enabled,
-        payoutsEnabled: account.payouts_enabled,
-        detailsSubmitted: account.details_submitted,
-        requirements: account.requirements,
-      };
-    } catch (error: any) {
-      console.error('[Stripe] Failed to get account status:', error);
-      throw new Error(`Failed to get account status: ${error.message}`);
-    }
-  }
 
   /**
    * Créer un Payment Intent avec ESCROW (capture manuelle)
@@ -886,19 +797,6 @@ export class StripeService {
     } catch (error: any) {
       console.error('[Stripe] Webhook handling failed:', error);
       throw error;
-    }
-  }
-
-  /**
-   * Récupérer le dashboard login link pour un vendeur
-   */
-  static async createDashboardLink(accountId: string) {
-    try {
-      const loginLink = await stripe.accounts.createLoginLink(accountId);
-      return loginLink.url;
-    } catch (error: any) {
-      console.error('[Stripe] Failed to create dashboard link:', error);
-      throw new Error(`Failed to create dashboard link: ${error.message}`);
     }
   }
 }

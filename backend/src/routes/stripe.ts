@@ -7,11 +7,9 @@ const router = Router();
 // Clé publique Stripe (pas besoin d'auth)
 router.get('/public-key', StripeController.getPublicKey);
 
-// Routes Stripe Connect (nécessitent authentification)
-router.post('/connect/account', authenticate, StripeController.createConnectedAccount);
-router.get('/connect/status', authenticate, StripeController.getAccountStatus);
-router.post('/connect/onboarding-link', authenticate, StripeController.createOnboardingLink);
-router.get('/connect/dashboard', authenticate, StripeController.getDashboardLink);
+// MODÈLE C2C: Les routes Stripe Connect vendeur ont été supprimées
+// Gearted collecte tous les paiements sur son compte Stripe unique
+// Les vendeurs reçoivent leurs paiements via virement IBAN
 
 // Routes de paiement
 router.post('/create-payment-intent', authenticate, StripeController.createPaymentIntent);
