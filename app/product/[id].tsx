@@ -1,9 +1,10 @@
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Dimensions, Platform, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Dimensions, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import RatingModal from "../../components/RatingModal";
+import { PaymentSheetConstants } from "../../components/StripeConstants";
 import { isStripeAvailable, useConditionalStripe } from "../../components/StripeWrapper";
 import { useTheme } from "../../components/ThemeProvider";
 import { useUser } from "../../components/UserProvider";
@@ -13,11 +14,6 @@ import api from "../../services/api";
 import stripeService from "../../services/stripe";
 import { THEMES } from "../../themes";
 import { PLACEHOLDER_IMAGE } from "../../utils/imageUtils";
-
-// Import PaymentSheet only on native
-const PaymentSheet = Platform.OS !== 'web'
-  ? require('@stripe/stripe-react-native').PaymentSheet
-  : { CollectionMode: { NEVER: 'never' }, AddressCollectionMode: { NEVER: 'never' } };
 
 interface ShippingRate {
   rateId: string;
@@ -223,10 +219,10 @@ export default function ProductDetailScreen() {
         merchantDisplayName: 'Gearted',
         returnURL: 'gearted://payment-success',
         billingDetailsCollectionConfiguration: {
-          name: PaymentSheet.CollectionMode.NEVER,
-          email: PaymentSheet.CollectionMode.NEVER,
-          phone: PaymentSheet.CollectionMode.NEVER,
-          address: PaymentSheet.AddressCollectionMode.NEVER,
+          name: PaymentSheetConstants.CollectionMode.NEVER,
+          email: PaymentSheetConstants.CollectionMode.NEVER,
+          phone: PaymentSheetConstants.CollectionMode.NEVER,
+          address: PaymentSheetConstants.AddressCollectionMode.NEVER,
           attachDefaultsToPaymentMethod: true,
         },
         defaultBillingDetails: {
