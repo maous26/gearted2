@@ -208,17 +208,9 @@ export class StripeService {
       const buyerExempt = (buyer as any)?.exemptFromCommissions === true;
       const sellerExempt = (seller as any)?.exemptFromCommissions === true;
 
-      // Récupérer le compte Stripe du vendeur (optionnel pour les tests)
-      const sellerStripeAccount = await prisma.stripeAccount.findUnique({
-        where: { userId: sellerId }
-      });
-
-      // Pour les tests : permettre les paiements sans Stripe Connect
-      const useStripeConnect = sellerStripeAccount && sellerStripeAccount.chargesEnabled;
-
-      if (sellerStripeAccount && !sellerStripeAccount.chargesEnabled) {
-        throw new Error('Le compte Stripe du vendeur n\'est pas encore activé');
-      }
+      // MODÈLE C2C: Gearted collecte les paiements sur son compte Stripe
+      // Les vendeurs reçoivent leur argent via virement IBAN (géré séparément)
+      // Pas besoin de compte Stripe Connect pour les vendeurs
 
       // Calculer les montants de base avec commissions dynamiques
       const productPriceInCents = Math.round(productPrice * 100);
@@ -305,14 +297,9 @@ export class StripeService {
         }
       };
 
-      // Si Stripe Connect est configuré, on fera le transfer APRÈS capture (escrow)
-      // On ne configure PAS transfer_data ici car on veut d'abord capturer sur le compte Gearted
-      // puis transférer manuellement au vendeur après livraison
-      // On stocke juste l'ID du compte vendeur pour le transfer ultérieur
-      if (useStripeConnect && sellerStripeAccount) {
-        paymentIntentParams.metadata!.sellerStripeAccountId = sellerStripeAccount.stripeAccountId;
-        paymentIntentParams.metadata!.applicationFeeAmount = platformFeeInCents.toString();
-      }
+      // MODÈLE C2C: Tous les paiements vont sur le compte Stripe de Gearted
+      // Le paiement au vendeur se fait via virement IBAN après confirmation de livraison
+      // (géré dans la console admin ou automatiquement via un système de payout)
 
       const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams);
 
@@ -351,7 +338,9 @@ export class StripeService {
             escrowStatus: 'AUTHORIZED',
             stripeFeeAbsorbed: stripeFeeInCents / 100,
             netPlatformFee: netPlatformFeeInCents / 100,
-            sellerStripeAccountId: sellerStripeAccount?.stripeAccountId || null,
+            // MODÈLE C2C: Pas de Stripe Connect vendeur, paiement via IBAN
+            payoutMethod: 'IBAN',
+            payoutStatus: 'PENDING', // Sera 'COMPLETED' après virement au vendeur
           }
         }
       });
@@ -420,7 +409,6 @@ export class StripeService {
       }
 
       const metadata = transaction.metadata as any;
-      const sellerStripeAccountId = metadata?.sellerStripeAccountId;
       const hasExpert = transaction.hasExpert;
 
       // Vérifier si c'est une vente Expert
@@ -451,41 +439,23 @@ export class StripeService {
 
       console.log(`[Stripe] Payment captured: ${paymentIntentId} (${hasExpert ? 'EXPERT' : 'SIMPLE'} sale, source: ${source})`);
 
-      // 2. Si Stripe Connect configuré, transférer au vendeur
-      let transfer = null;
-      if (sellerStripeAccountId) {
-        const sellerAmountInCents = Math.round(Number(transaction.sellerAmount) * 100);
+      // MODÈLE C2C: Les fonds sont capturés sur le compte Stripe de Gearted
+      // Le paiement au vendeur se fait via virement IBAN depuis la console admin
+      // Le statut payoutStatus sera mis à jour manuellement après le virement
 
-        transfer = await stripe.transfers.create({
-          amount: sellerAmountInCents,
-          currency: transaction.currency.toLowerCase(),
-          destination: sellerStripeAccountId,
-          transfer_group: paymentIntentId,
-          metadata: {
-            paymentIntentId,
-            transactionId: transaction.id,
-            type: 'seller_payout',
-            saleType: hasExpert ? 'expert' : 'simple',
-            captureSource: source
-          }
-        });
-
-        console.log(`[Stripe] Transfer to seller: ${transfer.id} - ${sellerAmountInCents/100}€`);
-      }
-
-      // 3. Mettre à jour la transaction
+      // 2. Mettre à jour la transaction
       await prisma.transaction.update({
         where: { paymentIntentId },
         data: {
           status: 'SUCCEEDED',
-          transferId: transfer?.id || null,
           metadata: {
             ...metadata,
             escrowStatus: 'CAPTURED',
             capturedAt: new Date().toISOString(),
             captureSource: source,
             saleType: hasExpert ? 'expert' : 'simple',
-            transferId: transfer?.id || null,
+            // Le payout au vendeur est en attente (sera fait via IBAN)
+            payoutStatus: 'PENDING_PAYOUT',
           }
         }
       });
@@ -508,16 +478,18 @@ export class StripeService {
       }
 
       // 6. Créer une notification pour le vendeur
+      // MODÈLE C2C: Le vendeur sera payé via IBAN, on l'informe que le paiement est validé
       await prisma.notification.create({
         data: {
           userId: transaction.product.sellerId,
-          title: '💰 Paiement reçu !',
-          message: `Le paiement de ${Number(transaction.sellerAmount).toFixed(2)}€ pour "${transaction.product.title}" a été transféré sur votre compte.${hasExpert ? ' (Vente avec Expert Gearted)' : ''}`,
+          title: '✅ Vente confirmée !',
+          message: `La vente de "${transaction.product.title}" est finalisée ! Votre paiement de ${Number(transaction.sellerAmount).toFixed(2)}€ sera versé sur votre compte bancaire sous 2-3 jours ouvrés.${hasExpert ? ' (Vente avec Expert Gearted)' : ''}`,
           type: 'PAYMENT_UPDATE',
           data: {
             transactionId: transaction.id,
             amount: transaction.sellerAmount,
-            saleType: hasExpert ? 'expert' : 'simple'
+            saleType: hasExpert ? 'expert' : 'simple',
+            payoutStatus: 'PENDING_PAYOUT'
           }
         }
       });
@@ -525,9 +497,9 @@ export class StripeService {
       return {
         success: true,
         paymentIntent,
-        transfer,
         saleType: hasExpert ? 'expert' : 'simple',
-        message: `Paiement capturé et fonds transférés au vendeur (${hasExpert ? 'vente Expert' : 'vente simple'})`
+        sellerAmount: Number(transaction.sellerAmount),
+        message: `Paiement capturé ! Le vendeur recevra ${Number(transaction.sellerAmount).toFixed(2)}€ via virement bancaire (${hasExpert ? 'vente Expert' : 'vente simple'})`
       };
     } catch (error: any) {
       console.error('[Stripe] Failed to capture and transfer:', error);
