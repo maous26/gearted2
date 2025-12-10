@@ -85,6 +85,7 @@ export default function GeartedLanding() {
     <ImageBackground
       source={require('../assets/accueil4.png')}
       style={styles.container}
+      imageStyle={styles.backgroundImage}
       resizeMode="cover"
     >
       <StatusBar barStyle="light-content" />
@@ -173,10 +174,17 @@ function FeatureItem({ icon, title, description }: FeatureItemProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#1A1A2E', // Fallback color matching the image
+  },
+  backgroundImage: {
+    width: '100%',
+    height: '100%',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A2E',
     justifyContent: 'center',
     alignItems: 'center',
   },
