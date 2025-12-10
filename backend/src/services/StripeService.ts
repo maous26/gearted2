@@ -15,6 +15,12 @@ const DEFAULT_BUYER_FEE_PERCENT = 5;  // 5% ajouté à l'acheteur
 const DEFAULT_SELLER_FEE_MIN = 0.50;  // Minimum 0.50€
 const DEFAULT_BUYER_FEE_MIN = 0.50;   // Minimum 0.50€
 
+// Frais Stripe (approximation pour la France/Europe)
+// Stripe charge ~1.4% + 0.25€ pour les cartes européennes, ~2.9% + 0.25€ pour les non-européennes
+// On utilise une moyenne de 2.5% + 0.25€ pour être conservateur
+const STRIPE_FEE_PERCENT = 2.5;
+const STRIPE_FEE_FIXED = 0.25; // en euros
+
 // Interface pour les paramètres de commission
 interface CommissionSettings {
   buyerEnabled: boolean;
@@ -171,7 +177,15 @@ export class StripeService {
   }
 
   /**
-   * Créer un Payment Intent avec destination charge (split payment)
+   * Créer un Payment Intent avec ESCROW (capture manuelle)
+   *
+   * ESCROW FLOW:
+   * 1. Paiement autorisé mais NON capturé (fonds réservés sur la carte)
+   * 2. Les fonds restent en attente jusqu'à confirmation de livraison
+   * 3. À la livraison confirmée: capture des fonds et transfert au vendeur
+   * 4. En cas de problème: annulation et remboursement automatique
+   *
+   * Les frais Stripe sont ABSORBÉS par Gearted (non répercutés sur l'acheteur)
    * Commission dynamique basée sur les paramètres admin
    * Options premium: Expertise (19.90€) et Assurance (4.99€) pour l'acheteur
    */
@@ -186,14 +200,14 @@ export class StripeService {
     try {
       // Récupérer les paramètres de commission depuis la DB
       const commSettings = await getCommissionSettings();
-      
+
       // Vérifier si l'acheteur ou le vendeur est exempté de commissions
       const buyer = await prisma.user.findUnique({ where: { id: buyerId } });
       const seller = await prisma.user.findUnique({ where: { id: sellerId } });
-      
+
       const buyerExempt = (buyer as any)?.exemptFromCommissions === true;
       const sellerExempt = (seller as any)?.exemptFromCommissions === true;
-      
+
       // Récupérer le compte Stripe du vendeur (optionnel pour les tests)
       const sellerStripeAccount = await prisma.stripeAccount.findUnique({
         where: { userId: sellerId }
@@ -208,7 +222,7 @@ export class StripeService {
 
       // Calculer les montants de base avec commissions dynamiques
       const productPriceInCents = Math.round(productPrice * 100);
-      
+
       // Commission vendeur (si activée et non exempté)
       let sellerFeeInCents = 0;
       if (commSettings.sellerEnabled && !sellerExempt) {
@@ -217,7 +231,7 @@ export class StripeService {
           Math.round(commSettings.sellerFeeMin * 100)
         );
       }
-      
+
       // Commission acheteur (si activée et non exempté)
       let buyerFeeInCents = 0;
       if (commSettings.buyerEnabled && !buyerExempt) {
@@ -237,20 +251,35 @@ export class StripeService {
 
       const sellerAmountInCents = productPriceInCents - sellerFeeInCents; // Ce que le vendeur reçoit
       const totalChargeInCents = productPriceInCents + buyerFeeInCents + premiumOptionsTotal + shippingCostInCents;   // Ce que l'acheteur paie (produit + frais + options + livraison)
-      const platformFeeInCents = sellerFeeInCents + buyerFeeInCents + premiumOptionsTotal;      // Commission totale Gearted (sans livraison qui est reversée)
 
-      console.log(`[StripeService] Commission calculation:
+      // Calcul des frais Stripe (ABSORBÉS par Gearted)
+      // Stripe: 2.5% + 0.25€ (moyenne Europe)
+      const stripeFeeInCents = Math.round(totalChargeInCents * (STRIPE_FEE_PERCENT / 100)) + Math.round(STRIPE_FEE_FIXED * 100);
+
+      // Commission plateforme APRÈS déduction des frais Stripe
+      // Gearted absorbe les frais Stripe, donc on les déduit de notre marge
+      const platformFeeInCents = sellerFeeInCents + buyerFeeInCents + premiumOptionsTotal;
+      const netPlatformFeeInCents = platformFeeInCents - stripeFeeInCents; // Marge nette Gearted après frais Stripe
+
+      console.log(`[StripeService] Commission calculation (ESCROW MODE):
         Product: ${productPrice}€
         Seller fee: ${commSettings.sellerEnabled ? commSettings.sellerFeePercent + '%' : 'disabled'} = ${sellerFeeInCents/100}€ ${sellerExempt ? '(EXEMPT)' : ''}
         Buyer fee: ${commSettings.buyerEnabled ? commSettings.buyerFeePercent + '%' : 'disabled'} = ${buyerFeeInCents/100}€ ${buyerExempt ? '(EXEMPT)' : ''}
+        Premium options: ${premiumOptionsTotal/100}€
+        Shipping: ${shippingCostInCents/100}€
         Seller receives: ${sellerAmountInCents/100}€
         Buyer pays: ${totalChargeInCents/100}€
-        Platform fee: ${platformFeeInCents/100}€`);
+        Stripe fees (absorbed by Gearted): ${stripeFeeInCents/100}€
+        Gross platform fee: ${platformFeeInCents/100}€
+        Net platform fee: ${netPlatformFeeInCents/100}€`);
 
-      // Créer le Payment Intent
+      // Créer le Payment Intent avec CAPTURE MANUELLE (escrow)
       const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
         amount: totalChargeInCents,  // Montant total facturé à l'acheteur
         currency,
+        // ESCROW: Capture manuelle - les fonds sont autorisés mais non capturés
+        // Ils seront capturés après confirmation de livraison
+        capture_method: 'manual',
         metadata: {
           productId,
           buyerId,
@@ -259,7 +288,10 @@ export class StripeService {
           sellerFee: (sellerFeeInCents / 100).toFixed(2),
           buyerFee: (buyerFeeInCents / 100).toFixed(2),
           platformFee: (platformFeeInCents / 100).toFixed(2),
+          netPlatformFee: (netPlatformFeeInCents / 100).toFixed(2),
+          stripeFeeAbsorbed: (stripeFeeInCents / 100).toFixed(2),
           sellerAmount: (sellerAmountInCents / 100).toFixed(2),
+          escrowStatus: 'AUTHORIZED', // Suivi du statut escrow
           // Options premium
           wantExpertise: premiumOptions?.wantExpertise ? 'true' : 'false',
           wantInsurance: premiumOptions?.wantInsurance ? 'true' : 'false',
@@ -273,12 +305,13 @@ export class StripeService {
         }
       };
 
-      // Si Stripe Connect est configuré, utiliser destination charge
+      // Si Stripe Connect est configuré, on fera le transfer APRÈS capture (escrow)
+      // On ne configure PAS transfer_data ici car on veut d'abord capturer sur le compte Gearted
+      // puis transférer manuellement au vendeur après livraison
+      // On stocke juste l'ID du compte vendeur pour le transfer ultérieur
       if (useStripeConnect && sellerStripeAccount) {
-        paymentIntentParams.application_fee_amount = platformFeeInCents;
-        paymentIntentParams.transfer_data = {
-          destination: sellerStripeAccount.stripeAccountId,
-        };
+        paymentIntentParams.metadata!.sellerStripeAccountId = sellerStripeAccount.stripeAccountId;
+        paymentIntentParams.metadata!.applicationFeeAmount = platformFeeInCents.toString();
       }
 
       const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams);
@@ -298,7 +331,7 @@ export class StripeService {
           sellerAmount: sellerAmountInCents / 100, // Montant vendeur
           totalPaid: totalChargeInCents / 100,   // Total payé par l'acheteur
           paymentIntentId: paymentIntent.id,
-          status: 'PENDING',
+          status: 'PENDING', // Sera PROCESSING après autorisation, SUCCEEDED après capture
           // Options premium - utiliser les champs existants
           hasExpert: premiumOptions?.wantExpertise || false,
           hasProtection: premiumOptions?.wantInsurance || false,
@@ -306,7 +339,7 @@ export class StripeService {
           shippingRateId: premiumOptions?.shippingRateId || null,
           shippingCost: shippingCostInCents / 100,
           shippingProvider: premiumOptions?.shippingProvider || null,
-          // Stocker les prix dans metadata
+          // Stocker les prix et infos escrow dans metadata
           metadata: {
             expertisePrice: expertisePriceInCents / 100,
             insurancePrice: insurancePriceInCents / 100,
@@ -314,6 +347,11 @@ export class StripeService {
             shippingRateId: premiumOptions?.shippingRateId || null,
             shippingCost: shippingCostInCents / 100,
             shippingProvider: premiumOptions?.shippingProvider || null,
+            // Escrow tracking
+            escrowStatus: 'AUTHORIZED',
+            stripeFeeAbsorbed: stripeFeeInCents / 100,
+            netPlatformFee: netPlatformFeeInCents / 100,
+            sellerStripeAccountId: sellerStripeAccount?.stripeAccountId || null,
           }
         }
       });
@@ -327,6 +365,9 @@ export class StripeService {
         sellerFee: sellerFeeInCents / 100,
         sellerAmount: sellerAmountInCents / 100,  // Ce que le vendeur reçoit
         platformFee: platformFeeInCents / 100,    // Commission totale Gearted (incluant options)
+        stripeFeeAbsorbed: stripeFeeInCents / 100, // Frais Stripe absorbés par Gearted
+        netPlatformFee: netPlatformFeeInCents / 100, // Marge nette Gearted
+        escrowEnabled: true, // Indicateur escrow actif
         // Options premium
         wantExpertise: premiumOptions?.wantExpertise || false,
         wantInsurance: premiumOptions?.wantInsurance || false,
@@ -345,42 +386,359 @@ export class StripeService {
   }
 
   /**
+   * ESCROW: Capturer les fonds et transférer au vendeur
+   *
+   * DEUX CAS DE FIGURE:
+   *
+   * 1. VENTE SIMPLE (hasExpert = false):
+   *    - Vendeur expédie directement à l'acheteur
+   *    - Capture déclenchée quand l'acheteur confirme la réception
+   *    - Fonds transférés au vendeur immédiatement après capture
+   *
+   * 2. VENTE AVEC EXPERT GEARTED (hasExpert = true):
+   *    - Vendeur expédie à Gearted
+   *    - Gearted vérifie le produit
+   *    - Gearted expédie à l'acheteur
+   *    - Capture déclenchée quand l'acheteur confirme la réception finale
+   *    - Fonds transférés au vendeur après livraison confirmée à l'acheteur
+   *
+   * @param paymentIntentId - ID du PaymentIntent Stripe
+   * @param source - Source de la capture ('buyer_confirmed' | 'expert_delivered' | 'admin')
+   */
+  static async captureAndTransfer(paymentIntentId: string, source: string = 'buyer_confirmed') {
+    try {
+      // Récupérer la transaction avec les infos Expert si applicable
+      const transaction = await prisma.transaction.findUnique({
+        where: { paymentIntentId },
+        include: {
+          product: true
+        }
+      });
+
+      if (!transaction) {
+        throw new Error('Transaction non trouvée');
+      }
+
+      const metadata = transaction.metadata as any;
+      const sellerStripeAccountId = metadata?.sellerStripeAccountId;
+      const hasExpert = transaction.hasExpert;
+
+      // Vérifier si c'est une vente Expert
+      if (hasExpert) {
+        // Vérifier que le service Expert a bien été livré à l'acheteur
+        const expertService = await (prisma as any).expertService.findUnique({
+          where: { transactionId: transaction.id }
+        });
+
+        if (!expertService) {
+          throw new Error('Service Expert non trouvé pour cette transaction');
+        }
+
+        // Pour Expert: on ne capture que si le colis est livré à l'acheteur
+        if (expertService.status !== 'DELIVERED' && expertService.status !== 'COMPLETED') {
+          throw new Error(`La capture n'est pas autorisée. Statut Expert: ${expertService.status}. Le colis doit être livré à l'acheteur.`);
+        }
+
+        console.log(`[Stripe] Expert service validated - status: ${expertService.status}`);
+      }
+
+      // 1. Capturer le paiement (retirer les fonds de la carte)
+      const paymentIntent = await stripe.paymentIntents.capture(paymentIntentId);
+
+      if (paymentIntent.status !== 'succeeded') {
+        throw new Error(`Capture échouée: ${paymentIntent.status}`);
+      }
+
+      console.log(`[Stripe] Payment captured: ${paymentIntentId} (${hasExpert ? 'EXPERT' : 'SIMPLE'} sale, source: ${source})`);
+
+      // 2. Si Stripe Connect configuré, transférer au vendeur
+      let transfer = null;
+      if (sellerStripeAccountId) {
+        const sellerAmountInCents = Math.round(Number(transaction.sellerAmount) * 100);
+
+        transfer = await stripe.transfers.create({
+          amount: sellerAmountInCents,
+          currency: transaction.currency.toLowerCase(),
+          destination: sellerStripeAccountId,
+          transfer_group: paymentIntentId,
+          metadata: {
+            paymentIntentId,
+            transactionId: transaction.id,
+            type: 'seller_payout',
+            saleType: hasExpert ? 'expert' : 'simple',
+            captureSource: source
+          }
+        });
+
+        console.log(`[Stripe] Transfer to seller: ${transfer.id} - ${sellerAmountInCents/100}€`);
+      }
+
+      // 3. Mettre à jour la transaction
+      await prisma.transaction.update({
+        where: { paymentIntentId },
+        data: {
+          status: 'SUCCEEDED',
+          transferId: transfer?.id || null,
+          metadata: {
+            ...metadata,
+            escrowStatus: 'CAPTURED',
+            capturedAt: new Date().toISOString(),
+            captureSource: source,
+            saleType: hasExpert ? 'expert' : 'simple',
+            transferId: transfer?.id || null,
+          }
+        }
+      });
+
+      // 4. Marquer le produit comme vendu (définitivement)
+      await prisma.product.update({
+        where: { id: transaction.productId },
+        data: {
+          status: 'SOLD',
+          soldAt: new Date()
+        }
+      });
+
+      // 5. Si Expert, marquer le service comme terminé
+      if (hasExpert) {
+        await (prisma as any).expertService.update({
+          where: { transactionId: transaction.id },
+          data: { status: 'COMPLETED' }
+        });
+      }
+
+      // 6. Créer une notification pour le vendeur
+      await prisma.notification.create({
+        data: {
+          userId: transaction.product.sellerId,
+          title: '💰 Paiement reçu !',
+          message: `Le paiement de ${Number(transaction.sellerAmount).toFixed(2)}€ pour "${transaction.product.title}" a été transféré sur votre compte.${hasExpert ? ' (Vente avec Expert Gearted)' : ''}`,
+          type: 'PAYMENT_UPDATE',
+          data: {
+            transactionId: transaction.id,
+            amount: transaction.sellerAmount,
+            saleType: hasExpert ? 'expert' : 'simple'
+          }
+        }
+      });
+
+      return {
+        success: true,
+        paymentIntent,
+        transfer,
+        saleType: hasExpert ? 'expert' : 'simple',
+        message: `Paiement capturé et fonds transférés au vendeur (${hasExpert ? 'vente Expert' : 'vente simple'})`
+      };
+    } catch (error: any) {
+      console.error('[Stripe] Failed to capture and transfer:', error);
+      throw new Error(`Erreur capture/transfert: ${error.message}`);
+    }
+  }
+
+  /**
+   * VENTE SIMPLE: L'acheteur confirme la réception du colis
+   * Déclenche la capture escrow et le transfert au vendeur
+   */
+  static async confirmDeliverySimple(transactionId: string, buyerId: string) {
+    try {
+      const transaction = await prisma.transaction.findUnique({
+        where: { id: transactionId },
+        include: { product: true }
+      });
+
+      if (!transaction) {
+        throw new Error('Transaction non trouvée');
+      }
+
+      if (transaction.buyerId !== buyerId) {
+        throw new Error('Seul l\'acheteur peut confirmer la réception');
+      }
+
+      if (transaction.hasExpert) {
+        throw new Error('Cette transaction utilise Expert Gearted. La confirmation se fait via le service Expert.');
+      }
+
+      if (transaction.status === 'SUCCEEDED') {
+        throw new Error('Cette transaction est déjà finalisée');
+      }
+
+      // Capturer et transférer
+      const result = await this.captureAndTransfer(transaction.paymentIntentId, 'buyer_confirmed');
+
+      // Notification à l'acheteur
+      await prisma.notification.create({
+        data: {
+          userId: buyerId,
+          title: '✅ Réception confirmée',
+          message: `Merci d'avoir confirmé la réception de "${transaction.product.title}". Le vendeur a été payé.`,
+          type: 'SUCCESS',
+          data: { transactionId }
+        }
+      });
+
+      return result;
+    } catch (error: any) {
+      console.error('[Stripe] Failed to confirm simple delivery:', error);
+      throw new Error(`Erreur confirmation livraison: ${error.message}`);
+    }
+  }
+
+  /**
+   * VENTE EXPERT: Appelé par ExpertService quand le colis est livré à l'acheteur final
+   * Déclenche la capture escrow et le transfert au vendeur
+   */
+  static async confirmDeliveryExpert(transactionId: string) {
+    try {
+      const transaction = await prisma.transaction.findUnique({
+        where: { id: transactionId },
+        include: { product: true }
+      });
+
+      if (!transaction) {
+        throw new Error('Transaction non trouvée');
+      }
+
+      if (!transaction.hasExpert) {
+        throw new Error('Cette transaction n\'utilise pas Expert Gearted');
+      }
+
+      // Vérifier le statut du service Expert
+      const expertService = await (prisma as any).expertService.findUnique({
+        where: { transactionId }
+      });
+
+      if (!expertService || (expertService.status !== 'DELIVERED' && expertService.status !== 'COMPLETED')) {
+        throw new Error('Le service Expert doit être en statut DELIVERED pour confirmer');
+      }
+
+      // Capturer et transférer
+      const result = await this.captureAndTransfer(transaction.paymentIntentId, 'expert_delivered');
+
+      return result;
+    } catch (error: any) {
+      console.error('[Stripe] Failed to confirm expert delivery:', error);
+      throw new Error(`Erreur confirmation livraison Expert: ${error.message}`);
+    }
+  }
+
+  /**
+   * ESCROW: Annuler l'autorisation (pas de capture, remboursement automatique)
+   * Appelé en cas de problème avant livraison
+   */
+  static async cancelEscrow(paymentIntentId: string, reason?: string) {
+    try {
+      // Annuler le PaymentIntent (libère l'autorisation sur la carte)
+      const paymentIntent = await stripe.paymentIntents.cancel(paymentIntentId, {
+        cancellation_reason: 'requested_by_customer'
+      });
+
+      // Mettre à jour la transaction
+      const transaction = await prisma.transaction.findUnique({
+        where: { paymentIntentId }
+      });
+
+      if (transaction) {
+        const metadata = transaction.metadata as any;
+        await prisma.transaction.update({
+          where: { paymentIntentId },
+          data: {
+            status: 'CANCELLED',
+            metadata: {
+              ...metadata,
+              escrowStatus: 'CANCELLED',
+              cancelledAt: new Date().toISOString(),
+              cancellationReason: reason || 'user_requested'
+            }
+          }
+        });
+
+        // Remettre le produit en vente
+        await prisma.product.update({
+          where: { id: transaction.productId },
+          data: { status: 'ACTIVE' }
+        });
+      }
+
+      console.log(`[Stripe] Escrow cancelled: ${paymentIntentId}`);
+
+      return {
+        success: true,
+        paymentIntent,
+        message: 'Autorisation annulée, aucun prélèvement effectué'
+      };
+    } catch (error: any) {
+      console.error('[Stripe] Failed to cancel escrow:', error);
+      throw new Error(`Erreur annulation escrow: ${error.message}`);
+    }
+  }
+
+  /**
    * Confirmer un paiement et mettre à jour le statut
+   *
+   * ESCROW FLOW:
+   * - 'requires_capture' = Paiement autorisé, en attente de capture (escrow actif)
+   * - 'succeeded' = Paiement capturé (après livraison confirmée)
+   * - 'canceled' = Paiement annulé (escrow libéré)
    */
   static async confirmPayment(paymentIntentId: string) {
     try {
       const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
-      // Mettre à jour la transaction dans la DB
-      const status = paymentIntent.status === 'succeeded' ? 'SUCCEEDED' :
-                     paymentIntent.status === 'processing' ? 'PROCESSING' :
-                     paymentIntent.status === 'canceled' ? 'CANCELLED' : 'FAILED';
+      // Mapper le statut Stripe vers le statut de transaction
+      // ESCROW: 'requires_capture' signifie que les fonds sont réservés (autorisés) mais pas encore capturés
+      let status: string;
+      let escrowStatus: string;
+
+      switch (paymentIntent.status) {
+        case 'requires_capture':
+          // ESCROW ACTIF: Fonds autorisés, en attente de confirmation livraison
+          status = 'PROCESSING';
+          escrowStatus = 'AUTHORIZED';
+          break;
+        case 'succeeded':
+          // Fonds capturés (après livraison)
+          status = 'SUCCEEDED';
+          escrowStatus = 'CAPTURED';
+          break;
+        case 'processing':
+          status = 'PROCESSING';
+          escrowStatus = 'PROCESSING';
+          break;
+        case 'canceled':
+          status = 'CANCELLED';
+          escrowStatus = 'CANCELLED';
+          break;
+        default:
+          status = 'FAILED';
+          escrowStatus = 'FAILED';
+      }
+
+      // Récupérer la transaction pour mettre à jour les metadata
+      const transaction = await prisma.transaction.findUnique({
+        where: { paymentIntentId }
+      });
+
+      const existingMetadata = (transaction?.metadata as any) || {};
 
       await prisma.transaction.update({
         where: { paymentIntentId },
         data: {
-          status,
-          transferId: typeof paymentIntent.transfer_data?.destination === 'string'
-            ? paymentIntent.transfer_data.destination
-            : paymentIntent.transfer_data?.destination?.id || null,
+          status: status as any,
+          metadata: {
+            ...existingMetadata,
+            escrowStatus,
+            lastStatusUpdate: new Date().toISOString(),
+          }
         }
       });
 
-      // Si le paiement est réussi, marquer le produit comme vendu
-      if (status === 'SUCCEEDED') {
-        const transaction = await prisma.transaction.findUnique({
-          where: { paymentIntentId }
-        });
+      // ESCROW: Ne PAS marquer le produit comme vendu tant que les fonds ne sont pas capturés
+      // Le produit sera marqué comme SOLD seulement après capture (dans captureAndTransfer)
+      // Pour l'instant, on le marque comme "réservé" (pas de changement de status car déjà géré)
 
-        if (transaction) {
-          await prisma.product.update({
-            where: { id: transaction.productId },
-            data: { status: 'SOLD' }
-          });
-        }
-      }
+      console.log(`[Stripe] Payment status updated: ${paymentIntentId} -> ${status} (escrow: ${escrowStatus})`);
 
-      return { status, paymentIntent };
+      return { status, escrowStatus, paymentIntent };
     } catch (error: any) {
       console.error('[Stripe] Failed to confirm payment:', error);
       throw new Error(`Failed to confirm payment: ${error.message}`);
@@ -424,6 +782,11 @@ export class StripeService {
 
   /**
    * Gérer les webhooks Stripe
+   *
+   * ESCROW EVENTS:
+   * - payment_intent.amount_capturable_updated: Fonds autorisés (escrow actif)
+   * - payment_intent.succeeded: Fonds capturés (après livraison)
+   * - payment_intent.canceled: Escrow annulé
    */
   static async handleWebhook(event: Stripe.Event) {
     try {
@@ -442,9 +805,84 @@ export class StripeService {
           break;
         }
 
+        // ESCROW: Fonds autorisés mais pas encore capturés
+        case 'payment_intent.amount_capturable_updated': {
+          const paymentIntent = event.data.object as Stripe.PaymentIntent;
+          console.log(`[Stripe] ESCROW: Funds authorized for ${paymentIntent.id} - Amount: ${paymentIntent.amount_capturable/100}€`);
+
+          // Mettre à jour la transaction en mode escrow
+          const transaction = await prisma.transaction.findUnique({
+            where: { paymentIntentId: paymentIntent.id }
+          });
+
+          if (transaction) {
+            const metadata = (transaction.metadata as any) || {};
+            await prisma.transaction.update({
+              where: { paymentIntentId: paymentIntent.id },
+              data: {
+                status: 'PROCESSING', // Fonds autorisés, en attente de livraison
+                metadata: {
+                  ...metadata,
+                  escrowStatus: 'AUTHORIZED',
+                  authorizedAt: new Date().toISOString(),
+                  amountCapturable: paymentIntent.amount_capturable / 100,
+                }
+              }
+            });
+
+            // Créer notification pour l'acheteur
+            await prisma.notification.create({
+              data: {
+                userId: transaction.buyerId,
+                title: '💳 Paiement autorisé',
+                message: `Votre paiement de ${paymentIntent.amount/100}€ a été autorisé. Les fonds seront prélevés une fois la livraison confirmée.`,
+                type: 'PAYMENT_UPDATE',
+                data: {
+                  transactionId: transaction.id,
+                  escrowStatus: 'AUTHORIZED'
+                }
+              }
+            });
+          }
+          break;
+        }
+
+        // Paiement capturé (après confirmation livraison)
         case 'payment_intent.succeeded': {
           const paymentIntent = event.data.object as Stripe.PaymentIntent;
           await this.confirmPayment(paymentIntent.id);
+          break;
+        }
+
+        // ESCROW: Paiement annulé (escrow libéré)
+        case 'payment_intent.canceled': {
+          const paymentIntent = event.data.object as Stripe.PaymentIntent;
+          console.log(`[Stripe] ESCROW: Payment canceled for ${paymentIntent.id}`);
+
+          const transaction = await prisma.transaction.findUnique({
+            where: { paymentIntentId: paymentIntent.id }
+          });
+
+          if (transaction) {
+            const metadata = (transaction.metadata as any) || {};
+            await prisma.transaction.update({
+              where: { paymentIntentId: paymentIntent.id },
+              data: {
+                status: 'CANCELLED',
+                metadata: {
+                  ...metadata,
+                  escrowStatus: 'CANCELLED',
+                  cancelledAt: new Date().toISOString(),
+                }
+              }
+            });
+
+            // Remettre le produit en vente
+            await prisma.product.update({
+              where: { id: transaction.productId },
+              data: { status: 'ACTIVE' }
+            });
+          }
           break;
         }
 

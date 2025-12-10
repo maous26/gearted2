@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { PrismaClient } from '@prisma/client';
+import { StripeService } from './StripeService';
 
 const prisma = new PrismaClient();
 
@@ -525,6 +526,9 @@ export class ExpertService {
 
   /**
    * Marquer comme livré à l'acheteur
+   *
+   * IMPORTANT: Cette fonction déclenche la CAPTURE ESCROW
+   * Les fonds sont capturés et transférés au vendeur uniquement après livraison confirmée
    */
   static async markDelivered(expertServiceId: string) {
     try {
@@ -533,7 +537,7 @@ export class ExpertService {
         include: {
           transaction: {
             include: {
-              product: { select: { title: true, sellerId: true } },
+              product: { select: { id: true, title: true, sellerId: true } },
               buyer: { select: { id: true } },
             },
           },
@@ -557,12 +561,13 @@ export class ExpertService {
         data: {
           userId: expertService.transaction.buyerId,
           title: '📦 Article livré !',
-          message: `"${expertService.transaction.product.title}" a été livré ! Merci d'avoir utilisé Gearted Expert.`,
+          message: `"${expertService.transaction.product.title}" a été livré ! Merci d'avoir utilisé Gearted Expert. Veuillez confirmer la réception pour finaliser la transaction.`,
           type: 'SUCCESS',
           data: {
             expertServiceId: updatedExpert.id,
             transactionId: expertService.transactionId,
             status: 'DELIVERED',
+            awaitingConfirmation: true,
           },
         },
       });
@@ -570,10 +575,97 @@ export class ExpertService {
       return {
         success: true,
         expertService: updatedExpert,
+        message: 'Article marqué comme livré. En attente de confirmation de l\'acheteur pour libérer les fonds.',
       };
     } catch (error: any) {
       console.error('[Expert] Failed to mark delivered:', error);
       throw new Error(`Erreur: ${error.message}`);
+    }
+  }
+
+  /**
+   * L'acheteur confirme la réception du colis Expert
+   * Cette action déclenche la CAPTURE ESCROW et le paiement au vendeur
+   */
+  static async confirmDeliveryByBuyer(expertServiceId: string, buyerId: string) {
+    try {
+      const expertService = await (prisma as any).expertService.findFirst({
+        where: { id: expertServiceId },
+        include: {
+          transaction: {
+            include: {
+              product: { select: { id: true, title: true, sellerId: true } },
+              buyer: { select: { id: true, username: true } },
+            },
+          },
+        },
+      });
+
+      if (!expertService) {
+        throw new Error('Service Expert non trouvé');
+      }
+
+      // Vérifier que c'est bien l'acheteur
+      if (expertService.transaction.buyerId !== buyerId) {
+        throw new Error('Seul l\'acheteur peut confirmer la réception');
+      }
+
+      // Vérifier que le statut est DELIVERED
+      if (expertService.status !== 'DELIVERED') {
+        throw new Error(`La livraison n'est pas encore marquée comme effectuée. Statut actuel: ${expertService.status}`);
+      }
+
+      // 🔥 ESCROW: Capturer les fonds et transférer au vendeur
+      console.log(`[Expert] Triggering escrow capture for transaction ${expertService.transactionId}`);
+      const captureResult = await StripeService.confirmDeliveryExpert(expertService.transactionId);
+
+      // Marquer le service Expert comme complété
+      const updatedExpert = await (prisma as any).expertService.update({
+        where: { id: expertServiceId },
+        data: {
+          status: 'COMPLETED',
+        },
+      });
+
+      // Notifier l'acheteur
+      await prisma.notification.create({
+        data: {
+          userId: buyerId,
+          title: '✅ Réception confirmée',
+          message: `Merci d'avoir confirmé la réception de "${expertService.transaction.product.title}". Le vendeur a été payé. Transaction terminée !`,
+          type: 'SUCCESS',
+          data: {
+            expertServiceId: updatedExpert.id,
+            transactionId: expertService.transactionId,
+            status: 'COMPLETED',
+          },
+        },
+      });
+
+      // Notifier le vendeur
+      await prisma.notification.create({
+        data: {
+          userId: expertService.transaction.product.sellerId,
+          title: '💰 Paiement reçu !',
+          message: `${expertService.transaction.buyer.username} a confirmé la réception de "${expertService.transaction.product.title}". Votre paiement a été transféré !`,
+          type: 'PAYMENT_UPDATE',
+          data: {
+            expertServiceId: updatedExpert.id,
+            transactionId: expertService.transactionId,
+            status: 'COMPLETED',
+          },
+        },
+      });
+
+      return {
+        success: true,
+        expertService: updatedExpert,
+        captureResult,
+        message: 'Réception confirmée. Fonds capturés et transférés au vendeur.',
+      };
+    } catch (error: any) {
+      console.error('[Expert] Failed to confirm delivery by buyer:', error);
+      throw new Error(`Erreur confirmation: ${error.message}`);
     }
   }
 

@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
 import { StripeService } from '../services/StripeService';
+import { ExpertService } from '../services/ExpertService';
 import { NotificationController } from './NotificationController';
 
 const prisma = new PrismaClient();
@@ -615,6 +616,242 @@ export class TransactionController {
       return res.status(500).json({
         success: false,
         error: error.message || 'Erreur lors de l\'annulation de la transaction'
+      });
+    }
+  }
+
+  /**
+   * ESCROW - VENTE SIMPLE: L'acheteur confirme la réception du colis
+   * POST /api/transactions/:transactionId/confirm-delivery
+   *
+   * Cette action:
+   * 1. Vérifie que c'est une vente SIMPLE (pas Expert)
+   * 2. Capture les fonds en escrow
+   * 3. Transfère le paiement au vendeur
+   */
+  static async confirmDelivery(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { transactionId } = req.params;
+
+      console.log(`[Transactions] Confirm delivery for transaction ${transactionId} by user ${userId}`);
+
+      // Récupérer la transaction
+      const transaction = await prisma.transaction.findUnique({
+        where: { id: transactionId },
+        include: {
+          product: {
+            select: {
+              id: true,
+              title: true,
+              sellerId: true,
+            }
+          }
+        }
+      });
+
+      if (!transaction) {
+        return res.status(404).json({ error: 'Transaction non trouvée' });
+      }
+
+      // Vérifier que c'est bien l'acheteur
+      if (transaction.buyerId !== userId) {
+        return res.status(403).json({ error: 'Seul l\'acheteur peut confirmer la réception' });
+      }
+
+      // Vérifier que ce n'est PAS une vente Expert
+      if (transaction.hasExpert) {
+        return res.status(400).json({
+          error: 'Cette transaction utilise Expert Gearted. Utilisez /api/expert/confirm-delivery/:expertServiceId à la place.'
+        });
+      }
+
+      // Vérifier le statut
+      if (transaction.status === 'SUCCEEDED') {
+        return res.status(400).json({ error: 'Cette transaction est déjà finalisée' });
+      }
+
+      if (transaction.status !== 'PROCESSING') {
+        return res.status(400).json({
+          error: `Impossible de confirmer une transaction avec le statut: ${transaction.status}. Le statut doit être PROCESSING (paiement autorisé en escrow).`
+        });
+      }
+
+      // Capturer et transférer les fonds
+      const result = await StripeService.confirmDeliverySimple(transactionId, userId);
+
+      console.log(`[Transactions] Delivery confirmed and funds transferred for transaction ${transactionId}`);
+
+      return res.json({
+        success: true,
+        message: 'Réception confirmée ! Le vendeur a été payé.',
+        ...result
+      });
+
+    } catch (error: any) {
+      console.error('[Transactions] Confirm delivery error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || 'Erreur lors de la confirmation de livraison'
+      });
+    }
+  }
+
+  /**
+   * ESCROW - VENTE EXPERT: L'acheteur confirme la réception du colis Expert
+   * POST /api/transactions/:transactionId/confirm-expert-delivery
+   *
+   * Cette action est appelée quand l'acheteur reçoit son colis après vérification Expert.
+   * Elle déclenche la capture escrow et le paiement au vendeur.
+   */
+  static async confirmExpertDelivery(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { transactionId } = req.params;
+
+      console.log(`[Transactions] Confirm Expert delivery for transaction ${transactionId} by user ${userId}`);
+
+      // Récupérer la transaction
+      const transaction = await prisma.transaction.findUnique({
+        where: { id: transactionId },
+        include: {
+          product: {
+            select: {
+              id: true,
+              title: true,
+              sellerId: true,
+            }
+          }
+        }
+      });
+
+      if (!transaction) {
+        return res.status(404).json({ error: 'Transaction non trouvée' });
+      }
+
+      // Vérifier que c'est bien l'acheteur
+      if (transaction.buyerId !== userId) {
+        return res.status(403).json({ error: 'Seul l\'acheteur peut confirmer la réception' });
+      }
+
+      // Vérifier que c'est bien une vente Expert
+      if (!transaction.hasExpert) {
+        return res.status(400).json({
+          error: 'Cette transaction n\'utilise pas Expert Gearted. Utilisez /api/transactions/:id/confirm-delivery à la place.'
+        });
+      }
+
+      // Récupérer le service Expert
+      const expertService = await (prisma as any).expertService.findUnique({
+        where: { transactionId }
+      });
+
+      if (!expertService) {
+        return res.status(404).json({ error: 'Service Expert non trouvé pour cette transaction' });
+      }
+
+      // Utiliser ExpertService pour confirmer
+      const result = await ExpertService.confirmDeliveryByBuyer(expertService.id, userId);
+
+      console.log(`[Transactions] Expert delivery confirmed and funds transferred for transaction ${transactionId}`);
+
+      return res.json({
+        success: true,
+        message: 'Réception confirmée ! Le vendeur a été payé. Merci d\'avoir utilisé Expert Gearted.',
+        ...result
+      });
+
+    } catch (error: any) {
+      console.error('[Transactions] Confirm Expert delivery error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || 'Erreur lors de la confirmation de livraison Expert'
+      });
+    }
+  }
+
+  /**
+   * Récupérer le statut escrow d'une transaction
+   * GET /api/transactions/:transactionId/escrow-status
+   */
+  static async getEscrowStatus(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { transactionId } = req.params;
+
+      const transaction = await prisma.transaction.findUnique({
+        where: { id: transactionId },
+        include: {
+          product: {
+            select: { sellerId: true, title: true }
+          }
+        }
+      });
+
+      if (!transaction) {
+        return res.status(404).json({ error: 'Transaction non trouvée' });
+      }
+
+      // Vérifier que l'utilisateur est impliqué dans la transaction
+      if (transaction.buyerId !== userId && transaction.product.sellerId !== userId) {
+        return res.status(403).json({ error: 'Non autorisé' });
+      }
+
+      const metadata = transaction.metadata as any;
+      const isBuyer = transaction.buyerId === userId;
+
+      // Déterminer l'action requise
+      let actionRequired = null;
+      if (metadata?.escrowStatus === 'AUTHORIZED' && transaction.status === 'PROCESSING') {
+        if (transaction.hasExpert) {
+          // Pour Expert, l'action dépend du statut du service Expert
+          const expertService = await (prisma as any).expertService.findUnique({
+            where: { transactionId }
+          });
+          if (expertService?.status === 'DELIVERED' && isBuyer) {
+            actionRequired = 'confirm_expert_delivery';
+          }
+        } else if (isBuyer) {
+          actionRequired = 'confirm_delivery';
+        }
+      }
+
+      return res.json({
+        success: true,
+        escrow: {
+          status: metadata?.escrowStatus || 'UNKNOWN',
+          transactionStatus: transaction.status,
+          hasExpert: transaction.hasExpert,
+          authorizedAt: metadata?.authorizedAt,
+          capturedAt: metadata?.capturedAt,
+          amountCapturable: metadata?.amountCapturable,
+          stripeFeeAbsorbed: metadata?.stripeFeeAbsorbed,
+          netPlatformFee: metadata?.netPlatformFee,
+          actionRequired,
+        },
+        productTitle: transaction.product.title,
+        amount: Number(transaction.amount),
+        totalPaid: Number(transaction.totalPaid),
+        sellerAmount: Number(transaction.sellerAmount),
+      });
+
+    } catch (error: any) {
+      console.error('[Transactions] Get escrow status error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message
       });
     }
   }

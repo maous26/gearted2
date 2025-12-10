@@ -19,6 +19,19 @@ router.get('/by-payment-intent/:paymentIntentId', TransactionController.getByPay
 // Annuler une transaction (avant génération d'étiquette)
 router.post('/:transactionId/cancel', TransactionController.cancelTransaction);
 
+// ===== ESCROW ROUTES =====
+
+// VENTE SIMPLE: L'acheteur confirme la réception du colis (déclenche capture escrow)
+router.post('/:transactionId/confirm-delivery', TransactionController.confirmDelivery);
+
+// VENTE EXPERT: L'acheteur confirme la réception après vérification Expert
+router.post('/:transactionId/confirm-expert-delivery', TransactionController.confirmExpertDelivery);
+
+// Récupérer le statut escrow d'une transaction
+router.get('/:transactionId/escrow-status', TransactionController.getEscrowStatus);
+
+// ===== FIN ESCROW ROUTES =====
+
 // Récupérer les détails d'une transaction
 router.get('/:transactionId', TransactionController.getTransactionDetails);
 
