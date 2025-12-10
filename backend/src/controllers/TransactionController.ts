@@ -687,9 +687,8 @@ export class TransactionController {
       console.log(`[Transactions] Delivery confirmed and funds transferred for transaction ${transactionId}`);
 
       return res.json({
-        success: true,
-        message: 'Réception confirmée ! Le vendeur a été payé.',
-        ...result
+        ...result,
+        message: 'Réception confirmée ! Le vendeur a été payé.'
       });
 
     } catch (error: any) {
@@ -764,9 +763,8 @@ export class TransactionController {
       console.log(`[Transactions] Expert delivery confirmed and funds transferred for transaction ${transactionId}`);
 
       return res.json({
-        success: true,
-        message: 'Réception confirmée ! Le vendeur a été payé. Merci d\'avoir utilisé Expert Gearted.',
-        ...result
+        ...result,
+        message: 'Réception confirmée ! Le vendeur a été payé. Merci d\'avoir utilisé Expert Gearted.'
       });
 
     } catch (error: any) {
