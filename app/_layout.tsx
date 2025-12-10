@@ -1,4 +1,3 @@
-import { StripeProvider } from "@stripe/stripe-react-native";
 import { Stack } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { View } from "react-native";
@@ -6,6 +5,7 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import { QueryProvider } from "../components/QueryProvider";
 import { SocketProvider } from "../components/SocketProvider";
 import SplashScreen from "../components/SplashScreen";
+import { ConditionalStripeProvider } from "../components/StripeWrapper";
 import { ThemeProvider, useTheme } from "../components/ThemeProvider";
 import { UserProvider } from "../components/UserProvider";
 import { useProductsStore } from "../stores/productsStore";
@@ -51,9 +51,9 @@ function RootInner() {
     <View style={{ backgroundColor: t.rootBg, flex: 1 }}>
       {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
       {splashFinished && stripePublishableKey ? (
-        <StripeProvider publishableKey={stripePublishableKey}>
+        <ConditionalStripeProvider publishableKey={stripePublishableKey}>
           <Stack screenOptions={{ headerShown: false }} />
-        </StripeProvider>
+        </ConditionalStripeProvider>
       ) : splashFinished ? (
         <Stack screenOptions={{ headerShown: false }} />
       ) : null}

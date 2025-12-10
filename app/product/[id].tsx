@@ -1,10 +1,10 @@
-import { PaymentSheet, useStripe } from "@stripe/stripe-react-native";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Dimensions, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Dimensions, Platform, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import RatingModal from "../../components/RatingModal";
+import { isStripeAvailable, useConditionalStripe } from "../../components/StripeWrapper";
 import { useTheme } from "../../components/ThemeProvider";
 import { useUser } from "../../components/UserProvider";
 import { useDeleteProduct, useProduct } from "../../hooks/useProducts";
@@ -13,6 +13,11 @@ import api from "../../services/api";
 import stripeService from "../../services/stripe";
 import { THEMES } from "../../themes";
 import { PLACEHOLDER_IMAGE } from "../../utils/imageUtils";
+
+// Import PaymentSheet only on native
+const PaymentSheet = Platform.OS !== 'web'
+  ? require('@stripe/stripe-react-native').PaymentSheet
+  : { CollectionMode: { NEVER: 'never' }, AddressCollectionMode: { NEVER: 'never' } };
 
 interface ShippingRate {
   rateId: string;
@@ -45,7 +50,7 @@ export default function ProductDetailScreen() {
   const [hasPurchased, setHasPurchased] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  const { initPaymentSheet, presentPaymentSheet } = useConditionalStripe();
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [wantExpertise, setWantExpertise] = useState(false);
   const [wantInsurance, setWantInsurance] = useState(false);

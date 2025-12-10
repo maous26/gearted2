@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useStripe } from '@stripe/stripe-react-native';
+import { useConditionalStripe } from '../components/StripeWrapper';
 import { useTheme } from '../components/ThemeProvider';
 import { THEMES } from '../themes';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +21,7 @@ export default function BoostPaymentScreen() {
   const t = THEMES[theme];
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  const { initPaymentSheet, presentPaymentSheet } = useConditionalStripe();
 
   const productId = params.productId as string;
   const productTitle = params.productTitle as string;
