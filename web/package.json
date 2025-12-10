@@ -1,0 +1,11 @@
+{
+  "name": "gearted-web",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "cd .. && npm ci && npm run build:web",
+    "start": "npx serve ../dist -l 80"
+  },
+  "dependencies": {
+    "serve": "^14.2.0"
+  }
+}
