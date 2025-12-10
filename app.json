@@ -45,7 +45,8 @@
     },
     "platforms": [
       "ios",
-      "android"
+      "android",
+      "web"
     ],
     "plugins": [
       "expo-router",
