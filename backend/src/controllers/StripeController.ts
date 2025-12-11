@@ -232,8 +232,7 @@ export class StripeController {
 
       return res.json({
         success: true,
-        status: result.status,
-        escrowStatus: result.escrowStatus
+        status: result.status
       });
     } catch (error: any) {
       console.error('[Stripe] Confirm payment error:', error);

@@ -615,9 +615,22 @@ export class ExpertService {
         throw new Error(`La livraison n'est pas encore marquée comme effectuée. Statut actuel: ${expertService.status}`);
       }
 
-      // 🔥 ESCROW: Capturer les fonds et transférer au vendeur
-      console.log(`[Expert] Triggering escrow capture for transaction ${expertService.transactionId}`);
-      const captureResult = await StripeService.confirmDeliveryExpert(expertService.transactionId);
+      // Avec Stripe Connect Standard, le paiement est déjà effectué (pas d'escrow)
+      // On met juste à jour le statut de la transaction
+      console.log(`[Expert] Confirming delivery for transaction ${expertService.transactionId}`);
+
+      await prisma.transaction.update({
+        where: { id: expertService.transactionId },
+        data: {
+          status: 'SUCCEEDED',
+          metadata: {
+            ...(expertService.transaction.metadata as any || {}),
+            deliveryConfirmedAt: new Date().toISOString(),
+            deliveryConfirmedBy: buyerId,
+            expertServiceId: expertServiceId
+          }
+        }
+      });
 
       // Marquer le service Expert comme complété
       const updatedExpert = await (prisma as any).expertService.update({

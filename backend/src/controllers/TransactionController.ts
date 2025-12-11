@@ -670,25 +670,33 @@ export class TransactionController {
         });
       }
 
-      // Vérifier le statut
+      // Vérifier le statut - Avec Stripe Connect Standard, le paiement est déjà effectué
       if (transaction.status === 'SUCCEEDED') {
-        return res.status(400).json({ error: 'Cette transaction est déjà finalisée' });
-      }
-
-      if (transaction.status !== 'PROCESSING') {
-        return res.status(400).json({
-          error: `Impossible de confirmer une transaction avec le statut: ${transaction.status}. Le statut doit être PROCESSING (paiement autorisé en escrow).`
+        // Transaction déjà finalisée, on confirme juste la réception
+        return res.json({
+          success: true,
+          message: 'Réception confirmée ! Le vendeur a déjà été payé.'
         });
       }
 
-      // Capturer et transférer les fonds
-      const result = await StripeService.confirmDeliverySimple(transactionId, userId);
+      // Mettre à jour le statut de la transaction si nécessaire
+      await prisma.transaction.update({
+        where: { id: transactionId },
+        data: {
+          status: 'SUCCEEDED',
+          metadata: {
+            ...(transaction.metadata as any || {}),
+            deliveryConfirmedAt: new Date().toISOString(),
+            deliveryConfirmedBy: userId
+          }
+        }
+      });
 
-      console.log(`[Transactions] Delivery confirmed and funds transferred for transaction ${transactionId}`);
+      console.log(`[Transactions] Delivery confirmed for transaction ${transactionId}`);
 
       return res.json({
-        ...result,
-        message: 'Réception confirmée ! Le vendeur a été payé.'
+        success: true,
+        message: 'Réception confirmée ! Le vendeur a déjà été payé via Stripe Connect.'
       });
 
     } catch (error: any) {
