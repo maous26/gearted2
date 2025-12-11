@@ -45,10 +45,12 @@ export default function PrivacyScreen() {
         <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
           Le responsable du traitement de vos donnees personnelles est :
           {'\n\n'}
-          GEARTED
-          {'\n'}Auto-entrepreneur (SIRET : [A COMPLETER])
-          {'\n'}Email : contact@gearted.com
-          {'\n'}Site web : gearted.eu
+          OULARE ISMAEL
+          {'\n'}Entrepreneur Individuel
+          {'\n'}SIRET : 88250756900011
+          {'\n'}Adresse : 75 AVENUE LAPLACE 94110
+          {'\n'}Email : contact@gearted.eu
+          {'\n'}Site web : www.gearted.eu
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
@@ -143,7 +145,7 @@ export default function PrivacyScreen() {
           {'\n'}- Le Data Privacy Framework (pour les transferts vers les USA)
           {'\n'}- Ou des garanties equivalentes assurant un niveau de protection adequat
           {'\n\n'}
-          Vous pouvez obtenir une copie des garanties sur demande : dpo@gearted.com
+          Vous pouvez obtenir une copie des garanties sur demande : contact@gearted.eu
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
@@ -190,8 +192,8 @@ export default function PrivacyScreen() {
           Definir des directives relatives au sort de vos donnees apres votre deces.
           {'\n\n'}
           Pour exercer vos droits, contactez-nous :
-          {'\n'}- Email : dpo@gearted.com
-          {'\n'}- Adresse : [A COMPLETER]
+          {'\n'}- Email : contact@gearted.eu
+          {'\n'}- Adresse : 75 AVENUE LAPLACE 94110
           {'\n\n'}
           Nous repondons sous 1 mois maximum (prolongeable de 2 mois en cas de complexite).
           {'\n\n'}
@@ -257,11 +259,11 @@ export default function PrivacyScreen() {
         <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 40 }}>
           Pour toute question relative a cette politique ou a vos donnees personnelles :
           {'\n\n'}
-          Delegue a la Protection des Donnees (DPO) :
-          {'\n'}Email : dpo@gearted.com
-          {'\n\n'}
-          Service client :
-          {'\n'}Email : contact@gearted.com
+          Contact :
+          {'\n'}OULARE ISMAEL
+          {'\n'}Email : contact@gearted.eu
+          {'\n'}Adresse : 75 AVENUE LAPLACE 94110
+          {'\n'}Site : www.gearted.eu
         </Text>
       </ScrollView>
     </SafeAreaView>

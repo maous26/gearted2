@@ -39,9 +39,17 @@ export default function CGUScreen() {
           ARTICLE 1 - OBJET
         </Text>
         <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
-          Les presentes Conditions Generales d'Utilisation (CGU) ont pour objet de definir les modalites et conditions d'utilisation de la plateforme GEARTED, accessible via l'application mobile et le site web gearted.com.
+          Les presentes Conditions Generales d'Utilisation (CGU) ont pour objet de definir les modalites et conditions d'utilisation de la plateforme GEARTED, accessible via l'application mobile et le site web gearted.eu.
           {'\n\n'}
-          GEARTED est une marketplace de mise en relation entre vendeurs et acheteurs de materiel d'airsoft d'occasion. GEARTED est edite par un auto-entrepreneur immatricule en France (SIRET : [A COMPLETER]), agissant en qualite d'intermediaire technique.
+          GEARTED est une marketplace de mise en relation entre vendeurs et acheteurs de materiel d'airsoft d'occasion.
+          {'\n\n'}
+          GEARTED est edite par :
+          {'\n'}OULARE ISMAEL
+          {'\n'}Entrepreneur Individuel
+          {'\n'}SIRET : 88250756900011
+          {'\n'}Adresse : 75 AVENUE LAPLACE 94110
+          {'\n'}Email : contact@gearted.eu
+          {'\n'}Site : www.gearted.eu
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
@@ -63,7 +71,7 @@ export default function CGUScreen() {
           {'\n\n'}
           3.3. Chaque utilisateur est responsable de la confidentialite de ses identifiants de connexion et de toute activite effectuee depuis son compte.
           {'\n\n'}
-          3.4. En cas de suspicion d'utilisation frauduleuse, l'utilisateur doit en informer immediatement GEARTED a l'adresse : contact@gearted.com
+          3.4. En cas de suspicion d'utilisation frauduleuse, l'utilisateur doit en informer immediatement GEARTED a l'adresse : contact@gearted.eu
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
@@ -202,8 +210,8 @@ export default function CGUScreen() {
           Pour toute question concernant les presentes CGU :
           {'\n\n'}
           GEARTED
-          {'\n'}Email : contact@gearted.com
-          {'\n'}Site web : gearted.eu
+          {'\n'}Email : contact@gearted.eu
+          {'\n'}Site web : www.gearted.eu
         </Text>
       </ScrollView>
     </SafeAreaView>

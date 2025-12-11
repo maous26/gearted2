@@ -41,7 +41,7 @@ export default function CGVScreen() {
         <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
           Les presentes Conditions Generales de Vente (CGV) regissent les relations contractuelles entre :
           {'\n\n'}
-          - GEARTED, edite par un auto-entrepreneur immatricule en France (SIRET : [A COMPLETER]), ci-apres "GEARTED" ou "la Plateforme"
+          - GEARTED, edite par OULARE ISMAEL, Entrepreneur Individuel (SIRET : 88250756900011), 75 AVENUE LAPLACE 94110, ci-apres "GEARTED" ou "la Plateforme"
           {'\n\n'}
           - Et toute personne physique ou morale utilisant les services payants de la plateforme, ci-apres "l'Utilisateur"
           {'\n\n'}
@@ -243,8 +243,11 @@ export default function CGVScreen() {
         </Text>
         <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 40 }}>
           GEARTED
-          {'\n'}Email : contact@gearted.com
-          {'\n'}Site web : gearted.eu
+          {'\n'}OULARE ISMAEL - Entrepreneur Individuel
+          {'\n'}SIRET : 88250756900011
+          {'\n'}75 AVENUE LAPLACE 94110
+          {'\n'}Email : contact@gearted.eu
+          {'\n'}Site web : www.gearted.eu
           {'\n\n'}
           Service client disponible par email.
         </Text>
