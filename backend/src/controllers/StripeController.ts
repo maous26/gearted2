@@ -1,28 +1,153 @@
 import { Request, Response } from 'express';
 import { StripeService } from '../services/StripeService';
 import Stripe from 'stripe';
+import { PrismaClient } from '@prisma/client';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-10-29.clover',
 });
 
+const prisma = new PrismaClient();
+
 /**
- * MODÈLE C2C - Gearted Marketplace
+ * STRIPE CONNECT STANDARD - Gearted Marketplace
  *
- * Tous les paiements sont collectés sur le compte Stripe de Gearted.
- * Les vendeurs reçoivent leurs paiements via virement IBAN.
+ * Mode: Paiements directs entre acheteurs et vendeurs
+ * Commission: 10% automatiquement prélevé par Gearted
  *
- * Les routes Stripe Connect (createConnectedAccount, getAccountStatus, etc.)
- * ont été supprimées car les vendeurs n'ont pas besoin de compte Stripe.
+ * Les vendeurs doivent créer un compte Stripe Connect pour recevoir des paiements.
  */
 export class StripeController {
+
+  // ==========================================
+  // STRIPE CONNECT - Onboarding vendeur
+  // ==========================================
+
+  /**
+   * Créer un compte Stripe Connect Standard pour le vendeur
+   * POST /api/stripe/connect/create-account
+   */
+  static async createConnectedAccount(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const result = await StripeService.createConnectedAccount(userId, user.email);
+
+      return res.json({
+        success: true,
+        ...result
+      });
+    } catch (error: any) {
+      console.error('[Stripe Connect] Create account error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Créer un lien d'onboarding Stripe
+   * POST /api/stripe/connect/onboarding-link
+   */
+  static async createOnboardingLink(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { returnUrl, refreshUrl } = req.body;
+
+      if (!returnUrl || !refreshUrl) {
+        return res.status(400).json({ error: 'returnUrl and refreshUrl are required' });
+      }
+
+      const result = await StripeService.createOnboardingLink(userId, returnUrl, refreshUrl);
+
+      return res.json({
+        success: true,
+        ...result
+      });
+    } catch (error: any) {
+      console.error('[Stripe Connect] Onboarding link error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Créer un lien vers le dashboard Stripe du vendeur
+   * GET /api/stripe/connect/dashboard-link
+   */
+  static async createDashboardLink(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const result = await StripeService.createDashboardLink(userId);
+
+      return res.json({
+        success: true,
+        ...result
+      });
+    } catch (error: any) {
+      console.error('[Stripe Connect] Dashboard link error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Récupérer le statut du compte Stripe Connect
+   * GET /api/stripe/connect/status
+   */
+  static async getAccountStatus(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const result = await StripeService.getAccountStatus(userId);
+
+      return res.json({
+        success: true,
+        ...result
+      });
+    } catch (error: any) {
+      console.error('[Stripe Connect] Account status error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  // ==========================================
+  // PAIEMENTS
+  // ==========================================
+
   /**
    * Créer un Payment Intent pour acheter un produit
    * POST /api/stripe/create-payment-intent
-   *
-   * Utilise le mode ESCROW (capture manuelle):
-   * - Les fonds sont autorisés mais non capturés immédiatement
-   * - La capture se fait après confirmation de livraison par l'acheteur
    */
   static async createPaymentIntent(req: Request, res: Response) {
     try {
@@ -35,13 +160,7 @@ export class StripeController {
         productId,
         amount,
         currency = 'eur',
-        // Options premium acheteur
-        wantExpertise = false,
-        wantInsurance = false,
-        expertisePrice = 0,
-        insurancePrice = 0,
-        grandTotal,
-        // Livraison (payée par l'acheteur)
+        // Livraison
         shippingRateId,
         shippingCost = 0,
         shippingProvider
@@ -50,10 +169,6 @@ export class StripeController {
       if (!productId || !amount) {
         return res.status(400).json({ error: 'Product ID and amount are required' });
       }
-
-      // Récupérer le produit et le vendeur
-      const { PrismaClient } = await import('@prisma/client');
-      const prisma = new PrismaClient();
 
       const product = await prisma.product.findUnique({
         where: { id: productId },
@@ -72,14 +187,8 @@ export class StripeController {
         return res.status(400).json({ error: 'This product is already sold' });
       }
 
-      // Options premium + livraison
-      const premiumOptions = {
-        wantExpertise,
-        wantInsurance,
-        expertisePrice: Number(expertisePrice) || 0,
-        insurancePrice: Number(insurancePrice) || 0,
-        grandTotal: grandTotal ? Number(grandTotal) : undefined,
-        // Livraison
+      // Options de livraison
+      const shippingOptions = {
         shippingRateId: shippingRateId || null,
         shippingCost: Number(shippingCost) || 0,
         shippingProvider: shippingProvider || null
@@ -91,7 +200,7 @@ export class StripeController {
         product.sellerId,
         amount,
         currency,
-        premiumOptions
+        shippingOptions
       );
 
       return res.json({
