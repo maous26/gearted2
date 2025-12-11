@@ -32,7 +32,7 @@ export default function CGVScreen() {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
         <Text style={{ fontSize: 12, color: t.muted, marginBottom: 20 }}>
-          Derniere mise a jour : 6 decembre 2024
+          Derniere mise a jour : 11 decembre 2024
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
@@ -87,23 +87,46 @@ export default function CGVScreen() {
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
-          ARTICLE 3 - PAIEMENT
+          ARTICLE 3 - PAIEMENT ET FLUX FINANCIERS
         </Text>
         <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
-          3.1. Les paiements sont traites par notre prestataire Stripe, certifie PCI-DSS niveau 1.
+          3.1. Infrastructure de paiement :
+          {'\n'}GEARTED utilise Stripe Connect comme infrastructure de paiement. Cette solution permet :
+          {'\n'}- La collecte securisee des paiements acheteurs
+          {'\n'}- La gestion des fonds en sequestre (escrow)
+          {'\n'}- Le versement aux vendeurs via virement bancaire (IBAN)
           {'\n\n'}
           3.2. Moyens de paiement acceptes :
-          {'\n'}- Cartes bancaires (Visa, Mastercard, CB)
+          {'\n'}- Cartes bancaires (Visa, Mastercard, CB, American Express)
           {'\n'}- Apple Pay
           {'\n'}- Google Pay
+          {'\n'}- Autres moyens de paiement proposes par Stripe
           {'\n\n'}
-          3.3. Le montant total comprend :
-          {'\n'}- Prix de l'article
-          {'\n'}- Frais de service (5%)
-          {'\n'}- Options premium eventuelles
-          {'\n'}- Frais de livraison (si applicable)
+          3.3. Montant total paye par l'acheteur :
+          {'\n'}- Prix de l'article fixe par le vendeur
+          {'\n'}- Frais de service GEARTED : 5% du prix de l'article
+          {'\n'}- Options premium eventuelles (Expertise, Assurance)
+          {'\n'}- Frais de livraison (selon le mode choisi)
           {'\n\n'}
-          3.4. Les fonds sont sequestres par GEARTED jusqu'a la confirmation de reception par l'acheteur.
+          3.4. Sequestre des fonds :
+          {'\n'}Les fonds payes par l'acheteur sont collectes par GEARTED via Stripe et conserves en sequestre jusqu'a :
+          {'\n'}- Confirmation de reception validee par l'acheteur, ou
+          {'\n'}- Expiration du delai de 14 jours sans signalement de probleme
+          {'\n\n'}
+          3.5. Versement au vendeur :
+          {'\n'}Une fois la transaction validee, les fonds sont verses au vendeur par virement bancaire :
+          {'\n'}- Montant verse = Prix de vente - Commission vendeur (5%)
+          {'\n'}- Delai de virement : 2 a 5 jours ouvrables
+          {'\n'}- Le vendeur doit avoir renseigne un IBAN valide dans son profil
+          {'\n\n'}
+          3.6. Obligations du vendeur pour recevoir les paiements :
+          {'\n'}- Renseigner un IBAN valide au format SEPA
+          {'\n'}- Fournir les informations d'identite requises (verification Stripe/KYC)
+          {'\n'}- Etre titulaire du compte bancaire renseigne
+          {'\n'}- Maintenir ses informations bancaires a jour
+          {'\n\n'}
+          3.7. Conformite reglementaire :
+          {'\n'}GEARTED et son prestataire Stripe sont soumis aux obligations de lutte contre le blanchiment d'argent (LCB-FT). A ce titre, des verifications d'identite peuvent etre demandees aux utilisateurs.
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>

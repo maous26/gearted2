@@ -32,7 +32,7 @@ export default function PrivacyScreen() {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
         <Text style={{ fontSize: 12, color: t.muted, marginBottom: 20 }}>
-          Derniere mise a jour : 5 decembre 2024
+          Derniere mise a jour : 11 decembre 2024
         </Text>
 
         <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
@@ -59,7 +59,8 @@ export default function PrivacyScreen() {
           {'\n'}- Identite : nom, prenom, nom d'utilisateur
           {'\n'}- Coordonnees : email, adresse postale, telephone
           {'\n'}- Donnees de compte : mot de passe (crypte), photo de profil
-          {'\n'}- Donnees de paiement : traitees par Stripe (nous ne stockons pas vos donnees bancaires)
+          {'\n'}- Donnees bancaires (vendeurs) : IBAN pour recevoir les paiements (stocke de maniere securisee et chiffree)
+          {'\n'}- Donnees de paiement (acheteurs) : traitees par Stripe (nous ne stockons pas les numeros de carte bancaire)
           {'\n\n'}
           2.2. Donnees collectees automatiquement :
           {'\n'}- Donnees de connexion : adresse IP, type de navigateur, systeme d'exploitation
@@ -115,7 +116,9 @@ export default function PrivacyScreen() {
           {'\n'}- Direction
           {'\n\n'}
           4.2. Sous-traitants :
-          {'\n'}- Stripe (paiements) - Certifie PCI-DSS
+          {'\n'}- Stripe Connect (paiements et versements) - Certifie PCI-DSS niveau 1
+          {'\n'}  * Donnees partagees : nom, prenom, email, IBAN, adresse (pour KYC/LCB-FT)
+          {'\n'}  * Finalite : traitement des paiements, versements aux vendeurs, conformite reglementaire
           {'\n'}- Railway (hebergement) - Localisation UE
           {'\n'}- Cloudinary (stockage images)
           {'\n'}- Discord (authentification optionnelle)

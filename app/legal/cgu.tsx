@@ -32,7 +32,7 @@ export default function CGUScreen() {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
         <Text style={{ fontSize: 12, color: t.muted, marginBottom: 20 }}>
-          Derniere mise a jour : 5 decembre 2024
+          Derniere mise a jour : 11 decembre 2024
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
@@ -120,13 +120,34 @@ export default function CGUScreen() {
           ARTICLE 7 - TRANSACTIONS ET PAIEMENTS
         </Text>
         <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
-          7.1. Les paiements sont securises via notre partenaire Stripe. GEARTED ne stocke aucune donnee bancaire.
+          7.1. Architecture de paiement :
+          {'\n'}GEARTED utilise Stripe Connect en tant que plateforme de paiement. Ce systeme permet de :
+          {'\n'}- Collecter les paiements des acheteurs de maniere securisee
+          {'\n'}- Gerer les fonds en sequestre jusqu'a confirmation de la transaction
+          {'\n'}- Verser les fonds aux vendeurs sur leur compte bancaire (IBAN)
           {'\n\n'}
-          7.2. Commission : GEARTED preleve une commission de 5% sur le montant de la vente (debitee au vendeur) et 5% de frais de service (ajoutes au montant paye par l'acheteur).
+          7.2. Role de GEARTED :
+          {'\n'}GEARTED agit en qualite d'intermediaire de paiement. Les fonds des acheteurs sont collectes par GEARTED via Stripe, puis reverses aux vendeurs apres deduction des commissions. GEARTED ne stocke aucune donnee bancaire complete.
           {'\n\n'}
-          7.3. Le vendeur recoit le paiement apres confirmation de la reception du colis par l'acheteur ou apres un delai de 14 jours si l'acheteur n'a pas signale de probleme.
+          7.3. Commissions :
+          {'\n'}- Commission vendeur : 5% du prix de vente TTC (debitee lors du versement)
+          {'\n'}- Frais de service acheteur : 5% du prix d'achat TTC (ajoutes au montant paye)
+          {'\n'}- Total commission GEARTED : 10% par transaction
           {'\n\n'}
-          7.4. En cas de litige, GEARTED peut bloquer les fonds le temps de la resolution.
+          7.4. Versement aux vendeurs :
+          {'\n'}Le vendeur recoit le paiement sur son compte bancaire (IBAN renseigne dans son profil) :
+          {'\n'}- Apres confirmation de reception par l'acheteur, ou
+          {'\n'}- Automatiquement apres un delai de 14 jours sans signalement de probleme
+          {'\n'}- Delai de virement : 2 a 5 jours ouvrables apres validation
+          {'\n\n'}
+          7.5. Obligations du vendeur :
+          {'\n'}Pour recevoir les paiements, le vendeur doit :
+          {'\n'}- Renseigner un IBAN valide dans son profil
+          {'\n'}- Fournir les informations d'identite requises par Stripe (conformite KYC)
+          {'\n'}- Maintenir ses informations a jour
+          {'\n\n'}
+          7.6. Sequestre et litiges :
+          {'\n'}En cas de litige, GEARTED peut bloquer les fonds jusqu'a resolution. La decision de GEARTED concernant la liberation ou le remboursement des fonds est definitive sur la plateforme.
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
