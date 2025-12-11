@@ -36,7 +36,7 @@ export default function PrivacyScreen() {
         </Text>
 
         <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
-          GEARTED SAS s'engage a proteger la vie privee de ses utilisateurs. Cette politique de confidentialite explique comment nous collectons, utilisons, stockons et protegeons vos donnees personnelles conformement au Reglement General sur la Protection des Donnees (RGPD) et a la loi Informatique et Libertes.
+          GEARTED s'engage a proteger la vie privee de ses utilisateurs. Cette politique de confidentialite explique comment nous collectons, utilisons, stockons et protegeons vos donnees personnelles conformement au Reglement General sur la Protection des Donnees (RGPD) et a la loi Informatique et Libertes.
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
@@ -45,10 +45,10 @@ export default function PrivacyScreen() {
         <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
           Le responsable du traitement de vos donnees personnelles est :
           {'\n\n'}
-          GEARTED SAS
-          {'\n'}Adresse : [A COMPLETER]
-          {'\n'}Email DPO : dpo@gearted.com
-          {'\n'}RCS Paris : [A COMPLETER]
+          GEARTED
+          {'\n'}Auto-entrepreneur (SIRET : [A COMPLETER])
+          {'\n'}Email : contact@gearted.com
+          {'\n'}Site web : gearted.eu
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
@@ -59,8 +59,7 @@ export default function PrivacyScreen() {
           {'\n'}- Identite : nom, prenom, nom d'utilisateur
           {'\n'}- Coordonnees : email, adresse postale, telephone
           {'\n'}- Donnees de compte : mot de passe (crypte), photo de profil
-          {'\n'}- Donnees bancaires (vendeurs) : IBAN pour recevoir les paiements (stocke de maniere securisee et chiffree)
-          {'\n'}- Donnees de paiement (acheteurs) : traitees par Stripe (nous ne stockons pas les numeros de carte bancaire)
+          {'\n'}- Donnees de paiement : traitees directement par Stripe (nous ne stockons aucune donnee bancaire)
           {'\n\n'}
           2.2. Donnees collectees automatiquement :
           {'\n'}- Donnees de connexion : adresse IP, type de navigateur, systeme d'exploitation
@@ -116,9 +115,10 @@ export default function PrivacyScreen() {
           {'\n'}- Direction
           {'\n\n'}
           4.2. Sous-traitants :
-          {'\n'}- Stripe Connect (paiements et versements) - Certifie PCI-DSS niveau 1
-          {'\n'}  * Donnees partagees : nom, prenom, email, IBAN, adresse (pour KYC/LCB-FT)
-          {'\n'}  * Finalite : traitement des paiements, versements aux vendeurs, conformite reglementaire
+          {'\n'}- Stripe Connect Standard (paiements) - Certifie PCI-DSS niveau 1
+          {'\n'}  * Les vendeurs creent leur propre compte Stripe
+          {'\n'}  * Les donnees de paiement sont gerees directement par Stripe
+          {'\n'}  * GEARTED ne stocke aucune donnee bancaire
           {'\n'}- Railway (hebergement) - Localisation UE
           {'\n'}- Cloudinary (stockage images)
           {'\n'}- Discord (authentification optionnelle)

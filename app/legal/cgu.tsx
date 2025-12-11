@@ -41,7 +41,7 @@ export default function CGUScreen() {
         <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
           Les presentes Conditions Generales d'Utilisation (CGU) ont pour objet de definir les modalites et conditions d'utilisation de la plateforme GEARTED, accessible via l'application mobile et le site web gearted.com.
           {'\n\n'}
-          GEARTED est une marketplace de mise en relation entre vendeurs et acheteurs de materiel d'airsoft d'occasion. La societe GEARTED SAS, au capital de 1 000 euros, immatriculee au RCS de Paris sous le numero [A COMPLETER], dont le siege social est situe au [ADRESSE A COMPLETER], agit en qualite d'intermediaire technique.
+          GEARTED est une marketplace de mise en relation entre vendeurs et acheteurs de materiel d'airsoft d'occasion. GEARTED est edite par un auto-entrepreneur immatricule en France (SIRET : [A COMPLETER]), agissant en qualite d'intermediaire technique.
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
@@ -121,33 +121,30 @@ export default function CGUScreen() {
         </Text>
         <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
           7.1. Architecture de paiement :
-          {'\n'}GEARTED utilise Stripe Connect en tant que plateforme de paiement. Ce systeme permet de :
-          {'\n'}- Collecter les paiements des acheteurs de maniere securisee
-          {'\n'}- Gerer les fonds en sequestre jusqu'a confirmation de la transaction
-          {'\n'}- Verser les fonds aux vendeurs sur leur compte bancaire (IBAN)
+          {'\n'}GEARTED utilise Stripe Connect Standard pour faciliter les paiements entre acheteurs et vendeurs. Ce systeme permet :
+          {'\n'}- Des paiements securises par carte bancaire
+          {'\n'}- Un transfert direct des fonds vers le compte Stripe du vendeur
+          {'\n'}- Le prelevement automatique de la commission GEARTED
           {'\n\n'}
           7.2. Role de GEARTED :
-          {'\n'}GEARTED agit en qualite d'intermediaire de paiement. Les fonds des acheteurs sont collectes par GEARTED via Stripe, puis reverses aux vendeurs apres deduction des commissions. GEARTED ne stocke aucune donnee bancaire complete.
+          {'\n'}GEARTED agit uniquement en qualite d'intermediaire technique. Les paiements sont effectues directement entre l'acheteur et le vendeur via Stripe. GEARTED ne detient pas les fonds et n'intervient pas dans le flux de paiement, hormis le prelevement de sa commission.
           {'\n\n'}
           7.3. Commissions :
-          {'\n'}- Commission vendeur : 5% du prix de vente TTC (debitee lors du versement)
-          {'\n'}- Frais de service acheteur : 5% du prix d'achat TTC (ajoutes au montant paye)
-          {'\n'}- Total commission GEARTED : 10% par transaction
+          {'\n'}- Commission prelevee sur chaque transaction : 10% du prix de vente TTC
+          {'\n'}- La commission est automatiquement deduite lors du paiement
+          {'\n'}- Le vendeur recoit 90% du prix de vente
           {'\n\n'}
-          7.4. Versement aux vendeurs :
-          {'\n'}Le vendeur recoit le paiement sur son compte bancaire (IBAN renseigne dans son profil) :
-          {'\n'}- Apres confirmation de reception par l'acheteur, ou
-          {'\n'}- Automatiquement apres un delai de 14 jours sans signalement de probleme
-          {'\n'}- Delai de virement : 2 a 5 jours ouvrables apres validation
+          7.4. Obligations du vendeur :
+          {'\n'}Pour vendre sur GEARTED, le vendeur doit :
+          {'\n'}- Creer un compte Stripe Connect (gratuit et rapide)
+          {'\n'}- Completer la verification d'identite requise par Stripe (KYC)
+          {'\n'}- Maintenir son compte Stripe actif et en regle
           {'\n\n'}
-          7.5. Obligations du vendeur :
-          {'\n'}Pour recevoir les paiements, le vendeur doit :
-          {'\n'}- Renseigner un IBAN valide dans son profil
-          {'\n'}- Fournir les informations d'identite requises par Stripe (conformite KYC)
-          {'\n'}- Maintenir ses informations a jour
+          7.5. Versement des fonds :
+          {'\n'}Les fonds sont verses directement sur le compte Stripe du vendeur lors du paiement. Le vendeur peut ensuite transferer ses fonds vers son compte bancaire selon les conditions de Stripe (generalement 2-7 jours ouvrables).
           {'\n\n'}
-          7.6. Sequestre et litiges :
-          {'\n'}En cas de litige, GEARTED peut bloquer les fonds jusqu'a resolution. La decision de GEARTED concernant la liberation ou le remboursement des fonds est definitive sur la plateforme.
+          7.6. Litiges :
+          {'\n'}En cas de litige entre acheteur et vendeur, les parties doivent d'abord tenter de resoudre le probleme a l'amiable via la messagerie GEARTED. GEARTED peut servir de mediateur mais n'est pas responsable des transactions entre utilisateurs.
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
@@ -169,7 +166,7 @@ export default function CGUScreen() {
           ARTICLE 9 - PROPRIETE INTELLECTUELLE
         </Text>
         <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 20 }}>
-          9.1. La marque GEARTED, le logo, et l'ensemble des elements de la plateforme (design, textes, images, code source) sont la propriete exclusive de GEARTED SAS.
+          9.1. La marque GEARTED, le logo, et l'ensemble des elements de la plateforme (design, textes, images, code source) sont la propriete exclusive de GEARTED.
           {'\n\n'}
           9.2. Toute reproduction, representation ou exploitation non autorisee est interdite et constitue une contrefacon sanctionnee par le Code de la propriete intellectuelle.
         </Text>
@@ -204,9 +201,9 @@ export default function CGUScreen() {
         <Text style={{ fontSize: 14, color: t.text, lineHeight: 22, marginBottom: 40 }}>
           Pour toute question concernant les presentes CGU :
           {'\n\n'}
-          GEARTED SAS
+          GEARTED
           {'\n'}Email : contact@gearted.com
-          {'\n'}Adresse : [A COMPLETER]
+          {'\n'}Site web : gearted.eu
         </Text>
       </ScrollView>
     </SafeAreaView>

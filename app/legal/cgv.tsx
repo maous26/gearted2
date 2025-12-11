@@ -41,11 +41,11 @@ export default function CGVScreen() {
         <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
           Les presentes Conditions Generales de Vente (CGV) regissent les relations contractuelles entre :
           {'\n\n'}
-          - GEARTED SAS, societe par actions simplifiee au capital de 1 000 euros, immatriculee au RCS de Paris sous le numero [A COMPLETER], dont le siege social est situe au [ADRESSE], ci-apres "GEARTED" ou "la Plateforme"
+          - GEARTED, edite par un auto-entrepreneur immatricule en France (SIRET : [A COMPLETER]), ci-apres "GEARTED" ou "la Plateforme"
           {'\n\n'}
           - Et toute personne physique ou morale utilisant les services payants de la plateforme, ci-apres "l'Utilisateur"
           {'\n\n'}
-          GEARTED est une marketplace permettant la mise en relation entre vendeurs et acheteurs de materiel d'airsoft d'occasion.
+          GEARTED est une marketplace permettant la mise en relation entre vendeurs et acheteurs de materiel d'airsoft d'occasion. Les transactions sont effectuees directement entre vendeurs et acheteurs via Stripe Connect.
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
@@ -58,15 +58,13 @@ export default function CGVScreen() {
           {'\n'}- Consultation des annonces
           {'\n'}- Messagerie
           {'\n\n'}
-          1.2. Commissions sur les ventes :
-          {'\n'}- Commission vendeur : 5% du prix de vente TTC
-          {'\n'}- Frais de service acheteur : 5% du prix d'achat TTC
-          {'\n'}- Total commission GEARTED : 10% par transaction
+          1.2. Commission sur les ventes :
+          {'\n'}- Commission GEARTED : 10% du prix de vente TTC
+          {'\n'}- La commission est automatiquement prelevee lors du paiement
+          {'\n'}- Le vendeur recoit 90% du prix de vente directement sur son compte Stripe
           {'\n\n'}
-          1.3. Options premium (facultatives) :
+          1.3. Options premium (facultatives, a venir) :
           {'\n'}- Boost d'annonce : 2,99 EUR TTC (visibilite accrue pendant 7 jours)
-          {'\n'}- Expertise Gearted : 19,90 EUR TTC (verification de l'article par un expert)
-          {'\n'}- Assurance Acheteur : 4,99 EUR TTC (protection contre les defauts non signales)
           {'\n\n'}
           1.4. GEARTED se reserve le droit de modifier ses tarifs. Les modifications seront communiquees aux utilisateurs avec un preavis de 30 jours.
         </Text>
@@ -75,15 +73,17 @@ export default function CGVScreen() {
           ARTICLE 2 - PROCESSUS DE VENTE
         </Text>
         <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
-          2.1. Le vendeur publie une annonce decrivant precisement l'article a vendre.
+          2.1. Le vendeur cree un compte Stripe Connect (verification d'identite requise par Stripe).
           {'\n\n'}
-          2.2. L'acheteur interesse procede au paiement securise via la plateforme.
+          2.2. Le vendeur publie une annonce decrivant precisement l'article a vendre.
           {'\n\n'}
-          2.3. Le vendeur est notifie de la vente et doit expedier l'article sous 5 jours ouvrables.
+          2.3. L'acheteur interesse procede au paiement securise via la plateforme.
           {'\n\n'}
-          2.4. L'acheteur dispose de 48 heures apres reception pour signaler tout probleme.
+          2.4. Le paiement est transfere directement sur le compte Stripe du vendeur (moins la commission GEARTED de 10%).
           {'\n\n'}
-          2.5. Passe ce delai, ou apres validation de l'acheteur, les fonds sont verses au vendeur (sous deduction de la commission).
+          2.5. Le vendeur est notifie de la vente et doit expedier l'article sous 5 jours ouvrables.
+          {'\n\n'}
+          2.6. L'acheteur et le vendeur communiquent via la messagerie GEARTED pour le suivi.
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
@@ -91,42 +91,29 @@ export default function CGVScreen() {
         </Text>
         <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
           3.1. Infrastructure de paiement :
-          {'\n'}GEARTED utilise Stripe Connect comme infrastructure de paiement. Cette solution permet :
-          {'\n'}- La collecte securisee des paiements acheteurs
-          {'\n'}- La gestion des fonds en sequestre (escrow)
-          {'\n'}- Le versement aux vendeurs via virement bancaire (IBAN)
+          {'\n'}GEARTED utilise Stripe Connect Standard comme infrastructure de paiement. Cette solution permet des paiements directs entre acheteurs et vendeurs, sans que GEARTED ne detienne les fonds.
           {'\n\n'}
           3.2. Moyens de paiement acceptes :
           {'\n'}- Cartes bancaires (Visa, Mastercard, CB, American Express)
           {'\n'}- Apple Pay
           {'\n'}- Google Pay
-          {'\n'}- Autres moyens de paiement proposes par Stripe
           {'\n\n'}
-          3.3. Montant total paye par l'acheteur :
-          {'\n'}- Prix de l'article fixe par le vendeur
-          {'\n'}- Frais de service GEARTED : 5% du prix de l'article
-          {'\n'}- Options premium eventuelles (Expertise, Assurance)
-          {'\n'}- Frais de livraison (selon le mode choisi)
+          3.3. Flux de paiement :
+          {'\n'}- L'acheteur paye le prix de l'article + frais de livraison
+          {'\n'}- Le paiement est directement transfere sur le compte Stripe du vendeur
+          {'\n'}- La commission GEARTED (10%) est automatiquement prelevee
+          {'\n'}- Le vendeur recoit 90% du prix de vente
           {'\n\n'}
-          3.4. Sequestre des fonds :
-          {'\n'}Les fonds payes par l'acheteur sont collectes par GEARTED via Stripe et conserves en sequestre jusqu'a :
-          {'\n'}- Confirmation de reception validee par l'acheteur, ou
-          {'\n'}- Expiration du delai de 14 jours sans signalement de probleme
+          3.4. Versement au vendeur :
+          {'\n'}Les fonds sont disponibles sur le compte Stripe du vendeur immediatement apres paiement. Le vendeur peut ensuite virer ses fonds vers son compte bancaire selon les delais Stripe (generalement 2-7 jours ouvrables).
           {'\n\n'}
-          3.5. Versement au vendeur :
-          {'\n'}Une fois la transaction validee, les fonds sont verses au vendeur par virement bancaire :
-          {'\n'}- Montant verse = Prix de vente - Commission vendeur (5%)
-          {'\n'}- Delai de virement : 2 a 5 jours ouvrables
-          {'\n'}- Le vendeur doit avoir renseigne un IBAN valide dans son profil
+          3.5. Obligations du vendeur :
+          {'\n'}- Creer et maintenir un compte Stripe Connect actif
+          {'\n'}- Completer la verification d'identite Stripe (KYC)
+          {'\n'}- Configurer son compte bancaire dans Stripe pour les virements
           {'\n\n'}
-          3.6. Obligations du vendeur pour recevoir les paiements :
-          {'\n'}- Renseigner un IBAN valide au format SEPA
-          {'\n'}- Fournir les informations d'identite requises (verification Stripe/KYC)
-          {'\n'}- Etre titulaire du compte bancaire renseigne
-          {'\n'}- Maintenir ses informations bancaires a jour
-          {'\n\n'}
-          3.7. Conformite reglementaire :
-          {'\n'}GEARTED et son prestataire Stripe sont soumis aux obligations de lutte contre le blanchiment d'argent (LCB-FT). A ce titre, des verifications d'identite peuvent etre demandees aux utilisateurs.
+          3.6. Important :
+          {'\n'}GEARTED n'intervient pas dans le flux de paiement et ne detient pas les fonds. Les transactions sont directes entre acheteurs et vendeurs via Stripe. GEARTED agit uniquement en tant qu'intermediaire technique.
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
@@ -192,28 +179,27 @@ export default function CGVScreen() {
         <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
           7.1. En cas de litige entre acheteur et vendeur, les parties doivent d'abord tenter de trouver une solution amiable via la messagerie GEARTED.
           {'\n\n'}
-          7.2. Si aucun accord n'est trouve sous 7 jours, l'une des parties peut ouvrir un litige aupres de GEARTED.
+          7.2. GEARTED peut servir de mediateur mais ne detient pas les fonds. Les remboursements eventuels doivent etre effectues directement entre les parties ou via les mecanismes de contestation Stripe.
           {'\n\n'}
           7.3. GEARTED se reserve le droit de :
           {'\n'}- Demander des preuves (photos, videos, documents)
-          {'\n'}- Bloquer les fonds pendant l'enquete
-          {'\n'}- Statuer sur le litige et proceder au remboursement si necessaire
+          {'\n'}- Suspendre les comptes des utilisateurs en cas de comportement frauduleux
+          {'\n'}- Exclure definitivement les utilisateurs ne respectant pas les CGU/CGV
           {'\n\n'}
-          7.4. La decision de GEARTED est definitive concernant les fonds detenus sur la plateforme. Les parties conservent la possibilite de recourir aux tribunaux competents.
+          7.4. Les parties conservent la possibilite de recourir aux tribunaux competents ou aux mecanismes de contestation de Stripe pour les problemes de paiement.
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
           ARTICLE 8 - REMBOURSEMENTS
         </Text>
         <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 20 }}>
-          8.1. En cas de remboursement valide par GEARTED :
-          {'\n'}- L'acheteur est rembourse du prix de l'article et des frais de service
-          {'\n'}- Les frais de livraison ne sont rembourses que si l'article n'a pas ete expedie
-          {'\n'}- Les options premium (expertise, assurance) ne sont pas remboursables
+          8.1. Les remboursements sont geres directement entre l'acheteur et le vendeur, ou via Stripe :
+          {'\n'}- Le vendeur peut effectuer un remboursement depuis son compte Stripe
+          {'\n'}- L'acheteur peut ouvrir une contestation (chargeback) aupres de sa banque ou via Stripe
           {'\n\n'}
-          8.2. Le remboursement est effectue sous 14 jours par le meme moyen de paiement que celui utilise pour l'achat.
+          8.2. GEARTED ne detenant pas les fonds, ne peut pas proceder directement aux remboursements.
           {'\n\n'}
-          8.3. En cas de retour, les frais de retour sont a la charge de l'acheteur, sauf si le vendeur a commis une faute (article non conforme, defaut cache).
+          8.3. En cas de retour accepte, les frais de retour sont a la charge de l'acheteur, sauf accord contraire entre les parties.
         </Text>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: t.heading, marginBottom: 12 }}>
@@ -256,12 +242,11 @@ export default function CGVScreen() {
           ARTICLE 12 - CONTACT
         </Text>
         <Text style={{ fontSize: 14, color: t.heading, lineHeight: 22, marginBottom: 40 }}>
-          GEARTED SAS
+          GEARTED
           {'\n'}Email : contact@gearted.com
-          {'\n'}Adresse : [A COMPLETER]
-          {'\n'}Numero de TVA : [A COMPLETER]
+          {'\n'}Site web : gearted.eu
           {'\n\n'}
-          Service client disponible du lundi au vendredi, 9h-18h.
+          Service client disponible par email.
         </Text>
       </ScrollView>
     </SafeAreaView>
