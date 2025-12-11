@@ -673,8 +673,7 @@ export class ExpertService {
       return {
         success: true,
         expertService: updatedExpert,
-        captureResult,
-        message: 'Réception confirmée. Fonds capturés et transférés au vendeur.',
+        message: 'Réception confirmée. Le vendeur a déjà été payé via Stripe Connect.',
       };
     } catch (error: any) {
       console.error('[Expert] Failed to confirm delivery by buyer:', error);
