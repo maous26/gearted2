@@ -8,11 +8,11 @@
 
 Les présentes Conditions Générales de Vente (CGV) régissent les relations contractuelles entre :
 
-- **GEARTED SAS**, société par actions simplifiée au capital de 1 000 euros, immatriculée au RCS de Paris sous le numéro [A COMPLETER], dont le siège social est situé au [ADRESSE], ci-après "GEARTED" ou "la Plateforme"
+- **GEARTED**, édité par un auto-entrepreneur immatriculé en France (SIRET : [A COMPLETER]), ci-après "GEARTED" ou "la Plateforme"
 
 - Et toute personne physique ou morale utilisant les services payants de la plateforme, ci-après "l'Utilisateur"
 
-GEARTED est une marketplace permettant la mise en relation entre vendeurs et acheteurs de matériel d'airsoft d'occasion.
+GEARTED est une marketplace permettant la mise en relation entre vendeurs et acheteurs de matériel d'airsoft d'occasion. Les transactions sont effectuées directement entre vendeurs et acheteurs via Stripe Connect.
 
 ---
 
@@ -24,15 +24,13 @@ GEARTED est une marketplace permettant la mise en relation entre vendeurs et ach
 - Consultation des annonces
 - Messagerie
 
-**1.2. Commissions sur les ventes :**
-- Commission vendeur : 5% du prix de vente TTC
-- Frais de service acheteur : 5% du prix d'achat TTC
-- Total commission GEARTED : 10% par transaction
+**1.2. Commission sur les ventes :**
+- Commission GEARTED : 10% du prix de vente TTC
+- La commission est automatiquement prélevée lors du paiement
+- Le vendeur reçoit 90% du prix de vente directement sur son compte Stripe
 
-**1.3. Options premium (facultatives) :**
+**1.3. Options premium (facultatives, à venir) :**
 - Boost d'annonce : 2,99 € TTC (visibilité accrue pendant 7 jours)
-- Expertise Gearted : 19,90 € TTC (vérification de l'article par un expert)
-- Assurance Acheteur : 4,99 € TTC (protection contre les défauts non signalés)
 
 **1.4.** GEARTED se réserve le droit de modifier ses tarifs. Les modifications seront communiquées aux utilisateurs avec un préavis de 30 jours.
 
@@ -40,15 +38,17 @@ GEARTED est une marketplace permettant la mise en relation entre vendeurs et ach
 
 ## ARTICLE 2 - PROCESSUS DE VENTE
 
-**2.1.** Le vendeur publie une annonce décrivant précisément l'article à vendre.
+**2.1.** Le vendeur crée un compte Stripe Connect (vérification d'identité requise par Stripe).
 
-**2.2.** L'acheteur intéressé procède au paiement sécurisé via la plateforme.
+**2.2.** Le vendeur publie une annonce décrivant précisément l'article à vendre.
 
-**2.3.** Le vendeur est notifié de la vente et doit expédier l'article sous 5 jours ouvrables.
+**2.3.** L'acheteur intéressé procède au paiement sécurisé via la plateforme.
 
-**2.4.** L'acheteur dispose de 48 heures après réception pour signaler tout problème.
+**2.4.** Le paiement est transféré directement sur le compte Stripe du vendeur (moins la commission GEARTED de 10%).
 
-**2.5.** Passé ce délai, ou après validation de l'acheteur, les fonds sont versés au vendeur (sous déduction de la commission).
+**2.5.** Le vendeur est notifié de la vente et doit expédier l'article sous 5 jours ouvrables.
+
+**2.6.** L'acheteur et le vendeur communiquent via la messagerie GEARTED pour le suivi.
 
 ---
 
@@ -56,67 +56,52 @@ GEARTED est une marketplace permettant la mise en relation entre vendeurs et ach
 
 **3.1. Infrastructure de paiement :**
 
-GEARTED utilise **Stripe Connect** comme infrastructure de paiement. Cette solution permet :
-- La collecte sécurisée des paiements acheteurs
-- La gestion des fonds en séquestre (escrow)
-- Le versement aux vendeurs via virement bancaire (IBAN)
+GEARTED utilise Stripe Connect Standard comme infrastructure de paiement. Cette solution permet des paiements directs entre acheteurs et vendeurs, sans que GEARTED ne détienne les fonds.
 
 **3.2. Moyens de paiement acceptés :**
 - Cartes bancaires (Visa, Mastercard, CB, American Express)
 - Apple Pay
 - Google Pay
-- Autres moyens de paiement proposés par Stripe
 
-**3.3. Montant total payé par l'acheteur :**
-- Prix de l'article fixé par le vendeur
-- Frais de service GEARTED : 5% du prix de l'article
-- Options premium éventuelles (Expertise, Assurance)
-- Frais de livraison (selon le mode choisi)
+**3.3. Flux de paiement :**
+- L'acheteur paye le prix de l'article + frais de livraison
+- Le paiement est directement transféré sur le compte Stripe du vendeur
+- La commission GEARTED (10%) est automatiquement prélevée
+- Le vendeur reçoit 90% du prix de vente
 
-**3.4. Séquestre des fonds :**
+**3.4. Versement au vendeur :**
 
-Les fonds payés par l'acheteur sont collectés par GEARTED via Stripe et conservés en séquestre jusqu'à :
-- Confirmation de réception validée par l'acheteur, ou
-- Expiration du délai de 14 jours sans signalement de problème
+Les fonds sont disponibles sur le compte Stripe du vendeur immédiatement après paiement. Le vendeur peut ensuite virer ses fonds vers son compte bancaire selon les délais Stripe (généralement 2-7 jours ouvrables).
 
-**3.5. Versement au vendeur :**
+**3.5. Obligations du vendeur :**
+- Créer et maintenir un compte Stripe Connect actif
+- Compléter la vérification d'identité Stripe (KYC)
+- Configurer son compte bancaire dans Stripe pour les virements
 
-Une fois la transaction validée, les fonds sont versés au vendeur par virement bancaire :
-- Montant versé = Prix de vente - Commission vendeur (5%)
-- Délai de virement : 2 à 5 jours ouvrables
-- Le vendeur doit avoir renseigné un IBAN valide dans son profil
+**3.6. Important :**
 
-**3.6. Obligations du vendeur pour recevoir les paiements :**
-- Renseigner un IBAN valide au format SEPA
-- Fournir les informations d'identité requises (vérification Stripe/KYC)
-- Être titulaire du compte bancaire renseigné
-- Maintenir ses informations bancaires à jour
-
-**3.7. Conformité réglementaire :**
-
-GEARTED et son prestataire Stripe sont soumis aux obligations de lutte contre le blanchiment d'argent (LCB-FT). À ce titre, des vérifications d'identité peuvent être demandées aux utilisateurs.
+GEARTED n'intervient pas dans le flux de paiement et ne détient pas les fonds. Les transactions sont directes entre acheteurs et vendeurs via Stripe. GEARTED agit uniquement en tant qu'intermédiaire technique.
 
 ---
 
 ## ARTICLE 4 - LIVRAISON
 
 **4.1. Le processus de livraison est organisé comme suit :**
-- Le VENDEUR renseigne les dimensions et le poids du colis lors de la création de l'annonce (ou ultérieurement avant achat)
+- Le VENDEUR renseigne les dimensions et le poids du colis lors de la création de l'annonce
 - L'ACHETEUR choisit le mode de livraison et paye les frais de transport lors de l'achat
 - Le VENDEUR génère l'étiquette d'expédition via la plateforme GEARTED
 - Le VENDEUR emballe et dépose le colis au point de collecte indiqué
 
 **4.2. Le vendeur doit :**
-- Renseigner les dimensions et le poids du colis lors de la création de l'annonce ou avant la finalisation de l'achat
+- Renseigner les dimensions et le poids du colis
 - Générer l'étiquette d'expédition une fois l'achat finalisé
 - Emballer soigneusement l'article
-- Déposer le colis dans les 5 jours ouvrables suivant la génération de l'étiquette
+- Déposer le colis dans les 5 jours ouvrables
 
 **4.3. L'acheteur doit :**
 - Renseigner son adresse de livraison
 - Choisir le mode de livraison parmi les options proposées
 - Payer les frais de transport lors de l'achat
-- L'achat ne peut être finalisé que si le vendeur a renseigné les dimensions du colis
 
 **4.4. Modes de livraison possibles :**
 - Point relais (Mondial Relay)
@@ -149,37 +134,32 @@ Le vendeur est tenu de la garantie des vices cachés rendant l'article impropre 
 
 Pour les ventes professionnelles, le vendeur est tenu de livrer un bien conforme à la description.
 
-**6.3. Assurance Acheteur GEARTED (optionnelle) :**
-
-Cette protection couvre les défauts non signalés dans l'annonce, constatables à réception. Elle ne couvre pas l'usure normale ni les dégradations post-réception.
-
 ---
 
 ## ARTICLE 7 - LITIGES ET RÉCLAMATIONS
 
 **7.1.** En cas de litige entre acheteur et vendeur, les parties doivent d'abord tenter de trouver une solution amiable via la messagerie GEARTED.
 
-**7.2.** Si aucun accord n'est trouvé sous 7 jours, l'une des parties peut ouvrir un litige auprès de GEARTED.
+**7.2.** GEARTED peut servir de médiateur mais ne détient pas les fonds. Les remboursements éventuels doivent être effectués directement entre les parties ou via les mécanismes de contestation Stripe.
 
 **7.3.** GEARTED se réserve le droit de :
 - Demander des preuves (photos, vidéos, documents)
-- Bloquer les fonds pendant l'enquête
-- Statuer sur le litige et procéder au remboursement si nécessaire
+- Suspendre les comptes des utilisateurs en cas de comportement frauduleux
+- Exclure définitivement les utilisateurs ne respectant pas les CGU/CGV
 
-**7.4.** La décision de GEARTED est définitive concernant les fonds détenus sur la plateforme. Les parties conservent la possibilité de recourir aux tribunaux compétents.
+**7.4.** Les parties conservent la possibilité de recourir aux tribunaux compétents ou aux mécanismes de contestation de Stripe pour les problèmes de paiement.
 
 ---
 
 ## ARTICLE 8 - REMBOURSEMENTS
 
-**8.1.** En cas de remboursement validé par GEARTED :
-- L'acheteur est remboursé du prix de l'article et des frais de service
-- Les frais de livraison ne sont remboursés que si l'article n'a pas été expédié
-- Les options premium (expertise, assurance) ne sont pas remboursables
+**8.1.** Les remboursements sont gérés directement entre l'acheteur et le vendeur, ou via Stripe :
+- Le vendeur peut effectuer un remboursement depuis son compte Stripe
+- L'acheteur peut ouvrir une contestation (chargeback) auprès de sa banque ou via Stripe
 
-**8.2.** Le remboursement est effectué sous 14 jours par le même moyen de paiement que celui utilisé pour l'achat.
+**8.2.** GEARTED ne détenant pas les fonds, ne peut pas procéder directement aux remboursements.
 
-**8.3.** En cas de retour, les frais de retour sont à la charge de l'acheteur, sauf si le vendeur a commis une faute (article non conforme, défaut caché).
+**8.3.** En cas de retour accepté, les frais de retour sont à la charge de l'acheteur, sauf accord contraire entre les parties.
 
 ---
 
@@ -219,9 +199,8 @@ Conformément aux articles L.611-1 et suivants du Code de la consommation, le co
 
 ## ARTICLE 12 - CONTACT
 
-**GEARTED SAS**
+**GEARTED**
 - Email : contact@gearted.com
-- Adresse : [A COMPLETER]
-- Numéro de TVA : [A COMPLETER]
+- Site web : gearted.eu
 
-Service client disponible du lundi au vendredi, 9h-18h.
+Service client disponible par email.

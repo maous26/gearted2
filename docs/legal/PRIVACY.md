@@ -4,7 +4,7 @@
 
 ---
 
-GEARTED SAS s'engage à protéger la vie privée de ses utilisateurs. Cette politique de confidentialité explique comment nous collectons, utilisons, stockons et protégeons vos données personnelles conformément au Règlement Général sur la Protection des Données (RGPD) et à la loi Informatique et Libertés.
+GEARTED s'engage à protéger la vie privée de ses utilisateurs. Cette politique de confidentialité explique comment nous collectons, utilisons, stockons et protégeons vos données personnelles conformément au Règlement Général sur la Protection des Données (RGPD) et à la loi Informatique et Libertés.
 
 ---
 
@@ -12,10 +12,10 @@ GEARTED SAS s'engage à protéger la vie privée de ses utilisateurs. Cette poli
 
 Le responsable du traitement de vos données personnelles est :
 
-**GEARTED SAS**
-- Adresse : [A COMPLETER]
-- Email DPO : dpo@gearted.com
-- RCS Paris : [A COMPLETER]
+**GEARTED**
+- Auto-entrepreneur (SIRET : [A COMPLETER])
+- Email : contact@gearted.com
+- Site web : gearted.eu
 
 ---
 
@@ -25,8 +25,7 @@ Le responsable du traitement de vos données personnelles est :
 - **Identité** : nom, prénom, nom d'utilisateur
 - **Coordonnées** : email, adresse postale, téléphone
 - **Données de compte** : mot de passe (crypté), photo de profil
-- **Données bancaires (vendeurs)** : IBAN pour recevoir les paiements (stocké de manière sécurisée et chiffrée)
-- **Données de paiement (acheteurs)** : traitées par Stripe (nous ne stockons pas les numéros de carte bancaire)
+- **Données de paiement** : traitées directement par Stripe (nous ne stockons aucune donnée bancaire)
 
 ### 2.2. Données collectées automatiquement :
 - **Données de connexion** : adresse IP, type de navigateur, système d'exploitation
@@ -47,7 +46,7 @@ Vos données sont traitées pour les finalités suivantes :
 - Gestion de votre compte utilisateur
 - Publication et gestion des annonces
 - Mise en relation vendeurs/acheteurs
-- Traitement des paiements et commissions
+- Facilitation des paiements via Stripe
 - Service de messagerie
 - Service client
 
@@ -60,7 +59,6 @@ Vos données sont traitées pour les finalités suivantes :
 ### 3.3. Obligations légales :
 - Conservation des données de transaction (10 ans)
 - Réponse aux réquisitions judiciaires
-- Déclarations fiscales
 
 ### 3.4. Consentement (optionnel) :
 - Newsletters et communications commerciales
@@ -77,16 +75,15 @@ Vos données peuvent être communiquées aux destinataires suivants :
 - Équipe technique
 - Service client
 - Service modération
-- Direction
 
 ### 4.2. Sous-traitants :
 
-| Sous-traitant | Service | Certification | Données partagées |
-|---------------|---------|---------------|-------------------|
-| **Stripe Connect** | Paiements et versements | PCI-DSS niveau 1 | Nom, prénom, email, IBAN, adresse (pour KYC/LCB-FT) |
-| **Railway** | Hébergement | Localisation UE | Données techniques |
-| **Cloudinary** | Stockage images | - | Photos des annonces |
-| **Discord** | Authentification (optionnel) | - | Identifiant, email, avatar |
+| Sous-traitant | Service | Notes |
+|---------------|---------|-------|
+| **Stripe Connect Standard** | Paiements | Certifié PCI-DSS niveau 1. Les vendeurs créent leur propre compte Stripe. Les données de paiement sont gérées directement par Stripe. GEARTED ne stocke aucune donnée bancaire. |
+| **Railway** | Hébergement | Localisation UE |
+| **Cloudinary** | Stockage images | Photos des annonces |
+| **Discord** | Authentification (optionnel) | Identifiant, email, avatar |
 
 Tous nos sous-traitants sont soumis à des obligations contractuelles de confidentialité et de sécurité conformes au RGPD.
 
@@ -107,7 +104,7 @@ Certains de nos sous-traitants peuvent être situés hors de l'Union Européenne
 - Le Data Privacy Framework (pour les transferts vers les USA)
 - Ou des garanties équivalentes assurant un niveau de protection adéquat
 
-Vous pouvez obtenir une copie des garanties sur demande : dpo@gearted.com
+Vous pouvez obtenir une copie des garanties sur demande : contact@gearted.com
 
 ---
 
@@ -118,7 +115,7 @@ Vos données sont conservées selon les durées suivantes :
 | Type de données | Durée de conservation |
 |-----------------|----------------------|
 | Données de compte | Durée d'utilisation + 3 ans après suppression |
-| Données de transaction | 10 ans (obligations comptables et fiscales) |
+| Données de transaction | 10 ans (obligations comptables) |
 | Données de connexion | 1 an (obligations légales) |
 | Messages | 3 ans après la dernière activité |
 | Logs de sécurité | 1 an |
@@ -154,8 +151,7 @@ Vous opposer au traitement de vos données pour motif légitime, ou à la prospe
 Définir des directives relatives au sort de vos données après votre décès.
 
 ### Pour exercer vos droits :
-- **Email** : dpo@gearted.com
-- **Adresse** : [A COMPLETER]
+- **Email** : contact@gearted.com
 
 Nous répondons sous 1 mois maximum (prolongeable de 2 mois en cas de complexité).
 
@@ -175,8 +171,6 @@ GEARTED met en œuvre des mesures techniques et organisationnelles appropriées 
 - Accès restreint aux données (principe du moindre privilège)
 - Sauvegardes régulières et chiffrées
 - Tests de sécurité réguliers
-- Formation du personnel
-- Procédures de gestion des incidents
 
 En cas de violation de données susceptible d'engendrer un risque élevé pour vos droits et libertés, vous serez informé dans les meilleurs délais.
 
@@ -216,8 +210,6 @@ Cette politique de confidentialité peut être modifiée. En cas de modification
 
 Pour toute question relative à cette politique ou à vos données personnelles :
 
-**Délégué à la Protection des Données (DPO) :**
-- Email : dpo@gearted.com
-
-**Service client :**
+**GEARTED**
 - Email : contact@gearted.com
+- Site web : gearted.eu

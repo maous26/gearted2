@@ -8,7 +8,7 @@
 
 Les présentes Conditions Générales d'Utilisation (CGU) ont pour objet de définir les modalités et conditions d'utilisation de la plateforme GEARTED, accessible via l'application mobile et le site web gearted.com.
 
-GEARTED est une marketplace de mise en relation entre vendeurs et acheteurs de matériel d'airsoft d'occasion. La société GEARTED SAS, au capital de 1 000 euros, immatriculée au RCS de Paris sous le numéro [A COMPLETER], dont le siège social est situé au [ADRESSE A COMPLETER], agit en qualité d'intermédiaire technique.
+GEARTED est une marketplace de mise en relation entre vendeurs et acheteurs de matériel d'airsoft d'occasion. GEARTED est édité par un auto-entrepreneur immatriculé en France (SIRET : [A COMPLETER]), agissant en qualité d'intermédiaire technique.
 
 ---
 
@@ -39,8 +39,8 @@ GEARTED propose les services suivants :
 - Publication d'annonces de vente de matériel d'airsoft
 - Recherche et consultation d'annonces
 - Messagerie sécurisée entre utilisateurs
-- Système de paiement sécurisé via Stripe
-- Options premium : Boost d'annonce, Expertise Gearted, Assurance acheteur
+- Système de paiement sécurisé via Stripe Connect
+- Options premium : Boost d'annonce (à venir)
 
 GEARTED n'est pas partie aux transactions entre vendeurs et acheteurs. La plateforme agit uniquement en tant qu'intermédiaire technique.
 
@@ -83,37 +83,34 @@ GEARTED n'est pas partie aux transactions entre vendeurs et acheteurs. La platef
 
 **7.1. Architecture de paiement :**
 
-GEARTED utilise Stripe Connect en tant que plateforme de paiement. Ce système permet de :
-- Collecter les paiements des acheteurs de manière sécurisée
-- Gérer les fonds en séquestre jusqu'à confirmation de la transaction
-- Verser les fonds aux vendeurs sur leur compte bancaire (IBAN)
+GEARTED utilise Stripe Connect Standard pour faciliter les paiements entre acheteurs et vendeurs. Ce système permet :
+- Des paiements sécurisés par carte bancaire
+- Un transfert direct des fonds vers le compte Stripe du vendeur
+- Le prélèvement automatique de la commission GEARTED
 
 **7.2. Rôle de GEARTED :**
 
-GEARTED agit en qualité d'intermédiaire de paiement. Les fonds des acheteurs sont collectés par GEARTED via Stripe, puis reversés aux vendeurs après déduction des commissions. GEARTED ne stocke aucune donnée bancaire complète.
+GEARTED agit uniquement en qualité d'intermédiaire technique. Les paiements sont effectués directement entre l'acheteur et le vendeur via Stripe. GEARTED ne détient pas les fonds et n'intervient pas dans le flux de paiement, hormis le prélèvement de sa commission.
 
 **7.3. Commissions :**
-- Commission vendeur : 5% du prix de vente TTC (débitée lors du versement)
-- Frais de service acheteur : 5% du prix d'achat TTC (ajoutés au montant payé)
-- Total commission GEARTED : 10% par transaction
+- Commission prélevée sur chaque transaction : 10% du prix de vente TTC
+- La commission est automatiquement déduite lors du paiement
+- Le vendeur reçoit 90% du prix de vente
 
-**7.4. Versement aux vendeurs :**
+**7.4. Obligations du vendeur :**
 
-Le vendeur reçoit le paiement sur son compte bancaire (IBAN renseigné dans son profil) :
-- Après confirmation de réception par l'acheteur, ou
-- Automatiquement après un délai de 14 jours sans signalement de problème
-- Délai de virement : 2 à 5 jours ouvrables après validation
+Pour vendre sur GEARTED, le vendeur doit :
+- Créer un compte Stripe Connect (gratuit et rapide)
+- Compléter la vérification d'identité requise par Stripe (KYC)
+- Maintenir son compte Stripe actif et en règle
 
-**7.5. Obligations du vendeur :**
+**7.5. Versement des fonds :**
 
-Pour recevoir les paiements, le vendeur doit :
-- Renseigner un IBAN valide dans son profil
-- Fournir les informations d'identité requises par Stripe (conformité KYC)
-- Maintenir ses informations à jour
+Les fonds sont versés directement sur le compte Stripe du vendeur lors du paiement. Le vendeur peut ensuite transférer ses fonds vers son compte bancaire selon les conditions de Stripe (généralement 2-7 jours ouvrables).
 
-**7.6. Séquestre et litiges :**
+**7.6. Litiges :**
 
-En cas de litige, GEARTED peut bloquer les fonds jusqu'à résolution. La décision de GEARTED concernant la libération ou le remboursement des fonds est définitive sur la plateforme.
+En cas de litige entre acheteur et vendeur, les parties doivent d'abord tenter de résoudre le problème à l'amiable via la messagerie GEARTED. GEARTED peut servir de médiateur mais n'est pas responsable des transactions entre utilisateurs.
 
 ---
 
@@ -133,7 +130,7 @@ En cas de litige, GEARTED peut bloquer les fonds jusqu'à résolution. La décis
 
 ## ARTICLE 9 - PROPRIÉTÉ INTELLECTUELLE
 
-**9.1.** La marque GEARTED, le logo, et l'ensemble des éléments de la plateforme (design, textes, images, code source) sont la propriété exclusive de GEARTED SAS.
+**9.1.** La marque GEARTED, le logo, et l'ensemble des éléments de la plateforme (design, textes, images, code source) sont la propriété exclusive de GEARTED.
 
 **9.2.** Toute reproduction, représentation ou exploitation non autorisée est interdite et constitue une contrefaçon sanctionnée par le Code de la propriété intellectuelle.
 
@@ -165,6 +162,6 @@ En cas de litige, GEARTED peut bloquer les fonds jusqu'à résolution. La décis
 
 Pour toute question concernant les présentes CGU :
 
-**GEARTED SAS**
+**GEARTED**
 - Email : contact@gearted.com
-- Adresse : [A COMPLETER]
+- Site web : gearted.eu
